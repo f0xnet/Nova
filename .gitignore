@@ -4,3 +4,4 @@ server/bin/Release/NovaServer.exe
 server/bin/Release/server.log
 *.exe
 *.exe
+server/bin/Release/server.log

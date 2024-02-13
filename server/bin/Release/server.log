@@ -1345,3 +1345,9 @@ lled
 [INFO] [NetworkManager] Assigned socket to client: Port 65280, Client count: 1
 [INFO] [NetworkManager] New client connected: 127.0.0.1:53002
 [INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
