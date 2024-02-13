@@ -9,7 +9,9 @@
         "server/compile.bat": true,
         "._.git": true,
         ".gitignore": true,
-        ".gitattributes": true
+        ".gitattributes": true,
+        "client/bin/": true,
+        "server/bin/": true,
     },
     "editor.minimap.renderCharacters": false,
     "editor.minimap.enabled": false,
