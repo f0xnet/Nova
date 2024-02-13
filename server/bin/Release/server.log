@@ -1,0 +1,1338 @@
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [ClientClass] New client instance created: 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [ClientClass] New client instance created: 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53003
+[INFO] [ClientClass] New client instance created: 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 1
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 2
+[INFO] [ClientClass] New client instance created: 127.0.0.1:53003
+[INFO] [ClientClass] Received packet from 127.0.0.1:53003
+[INFO] [ClientClass] Packet stack size: 1
+[INFO] [ClientClass] Received packet from 127.0.0.1:53003
+[INFO] [ClientClass] Packet stack size: 2
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: 49191 (client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Assigned socket to client: 49192 (client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53003
+[INFO] [ClientClass] New client instance created: 127.0.0.1:53002
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 1
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 2
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 3
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 4
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 5
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 6
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 7
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 8
+[INFO] [ClientClass] Received packet from 127.0.0.1:53002
+[INFO] [ClientClass] Packet stack size: 9
+[INFO] [ClientClass] New client instance created: 127.0.0.1:53003
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 56384, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:57384
+[INFO] [NetworkManager] Assigned socket to client: Port 56385, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:49817
+[INFO] [ClientClass] New client instance created: 127.0.0.1:57384
+[INFO] [ClientClass] Received packet from 127.0.0.1:57384
+[INFO] [ClientClass] Packet stack size: 1
+[INFO] [ClientClass] Sent packet for debug
+[INFO] [ClientClass] Packet stack size: 0
+[INFO] [ClientClass] New client instance created: 127.0.0.1:49817
+[INFO] [ClientClass] Received packet from 127.0.0.1:49817
+[INFO] [ClientClass] Packet stack size: 1
+[INFO] [ClientClass] Sent packet for debug
+[INFO] [ClientClass] Packet stack size: 0
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 55820, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:56820
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:56820
+[INFO] [NetworkManager] Assigned socket to client: Port 55821, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:56820
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:56820
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 53254, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54254
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54254
+[INFO] [NetworkManager] Assigned socket to client: Port 53255, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54254
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54254
+[INFO] [NetworkManager] Assigned socket to client: Port 53256, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54255
+[INFO] [NetworkManager] Assigned socket to client: Port 53257, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54254
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54254
+[INFO] [NetworkManager] Assigned socket to client: Port 53258, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54254
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54255
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54254
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 53181, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54230
+[INFO] [NetworkManager] Assigned socket to client: Port 53182, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:55061
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54230
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:55061
+[INFO] [NetworkManager] Assigned socket to client: Port 53183, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54230
+[INFO] [NetworkManager] Assigned socket to client: Port 53184, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:55061
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:55061
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54230
+[INFO] [NetworkManager] Assigned socket to client: Port 53185, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] Assigned socket to client: Port 53186, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Thread 1 created
+[INFO] [NetworkManager] Thread 2 created
+[INFO] [NetworkManager] Thread 3 created
+[INFO] [NetworkManager] Thread 4 created
+[INFO] [NetworkManager] Thread 5 created
+[INFO] [NetworkManager] Thread 6 created
+[INFO] [NetworkManager] Thread 7 created
+[INFO] [NetworkManager] Thread 8 created
+[INFO] [NetworkManager] Thread 9 created
+[INFO] [NetworkManager] Thread 10 created
+[INFO] [NetworkManager] Thread 11 created
+[INFO] [NetworkManager] Thread 12 created
+[INFO] [NetworkManager] Thread 13 created
+[INFO] [NetworkManager] Thread 14 created
+[INFO] [NetworkManager] Thread 15 created
+[INFO] [NetworkManager] Thread 16 created
+[INFO] [NetworkManager] Thread 17 created
+[INFO] [NetworkManager] Thread 18 created
+[INFO] [NetworkManager] Thread 19 created
+[INFO] [NetworkManager] Thread 20 created
+[INFO] [NetworkManager] Thread 21 created
+[INFO] [NetworkManager] Thread 22 created
+[INFO] [NetworkManager] Thread 23 created
+[INFO] [NetworkManager] Thread 24 created
+[INFO] [NetworkManager] Thread 25 created
+[INFO] [NetworkManager] Thread 26 created
+[INFO] [NetworkManager] Thread 27 created
+[INFO] [NetworkManager] Thread 28 created
+[INFO] [NetworkManager] Thread 29 created
+[INFO] [NetworkManager] Thread 30 created
+[INFO] [NetworkManager] Thread 31 created
+[INFO] [NetworkManager] Thread 32 created
+[INFO] [NetworkManager] Thread 33 created
+[INFO] [NetworkManager] Thread 34 created
+[INFO] [NetworkManager] Thread 35 created
+[INFO] [NetworkManager] Thread 36 created
+[INFO] [NetworkManager] Thread 37 created
+[INFO] [NetworkManager] Thread 38 created
+[INFO] [NetworkManager] Thread 39 created
+[INFO] [NetworkManager] Thread 40 created
+[INFO] [NetworkManager] Thread 41 created
+[INFO] [NetworkManager] Thread 42 created
+[INFO] [NetworkManager] Thread 43 created
+[INFO] [NetworkManager] Thread 44 created
+[INFO] [NetworkManager] Thread 45 created
+[INFO] [NetworkManager] Thread 46 created
+[INFO] [NetworkManager] Thread 47 created
+[INFO] [NetworkManager] Thread 48 created
+[INFO] [NetworkManager] Thread 49 created
+[INFO] [NetworkManager] Thread 50 created
+[INFO] [NetworkManager] Thread 51 created
+[INFO] [NetworkManager] Thread 52 created
+[INFO] [NetworkManager] Thread 53 created
+[INFO] [NetworkManager] Thread 54 created
+[INFO] [NetworkManager] Thread 55 created
+[INFO] [NetworkManager] Thread 56 created
+[INFO] [NetworkManager] Thread 57 created
+[INFO] [NetworkManager] Thread 58 created
+[INFO] [NetworkManager] Thread 59 created
+[INFO] [NetworkManager] Thread 60 created
+[INFO] [NetworkManager] Thread 61 created
+[INFO] [NetworkManager] Thread 62 created
+[INFO] [NetworkManager] Thread 63 created
+[INFO] [NetworkManager] Thread 64 created
+[INFO] [NetworkManager] Thread 65 created
+[INFO] [NetworkManager] Thread 66 created
+[INFO] [NetworkManager] Thread 67 created
+[INFO] [NetworkManager] Thread 68 created
+[INFO] [NetworkManager] Thread 69 created
+[INFO] [NetworkManager] Thread 70 created
+[INFO] [NetworkManager] Thread 71 created
+[INFO] [NetworkManager] Thread 72 created
+[INFO] [NetworkManager] Thread 73 created
+[INFO] [NetworkManager] Thread 74 created
+[INFO] [NetworkManager] Thread 75 created
+[INFO] [NetworkManager] Thread 76 created
+[INFO] [NetworkManager] Thread 77 created
+[INFO] [NetworkManager] Thread 78 created
+[INFO] [NetworkManager] Thread 79 created
+[INFO] [NetworkManager] Thread 80 created
+[INFO] [NetworkManager] Thread 81 created
+[INFO] [NetworkManager] Thread 82 created
+[INFO] [NetworkManager] Thread 83 created
+[INFO] [NetworkManager] Thread 84 created
+[INFO] [NetworkManager] Thread 85 created
+[INFO] [NetworkManager] Thread 86 created
+[INFO] [NetworkManager] Thread 87 created
+[INFO] [NetworkManager] Thread 88 created
+[INFO] [NetworkManager] Thread 89 created
+[INFO] [NetworkManager] Thread 90 created
+[INFO] [NetworkManager] Thread 91 created
+[INFO] [NetworkManager] Thread 92 created
+[INFO] [NetworkManager] Thread 93 created
+[INFO] [NetworkManager] Thread 94 created
+[INFO] [NetworkManager] Thread 95 created
+[INFO] [NetworkManager] Thread 96 created
+[INFO] [NetworkManager] Thread 97 created
+[INFO] [NetworkManager] Thread 98 created
+[INFO] [NetworkManager] Thread 99 created
+[INFO] [NetworkManager] Thread 100 created
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Thread 1 started
+[INFO] [NetworkManager] Thread 2 started
+[INFO] [NetworkManager] Thread 3 started
+[INFO] [NetworkManager] Thread 4 started
+[INFO] [NetworkManager] Thread 5 started
+[INFO] [NetworkManager] Thread 6 started
+[INFO] [NetworkManager] Thread 7 started
+[INFO] [NetworkManager] Thread 8 started
+[INFO] [NetworkManager] Thread 9 started
+[INFO] [NetworkManager] Thread 10 started
+[INFO] [NetworkManager] Thread 15 started
+[INFO] [NetworkManager] Thread 44 started
+[INFO] [NetworkManager] Thread 13 started
+[INFO] [NetworkManager] Thread 14 started
+[INFO] [NetworkManager] Thread 11 started
+[INFO] [NetworkManager] Thread 17 started
+[INFO] [NetworkManager] Thread 16 started
+[INFO] [NetworkManager] Thread 18 started
+[INFO] [NetworkManager] Thread 19 started
+[INFO] [NetworkManager] Thread 20 started
+[INFO] [NetworkManager] Thread 21 started
+[INFO] [NetworkManager] Thread 22 started
+[INFO] [NetworkManager] Thread 24 started
+[INFO] [NetworkManager] Thread 23 started
+[INFO] [NetworkManager] Thread 25 started
+[INFO] [NetworkManager] Thread 26 started
+[INFO] [NetworkManager] Thread 27 started
+[INFO] [NetworkManager] Thread 29 started
+[INFO] [NetworkManager] Thread 28 started
+[INFO] [NetworkManager] Thread 31 started
+[INFO] [NetworkManager] Thread 32 started
+[INFO] [NetworkManager] Thread 143 started
+[INFO] [NetworkManager] Thread 149 started
+[INFO] [NetworkManager] Thread 33 started
+[INFO] [NetworkManager] Thread 37 started
+[INFO] [NetworkManager] Thread 36 started
+[INFO] [NetworkManager] Thread 35 started
+[INFO] [NetworkManager] Thread 38 started
+[INFO] [NetworkManager] Thread 39 started
+[INFO] [NetworkManager] Thread 40 started
+[INFO] [NetworkManager] Thread 41 started
+[INFO] [NetworkManager] Thread 42 started
+[INFO] [NetworkManager] Thread 46 started
+[INFO] [NetworkManager] Thread 12 started
+[INFO] [NetworkManager] Thread 45 started
+[INFO] [NetworkManager] Thread 43 started
+[INFO] [NetworkManager] Thread 47 started
+[INFO] [NetworkManager] Thread 48 started
+[INFO] [NetworkManager] Thread 49 started
+[INFO] [NetworkManager] Thread 50 started
+[INFO] [NetworkManager] Thread 51 started
+[INFO] [NetworkManager] Thread 52 started
+[INFO] [NetworkManager] Thread 53 started
+[INFO] [NetworkManager] Thread 54 started
+[INFO] [NetworkManager] Thread 56 started
+[INFO] [NetworkManager] Thread 55 started
+[INFO] [NetworkManager] Thread 57 started
+[INFO] [NetworkManager] Thread 58 started
+[INFO] [NetworkManager] Thread 268 started
+[INFO] [NetworkManager] Thread 60 started
+[INFO] [NetworkManager] Thread 61 started
+[INFO] [NetworkManager] Thread 62 started
+[INFO] [NetworkManager] Thread 63 started
+[INFO] [NetworkManager] Thread 65 started
+[INFO] [NetworkManager] Thread 64 started
+[INFO] [NetworkManager] Thread 66 started
+[INFO] [NetworkManager] Thread 67 started
+[INFO] [NetworkManager] Thread 68 started
+[INFO] [NetworkManager] Thread 69 started
+[INFO] [NetworkManager] Thread 71 started
+[INFO] [NetworkManager] Thread 70 started
+[INFO] [NetworkManager] Thread 72 started
+[INFO] [NetworkManager] Thread 73 started
+[INFO] [NetworkManager] Thread 74 started
+[INFO] [NetworkManager] Thread 75 started
+[INFO] [NetworkManager] Thread 77 started
+[INFO] [NetworkManager] Thread 78 started
+[INFO] [NetworkManager] Thread 79 started
+[INFO] [NetworkManager] Thread 370 started
+[INFO] [NetworkManager] Thread 80 started
+[INFO] [NetworkManager] Thread 83 started
+[INFO] [NetworkManager] Thread 84 started
+[INFO] [NetworkManager] Thread 82 started
+[INFO] [NetworkManager] Thread 85 started
+[INFO] [NetworkManager] Thread 92 started
+[INFO] [NetworkManager] Thread 76 started
+[INFO] [NetworkManager] Thread 87 started
+[INFO] [NetworkManager] Thread 89 started
+[INFO] [NetworkManager] Thread 88 started
+[INFO] [NetworkManager] Thread 422 started
+[INFO] [NetworkManager] Thread 86 started
+[INFO] [NetworkManager] Thread 91 started
+[INFO] [NetworkManager] Thread 436 started
+[INFO] [NetworkManager] Thread 94 started
+[INFO] [NetworkManager] Thread 475 started
+[INFO] [NetworkManager] Thread 448 started
+[INFO] [NetworkManager] Thread 97 started
+[INFO] [NetworkManager] Thread 106 started
+[INFO] [NetworkManager] Thread 100 started
+[INFO] [NetworkManager] Thread 99 started
+[INFO] [NetworkManager] Thread 101 started
+[INFO] [NetworkManager] Thread 102 started
+[INFO] [NetworkManager] Thread 113 started
+[INFO] [NetworkManager] Thread 104 started
+[INFO] [NetworkManager] Thread 105 started
+[INFO] [NetworkManager] Thread 90 started
+[INFO] [NetworkManager] Thread 117 started
+[INFO] [NetworkManager] Thread 108 started
+[INFO] [NetworkManager] Thread 109 started
+[INFO] [NetworkManager] Thread 119 started
+[INFO] [NetworkManager] Thread 111 started
+[INFO] [NetworkManager] Thread 122 started
+[INFO] [NetworkManager] Thread 103 started
+[INFO] [NetworkManager] Thread 114 started
+[INFO] [NetworkManager] Thread 115 started
+[INFO] [NetworkManager] Thread 128 started
+[INFO] [NetworkManager] Thread 124 started
+[INFO] [NetworkManager] Thread 118 started
+[INFO] [NetworkManager] Thread 110 started
+[INFO] [NetworkManager] Thread 121 started
+[INFO] [NetworkManager] Thread 547 started
+[INFO] [NetworkManager] Thread 125 started
+[INFO] [NetworkManager] Thread 126 started
+[INFO] [NetworkManager] Thread 127 started
+[INFO] [NetworkManager] Thread 112 started
+[INFO] [NetworkManager] Thread 116 started
+[INFO] [NetworkManager] Thread 605 started
+[INFO] [NetworkManager] Thread 129 started
+[INFO] [NetworkManager] Thread 107 started
+[INFO] [NetworkManager] Thread 130 started
+[INFO] [NetworkManager] Thread 132 started
+[INFO] [NetworkManager] Thread 131 started
+[INFO] [NetworkManager] Thread 133 started
+[INFO] [NetworkManager] Thread 134 started
+[INFO] [NetworkManager] Thread 135 started
+[INFO] [NetworkManager] Thread 137 started
+[INFO] [NetworkManager] Thread 139 started
+[INFO] [NetworkManager] Thread 136 started
+[INFO] [NetworkManager] Thread 138 started
+[INFO] [NetworkManager] Thread 140 started
+[INFO] [NetworkManager] Thread 142 started
+[INFO] [NetworkManager] Thread 141 started
+[INFO] [NetworkManager] Thread 30 started
+[INFO] [NetworkManager] Thread 144 started
+[INFO] [NetworkManager] Thread 145 started
+[INFO] [NetworkManager] Thread 147 started
+[INFO] [NetworkManager] Thread 146 started
+[INFO] [NetworkManager] Thread 159 started
+[INFO] [NetworkManager] Thread 34 started
+[INFO] [NetworkManager] Thread 162 started
+[INFO] [NetworkManager] Thread 151 started
+[INFO] [NetworkManager] Thread 152 started
+[INFO] [NetworkManager] Thread 153 started
+[INFO] [NetworkManager] Thread 154 started
+[INFO] [NetworkManager] Thread 155 started
+[INFO] [NetworkManager] Thread 156 started
+[INFO] [NetworkManager] Thread 157 started
+[INFO] [NetworkManager] Thread 702 started
+[INFO] [NetworkManager] Thread 169 started
+[INFO] [NetworkManager] Thread 688 started
+[INFO] [NetworkManager] Thread 161 started
+[INFO] [NetworkManager] Thread 150 started
+[INFO] [NetworkManager] Thread 163 started
+[INFO] [NetworkManager] Thread 721 started
+[INFO] [NetworkManager] Thread 165 started
+[INFO] [NetworkManager] Thread 166 started
+[INFO] [NetworkManager] Thread 732 started
+[INFO] [NetworkManager] Thread 168 started
+[INFO] [NetworkManager] Thread 160 started
+[INFO] [NetworkManager] Thread 170 started
+[INFO] [NetworkManager] Thread 767 started
+[INFO] [NetworkManager] Thread 171 started
+[INFO] [NetworkManager] Thread 173 started
+[INFO] [NetworkManager] Thread 174 started
+[INFO] [NetworkManager] Thread 175 started
+[INFO] [NetworkManager] Thread 176 started
+[INFO] [NetworkManager] Thread 192 started
+[INFO] [NetworkManager] Thread 781 started
+[INFO] [NetworkManager] Thread 179 started
+[INFO] [NetworkManager] Thread 194 started
+[INFO] [NetworkManager] Thread 182 started
+[INFO] [NetworkManager] Thread 183 started
+[INFO] [NetworkManager] Thread 181 started
+[INFO] [NetworkManager] Thread 184 started
+[INFO] [NetworkManager] Thread 186 started
+[INFO] [NetworkManager] Thread 198 started
+[INFO] [NetworkManager] Thread 187 started
+[INFO] [NetworkManager] Thread 188 started
+[INFO] [NetworkManager] Thread 189 started
+[INFO] [NetworkManager] Thread 190 started
+[INFO] [NetworkManager] Thread 191 started
+[INFO] [NetworkManager] Thread 826 started
+[INFO] [NetworkManager] Thread 193 started
+[INFO] [NetworkManager] Thread 180 started
+[INFO] [NetworkManager] Thread 195 started
+[INFO] [NetworkManager] Thread 197 started
+[INFO] [NetworkManager] Thread 840 started
+[INFO] [NetworkManager] Thread 185 started
+[INFO] [NetworkManager] Thread 199 started
+[INFO] [NetworkManager] Thread 851 started
+[INFO] [NetworkManager] Thread 201 started
+[INFO] [NetworkManager] Thread 217 started
+[INFO] [NetworkManager] Thread 203 started
+[INFO] [NetworkManager] Thread 204 started
+[INFO] [NetworkManager] Thread 206 started
+[INFO] [NetworkManager] Thread 205 started
+[INFO] [NetworkManager] Thread 207 started
+[INFO] [NetworkManager] Thread 208 started
+[INFO] [NetworkManager] Thread 209 started
+[INFO] [NetworkManager] Thread 210 started
+[INFO] [NetworkManager] Thread 228 started
+[INFO] [NetworkManager] Thread 212 started
+[INFO] [NetworkManager] Thread 213 started
+[INFO] [NetworkManager] Thread 215 started
+[INFO] [NetworkManager] Thread 216 started
+[INFO] [NetworkManager] Thread 218 started
+[INFO] [NetworkManager] Thread 232 started
+[INFO] [NetworkManager] Thread 202 started
+[INFO] [NetworkManager] Thread 925 started
+[INFO] [NetworkManager] Thread 220 started
+[INFO] [NetworkManager] Thread 933 started
+[INFO] [NetworkManager] Thread 222 started
+[INFO] [NetworkManager] Thread 239 started
+[INFO] [NetworkManager] Thread 223 started
+[INFO] [NetworkManager] Thread 226 started
+[INFO] [NetworkManager] Thread 225 started
+[INFO] [NetworkManager] Thread 954 started
+[INFO] [NetworkManager] Thread 243 started
+[INFO] [NetworkManager] Thread 959 started
+[INFO] [NetworkManager] Thread 230 started
+[INFO] [NetworkManager] Thread 231 started
+[INFO] [NetworkManager] Thread 219 started
+[INFO] [NetworkManager] Thread 977 started
+[INFO] [NetworkManager] Thread 976 started
+[INFO] [NetworkManager] Thread 235 started
+[INFO] [NetworkManager] Thread 237 started
+[INFO] [NetworkManager] Thread 991 started
+[INFO] [NetworkManager] Thread 238 started
+[INFO] [NetworkManager] Thread 252 started
+[INFO] [NetworkManager] Thread 240 started
+[INFO] [NetworkManager] Thread 241 started
+[INFO] [NetworkManager] Thread 242 started
+[INFO] [NetworkManager] Thread 211 started
+[INFO] [NetworkManager] Thread 244 started
+[INFO] [NetworkManager] Thread 245 started
+[INFO] [NetworkManager] Thread 246 started
+[INFO] [NetworkManager] Thread 247 started
+[INFO] [NetworkManager] Thread 248 started
+[INFO] [NetworkManager] Thread 249 started
+[INFO] [NetworkManager] Thread 251 started
+[INFO] [NetworkManager] Thread 250 started
+[INFO] [NetworkManager] Thread 224 started
+[INFO] [NetworkManager] Thread 253 started
+[INFO] [NetworkManager] Thread 255 started
+[INFO] [NetworkManager] Thread 254 started
+[INFO] [NetworkManager] Thread 258 started
+[INFO] [NetworkManager] Thread 257 started
+[INFO] [NetworkManager] Thread 256 started
+[INFO] [NetworkManager] Thread 259 started
+[INFO] [NetworkManager] Thread 260 started
+[INFO] [NetworkManager] Thread 261 started
+[INFO] [NetworkManager] Thread 263 started
+[INFO] [NetworkManager] Thread 262 started
+[INFO] [NetworkManager] Thread 278 started
+[INFO] [NetworkManager] Thread 265 started
+[INFO] [NetworkManager] Thread 266 started
+[INFO] [NetworkManager] Thread 267 started
+[INFO] [NetworkManager] Thread 269 started
+[INFO] [NetworkManager] Thread 59 started
+[INFO] [NetworkManager] Thread 270 started
+[INFO] [NetworkManager] Thread 271 started
+[INFO] [NetworkManager] Thread 285 started
+[INFO] [NetworkManager] Thread 273 started
+[INFO] [NetworkManager] Thread 275 started
+[INFO] [NetworkManager] Thread 276 started
+[INFO] [NetworkManager] Thread 277 started
+[INFO] [NetworkManager] Thread 274 started
+[INFO] [NetworkManager] Thread 279 started
+[INFO] [NetworkManager] Thread 264 started
+[INFO] [NetworkManager] Thread 281 started
+[INFO] [NetworkManager] Thread 280 started
+[INFO] [NetworkManager] Thread 298 started
+[INFO] [NetworkManager] Thread 283 started
+[INFO] [NetworkManager] Thread 284 started
+[INFO] [NetworkManager] Thread 272 started
+[INFO] [NetworkManager] Thread 286 started
+[INFO] [NetworkManager] Thread 287 started
+[INFO] [NetworkManager] Thread 288 started
+[INFO] [NetworkManager] Thread 309 started
+[INFO] [NetworkManager] Thread 290 started
+[INFO] [NetworkManager] Thread 291 started
+[INFO] [NetworkManager] Thread 292 started
+[INFO] [NetworkManager] Thread 293 started
+[INFO] [NetworkManager] Thread 294 started
+[INFO] [NetworkManager] Thread 295 started
+[INFO] [NetworkManager] Thread 314 started
+[INFO] [NetworkManager] Thread 297 started
+[INFO] [NetworkManager] Thread 282 started
+[INFO] [NetworkManager] Thread 299 started
+[INFO] [NetworkManager] Thread 300 started
+[INFO] [NetworkManager] Thread 301 started
+[INFO] [NetworkManager] Thread 303 started
+[INFO] [NetworkManager] Thread 321 started
+[INFO] [NetworkManager] Thread 306 started
+[INFO] [NetworkManager] Thread 304 started
+[INFO] [NetworkManager] Thread 305 started
+[INFO] [NetworkManager] Thread 307 started
+[INFO] [NetworkManager] Thread 326 started
+[INFO] [NetworkManager] Thread 289 started
+[INFO] [NetworkManager] Thread 310 started
+[INFO] [NetworkManager] Thread 327 started
+[INFO] [NetworkManager] Thread 312 started
+[INFO] [NetworkManager] Thread 330 started
+[INFO] [NetworkManager] Thread 332 started
+[INFO] [NetworkManager] Thread 296 started
+[INFO] [NetworkManager] Thread 315 started
+[INFO] [NetworkManager] Thread 317 started
+[INFO] [NetworkManager] Thread 318 started
+[INFO] [NetworkManager] Thread 337 started
+[INFO] [NetworkManager] Thread 320 started
+[INFO] [NetworkManager] Thread 302 started
+[INFO] [NetworkManager] Thread 322 started
+[INFO] [NetworkManager] Thread 323 started
+[INFO] [NetworkManager] Thread 325 started
+[INFO] [NetworkManager] Thread 308 started
+[INFO] [NetworkManager] Thread 311 started
+[INFO] [NetworkManager] Thread 324 started
+[INFO] [NetworkManager] Thread 328 started
+[INFO] [NetworkManager] Thread 329 started
+[INFO] [NetworkManager] Thread 350 started
+[INFO] [NetworkManager] Thread 331 started
+[INFO] [NetworkManager] Thread 316 started
+[INFO] [NetworkManager] Thread 333 started
+[INFO] [NetworkManager] Thread 356 started
+[INFO] [NetworkManager] Thread 335 started
+[INFO] [NetworkManager] Thread 336 started
+[INFO] [NetworkManager] Thread 357 started
+[INFO] [NetworkManager] Thread 338 started
+[INFO] [NetworkManager] Thread 339 started
+[INFO] [NetworkManager] Thread 340 started
+[INFO] [NetworkManager] Thread 341 started
+[INFO] [NetworkManager] Thread 342 started
+[INFO] [NetworkManager] Thread 363 started
+[INFO] [NetworkManager] Thread 344 started
+[INFO] [NetworkManager] Thread 345 started
+[INFO] [NetworkManager] Thread 347 started
+[INFO] [NetworkManager] Thread 348 started
+[INFO] [NetworkManager] Thread 346 started
+[INFO] [NetworkManager] Thread 313 started
+[INFO] [NetworkManager] Thread 349 started
+[INFO] [NetworkManager] Thread 351 started
+[INFO] [NetworkManager] Thread 352 started
+[INFO] [NetworkManager] Thread 354 started
+[INFO] [NetworkManager] Thread 353 started
+[INFO] [NetworkManager] Thread 355 started
+[INFO] [NetworkManager] Thread 334 started
+[INFO] [NetworkManager] Thread 319 started
+[INFO] [NetworkManager] Thread 379 started
+[INFO] [NetworkManager] Thread 359 started
+[INFO] [NetworkManager] Thread 361 started
+[INFO] [NetworkManager] Thread 360 started
+[INFO] [NetworkManager] Thread 362 started
+[INFO] [NetworkManager] Thread 343 started
+[INFO] [NetworkManager] Thread 364 started
+[INFO] [NetworkManager] Thread 365 started
+[INFO] [NetworkManager] Thread 366 started
+[INFO] [NetworkManager] Thread 367 started
+[INFO] [NetworkManager] Thread 368 started
+[INFO] [NetworkManager] Thread 369 started
+[INFO] [NetworkManager] Thread 81 started
+[INFO] [NetworkManager] Thread 397 started
+[INFO] [NetworkManager] Thread 372 started
+[INFO] [NetworkManager] Thread 373 started
+[INFO] [NetworkManager] Thread 375 started
+[INFO] [NetworkManager] Thread 374 started
+[INFO] [NetworkManager] Thread 378 started
+[INFO] [NetworkManager] Thread 376 started
+[INFO] [NetworkManager] Thread 404 started
+[INFO] [NetworkManager] Thread 381 started
+[INFO] [NetworkManager] Thread 377 started
+[INFO] [NetworkManager] Thread 380 started
+[INFO] [NetworkManager] Thread 406 started
+[INFO] [NetworkManager] Thread 383 started
+[INFO] [NetworkManager] Thread 385 started
+[INFO] [NetworkManager] Thread 384 started
+[INFO] [NetworkManager] Thread 386 started
+[INFO] [NetworkManager] Thread 387 started
+[INFO] [NetworkManager] Thread 389 started
+[INFO] [NetworkManager] Thread 390 started
+[INFO] [NetworkManager] Thread 388 started
+[INFO] [NetworkManager] Thread 415 started
+[INFO] [NetworkManager] Thread 392 started
+[INFO] [NetworkManager] Thread 417 started
+[INFO] [NetworkManager] Thread 395 started
+[INFO] [NetworkManager] Thread 393 started
+[INFO] [NetworkManager] Thread 396 started
+[INFO] [NetworkManager] Thread 371 started
+[INFO] [NetworkManager] Thread 398 started
+[INFO] [NetworkManager] Thread 399 started
+[INFO] [NetworkManager] Thread 400 started
+[INFO] [NetworkManager] Thread 402 started
+[INFO] [NetworkManager] Thread 426 started
+[INFO] [NetworkManager] Thread 403 started
+[INFO] [NetworkManager] Thread 405 started
+[INFO] [NetworkManager] Thread 358 started
+[INFO] [NetworkManager] Thread 382 started
+[INFO] [NetworkManager] Thread 407 started
+[INFO] [NetworkManager] Thread 408 started
+[INFO] [NetworkManager] Thread 409 started
+[INFO] [NetworkManager] Thread 410 started
+[INFO] [NetworkManager] Thread 411 started
+[INFO] [NetworkManager] Thread 413 started
+[INFO] [NetworkManager] Thread 414 started
+[INFO] [NetworkManager] Thread 412 started
+[INFO] [NetworkManager] Thread 391 started
+[INFO] [NetworkManager] Thread 416 started
+[INFO] [NetworkManager] Thread 394 started
+[INFO] [NetworkManager] Thread 446 started
+[INFO] [NetworkManager] Thread 419 started
+[INFO] [NetworkManager] Thread 421 started
+[INFO] [NetworkManager] Thread 98 started
+[INFO] [NetworkManager] Thread 420 started
+[INFO] [NetworkManager] Thread 423 started
+[INFO] [NetworkManager] Thread 424 started
+[INFO] [NetworkManager] Thread 425 started
+[INFO] [NetworkManager] Thread 401 started
+[INFO] [NetworkManager] Thread 427 started
+[INFO] [NetworkManager] Thread 429 started
+[INFO] [NetworkManager] Thread 455 started
+[INFO] [NetworkManager] Thread 431 started
+[INFO] [NetworkManager] Thread 430 started
+[INFO] [NetworkManager] Thread 432 started
+[INFO] [NetworkManager] Thread 461 started
+[INFO] [NetworkManager] Thread 435 started
+[INFO] [NetworkManager] Thread 434 started
+[INFO] [NetworkManager] Thread 465 started
+[INFO] [NetworkManager] Thread 93 started
+[INFO] [NetworkManager] Thread 438 started
+[INFO] [NetworkManager] Thread 468 started
+[INFO] [NetworkManager] Thread 469 started
+[INFO] [NetworkManager] Thread 441 started
+[INFO] [NetworkManager] Thread 442 started
+[INFO] [NetworkManager] Thread 443 started
+[INFO] [NetworkManager] Thread 444 started
+[INFO] [NetworkManager] Thread 445 started
+[INFO] [NetworkManager] Thread 95 started
+[INFO] [NetworkManager] Thread 447 started
+[INFO] [NetworkManager] Thread 478 started
+[INFO] [NetworkManager] Thread 96 started
+[INFO] [NetworkManager] Thread 450 started
+[INFO] [NetworkManager] Thread 451 started
+[INFO] [NetworkManager] Thread 452 started
+[INFO] [NetworkManager] Thread 453 started
+[INFO] [NetworkManager] Thread 428 started
+[INFO] [NetworkManager] Thread 487 started
+[INFO] [NetworkManager] Thread 456 started
+[INFO] [NetworkManager] Thread 457 started
+[INFO] [NetworkManager] Thread 458 started
+[INFO] [NetworkManager] Thread 459 started
+[INFO] [NetworkManager] Thread 492 started
+[INFO] [NetworkManager] Thread 433 started
+[INFO] [NetworkManager] Thread 462 started
+[INFO] [NetworkManager] Thread 463 started
+[INFO] [NetworkManager] Thread 464 started
+[INFO] [NetworkManager] Thread 439 started
+[INFO] [NetworkManager] Thread 499 started
+[INFO] [NetworkManager] Thread 437 started
+[INFO] [NetworkManager] Thread 467 started
+[INFO] [NetworkManager] Thread 503 started
+[INFO] [NetworkManager] Thread 470 started
+[INFO] [NetworkManager] Thread 471 started
+[INFO] [NetworkManager] Thread 472 started
+[INFO] [NetworkManager] Thread 474 started
+[INFO] [NetworkManager] Thread 473 started
+[INFO] [NetworkManager] Thread 506 started
+[INFO] [NetworkManager] Thread 476 started
+[INFO] [NetworkManager] Thread 477 started
+[INFO] [NetworkManager] Thread 449 started
+[INFO] [NetworkManager] Thread 480 started
+[INFO] [NetworkManager] Thread 479 started
+[INFO] [NetworkManager] Thread 482 started
+[INFO] [NetworkManager] Thread 481 started
+[INFO] [NetworkManager] Thread 483 started
+[INFO] [NetworkManager] Thread 484 started
+[INFO] [NetworkManager] Thread 519 started
+[INFO] [NetworkManager] Thread 486 started
+[INFO] [NetworkManager] Thread 454 started
+[INFO] [NetworkManager] Thread 522 started
+[INFO] [NetworkManager] Thread 525 started
+[INFO] [NetworkManager] Thread 524 started
+[INFO] [NetworkManager] Thread 490 started
+[INFO] [NetworkManager] Thread 460 started
+[INFO] [NetworkManager] Thread 493 started
+[INFO] [NetworkManager] Thread 495 started
+[INFO] [NetworkManager] Thread 529 started
+[INFO] [NetworkManager] Thread 530 started
+[INFO] [NetworkManager] Thread 497 started
+[INFO] [NetworkManager] Thread 498 started
+[INFO] [NetworkManager] Thread 466 started
+[INFO] [NetworkManager] Thread 500 started
+[INFO] [NetworkManager] Thread 533 started
+[INFO] [NetworkManager] Thread 502 started
+[INFO] [NetworkManager] Thread 440 started
+[INFO] [NetworkManager] Thread 505 started
+[INFO] [NetworkManager] Thread 504 started
+[INFO] [NetworkManager] Thread 418 started
+[INFO] [NetworkManager] Thread 542 started
+[INFO] [NetworkManager] Thread 543 started
+[INFO] [NetworkManager] Thread 508 started
+[INFO] [NetworkManager] Thread 509 started
+[INFO] [NetworkManager] Thread 511 started
+[INFO] [NetworkManager] Thread 512 started
+[INFO] [NetworkManager] Thread 549 started
+[INFO] [NetworkManager] Thread 515 started
+[INFO] [NetworkManager] Thread 514 started
+[INFO] [NetworkManager] Thread 550 started
+[INFO] [NetworkManager] Thread 553 started
+[INFO] [NetworkManager] Thread 554 started
+[INFO] [NetworkManager] Thread 520 started
+[INFO] [NetworkManager] Thread 485 started
+[INFO] [NetworkManager] Thread 521 started
+[INFO] [NetworkManager] Thread 488 started
+[INFO] [NetworkManager] Thread 523 started
+[INFO] [NetworkManager] Thread 489 started
+[INFO] [NetworkManager] Thread 560 started
+[INFO] [NetworkManager] Thread 526 started
+[INFO] [NetworkManager] Thread 527 started
+[INFO] [NetworkManager] Thread 562 started
+[INFO] [NetworkManager] Thread 494 started
+[INFO] [NetworkManager] Thread 496 started
+[INFO] [NetworkManager] Thread 531 started
+[INFO] [NetworkManager] Thread 532 started
+[INFO] [NetworkManager] Thread 501 started
+[INFO] [NetworkManager] Thread 534 started
+[INFO] [NetworkManager] Thread 568 started
+[INFO] [NetworkManager] Thread 571 started
+[INFO] [NetworkManager] Thread 537 started
+[INFO] [NetworkManager] Thread 572 started
+[INFO] [NetworkManager] Thread 539 started
+[INFO] [NetworkManager] Thread 575 started
+[INFO] [NetworkManager] Thread 510 started
+[INFO] [NetworkManager] Thread 541 started
+[INFO] [NetworkManager] Thread 507 started
+[INFO] [NetworkManager] Thread 544 started
+[INFO] [NetworkManager] Thread 545 started
+[INFO] [NetworkManager] Thread 546 started
+[INFO] [NetworkManager] Thread 123 started
+[INFO] [NetworkManager] Thread 548 started
+[INFO] [NetworkManager] Thread 583 started
+[INFO] [NetworkManager] Thread 551 started
+[INFO] [NetworkManager] Thread 552 started
+[INFO] [NetworkManager] Thread 516 started
+[INFO] [NetworkManager] Thread 517 started
+[INFO] [NetworkManager] Thread 518 started
+[INFO] [NetworkManager] Thread 555 started
+[INFO] [NetworkManager] Thread 590 started
+[INFO] [NetworkManager] Thread 557 started
+[INFO] [NetworkManager] Thread 558 started
+[INFO] [NetworkManager] Thread 559 started
+[INFO] [NetworkManager] Thread 491 started
+[INFO] [NetworkManager] Thread 561 started
+[INFO] [NetworkManager] Thread 528 started
+[INFO] [NetworkManager] Thread 598 started
+[INFO] [NetworkManager] Thread 564 started
+[INFO] [NetworkManager] Thread 565 started
+[INFO] [NetworkManager] Thread 566 started
+[INFO] [NetworkManager] Thread 567 started
+[INFO] [NetworkManager] Thread 569 started
+[INFO] [NetworkManager] Thread 570 started
+[INFO] [NetworkManager] Thread 535 started
+[INFO] [NetworkManager] Thread 536 started
+[INFO] [NetworkManager] Thread 538 started
+[INFO] [NetworkManager] Thread 120 started
+[INFO] [NetworkManager] Thread 607 started
+[INFO] [NetworkManager] Thread 540 started
+[INFO] [NetworkManager] Thread 609 started
+[INFO] [NetworkManager] Thread 577 started
+[INFO] [NetworkManager] Thread 578 started
+[INFO] [NetworkManager] Thread 611 started
+[INFO] [NetworkManager] Thread 581 started
+[INFO] [NetworkManager] Thread 580 started
+[INFO] [NetworkManager] Thread 582 started
+[INFO] [NetworkManager] Thread 613 started
+[INFO] [NetworkManager] Thread 584 started
+[INFO] [NetworkManager] Thread 586 started
+[INFO] [NetworkManager] Thread 617 started
+[INFO] [NetworkManager] Thread 587 started
+[INFO] [NetworkManager] Thread 619 started
+[INFO] [NetworkManager] Thread 589 started
+[INFO] [NetworkManager] Thread 591 started
+[INFO] [NetworkManager] Thread 556 started
+[INFO] [NetworkManager] Thread 592 started
+[INFO] [NetworkManager] Thread 593 started
+[INFO] [NetworkManager] Thread 595 started
+[INFO] [NetworkManager] Thread 594 started
+[INFO] [NetworkManager] Thread 596 started
+[INFO] [NetworkManager] Thread 625 started
+[INFO] [NetworkManager] Thread 563 started
+[INFO] [NetworkManager] Thread 599 started
+[INFO] [NetworkManager] Thread 627 started
+[INFO] [NetworkManager] Thread 601 started
+[INFO] [NetworkManager] Thread 602 started
+[INFO] [NetworkManager] Thread 628 started
+[INFO] [NetworkManager] Thread 630 started
+[INFO] [NetworkManager] Thread 606 started
+[INFO] [NetworkManager] Thread 573 started
+[INFO] [NetworkManager] Thread 574 started
+[INFO] [NetworkManager] Thread 608 started
+[INFO] [NetworkManager] Thread 576 started
+[INFO] [NetworkManager] Thread 610 started
+[INFO] [NetworkManager] Thread 579 started
+[INFO] [NetworkManager] Thread 636 started
+[INFO] [NetworkManager] Thread 513 started
+[INFO] [NetworkManager] Thread 614 started
+[INFO] [NetworkManager] Thread 616 started
+[INFO] [NetworkManager] Thread 615 started
+[INFO] [NetworkManager] Thread 585 started
+[INFO] [NetworkManager] Thread 618 started
+[INFO] [NetworkManager] Thread 588 started
+[INFO] [NetworkManager] Thread 620 started
+[INFO] [NetworkManager] Thread 621 started
+[INFO] [NetworkManager] Thread 622 started
+[INFO] [NetworkManager] Thread 646 started
+[INFO] [NetworkManager] Thread 624 started
+[INFO] [NetworkManager] Thread 597 started
+[INFO] [NetworkManager] Thread 626 started
+[INFO] [NetworkManager] Thread 600 started
+[INFO] [NetworkManager] Thread 604 started
+[INFO] [NetworkManager] Thread 650 started
+[INFO] [NetworkManager] Thread 603 started
+[INFO] [NetworkManager] Thread 631 started
+[INFO] [NetworkManager] Thread 632 started
+[INFO] [NetworkManager] Thread 633 started
+[INFO] [NetworkManager] Thread 634 started
+[INFO] [NetworkManager] Thread 635 started
+[INFO] [NetworkManager] Thread 612 started
+[INFO] [NetworkManager] Thread 638 started
+[INFO] [NetworkManager] Thread 637 started
+[INFO] [NetworkManager] Thread 639 started
+[INFO] [NetworkManager] Thread 640 started
+[INFO] [NetworkManager] Thread 642 started
+[INFO] [NetworkManager] Thread 641 started
+[INFO] [NetworkManager] Thread 644 started
+[INFO] [NetworkManager] Thread 643 started
+[INFO] [NetworkManager] Thread 645 started
+[INFO] [NetworkManager] Thread 672 started
+[INFO] [NetworkManager] Thread 647 started
+[INFO] [NetworkManager] Thread 648 started
+[INFO] [NetworkManager] Thread 649 started
+[INFO] [NetworkManager] Thread 652 started
+[INFO] [NetworkManager] Thread 651 started
+[INFO] [NetworkManager] Thread 676 started
+[INFO] [NetworkManager] Thread 629 started
+[INFO] [NetworkManager] Thread 654 started
+[INFO] [NetworkManager] Thread 655 started
+[INFO] [NetworkManager] Thread 657 started
+[INFO] [NetworkManager] Thread 658 started
+[INFO] [NetworkManager] Thread 656 started
+[INFO] [NetworkManager] Thread 683 started
+[INFO] [NetworkManager] Thread 660 started
+[INFO] [NetworkManager] Thread 686 started
+[INFO] [NetworkManager] Thread 662 started
+[INFO] [NetworkManager] Thread 663 started
+[INFO] [NetworkManager] Thread 664 started
+[INFO] [NetworkManager] Thread 665 started
+[INFO] [NetworkManager] Thread 666 started
+[INFO] [NetworkManager] Thread 667 started
+[INFO] [NetworkManager] Thread 669 started
+[INFO] [NetworkManager] Thread 668 started
+[INFO] [NetworkManager] Thread 670 started
+[INFO] [NetworkManager] Thread 623 started
+[INFO] [NetworkManager] Thread 671 started
+[INFO] [NetworkManager] Thread 673 started
+[INFO] [NetworkManager] Thread 674 started
+[INFO] [NetworkManager] Thread 675 started
+[INFO] [NetworkManager] Thread 653 started
+[INFO] [NetworkManager] Thread 677 started
+[INFO] [NetworkManager] Thread 678 started
+[INFO] [NetworkManager] Thread 679 started
+[INFO] [NetworkManager] Thread 680 started
+[INFO] [NetworkManager] Thread 681 started
+[INFO] [NetworkManager] Thread 682 started
+[INFO] [NetworkManager] Thread 659 started
+[INFO] [NetworkManager] Thread 706 started
+[INFO] [NetworkManager] Thread 685 started
+[INFO] [NetworkManager] Thread 661 started
+[INFO] [NetworkManager] Thread 687 started
+[INFO] [NetworkManager] Thread 689 started
+[INFO] [NetworkManager] Thread 709 started
+[INFO] [NetworkManager] Thread 690 started
+[INFO] [NetworkManager] Thread 691 started
+[INFO] [NetworkManager] Thread 692 started
+[INFO] [NetworkManager] Thread 713 started
+[INFO] [NetworkManager] Thread 694 started
+[INFO] [NetworkManager] Thread 695 started
+[INFO] [NetworkManager] Thread 696 started
+[INFO] [NetworkManager] Thread 718 started
+[INFO] [NetworkManager] Thread 698 started
+[INFO] [NetworkManager] Thread 699 started
+[INFO] [NetworkManager] Thread 720 started
+[INFO] [NetworkManager] Thread 701 started
+[INFO] [NetworkManager] Thread 158 started
+[INFO] [NetworkManager] Thread 703 started
+[INFO] [NetworkManager] Thread 704 started
+[INFO] [NetworkManager] Thread 705 started
+[INFO] [NetworkManager] Thread 684 started
+[INFO] [NetworkManager] Thread 707 started
+[INFO] [NetworkManager] Thread 708 started
+[INFO] [NetworkManager] Thread 148 started
+[INFO] [NetworkManager] Thread 729 started
+[INFO] [NetworkManager] Thread 711 started
+[INFO] [NetworkManager] Thread 712 started
+[INFO] [NetworkManager] Thread 693 started
+[INFO] [NetworkManager] Thread 733 started
+[INFO] [NetworkManager] Thread 715 started
+[INFO] [NetworkManager] Thread 716 started
+[INFO] [NetworkManager] Thread 717 started
+[INFO] [NetworkManager] Thread 697 started
+[INFO] [NetworkManager] Thread 719 started
+[INFO] [NetworkManager] Thread 700 started
+[INFO] [NetworkManager] Thread 164 started
+[INFO] [NetworkManager] Thread 722 started
+[INFO] [NetworkManager] Thread 723 started
+[INFO] [NetworkManager] Thread 724 started
+[INFO] [NetworkManager] Thread 725 started
+[INFO] [NetworkManager] Thread 726 started
+[INFO] [NetworkManager] Thread 744 started
+[INFO] [NetworkManager] Thread 728 started
+[INFO] [NetworkManager] Thread 710 started
+[INFO] [NetworkManager] Thread 730 started
+[INFO] [NetworkManager] Thread 748 started
+[INFO] [NetworkManager] Thread 167 started
+[INFO] [NetworkManager] Thread 714 started
+[INFO] [NetworkManager] Thread 734 started
+[INFO] [NetworkManager] Thread 735 started
+[INFO] [NetworkManager] Thread 737 started
+[INFO] [NetworkManager] Thread 755 started
+[INFO] [NetworkManager] Thread 738 started
+[INFO] [NetworkManager] Thread 739 started
+[INFO] [NetworkManager] Thread 740 started
+[INFO] [NetworkManager] Thread 759 started
+[INFO] [NetworkManager] Thread 742 started
+[INFO] [NetworkManager] Thread 761 started
+[INFO] [NetworkManager] Thread 745 started
+[INFO] [NetworkManager] Thread 727 started
+[INFO] [NetworkManager] Thread 746 started
+[INFO] [NetworkManager] Thread 747 started
+[INFO] [NetworkManager] Thread 172 started
+[INFO] [NetworkManager] Thread 749 started
+[INFO] [NetworkManager] Thread 750 started
+[INFO] [NetworkManager] Thread 751 started
+[INFO] [NetworkManager] Thread 752 started
+[INFO] [NetworkManager] Thread 773 started
+[INFO] [NetworkManager] Thread 736 started
+[INFO] [NetworkManager] Thread 753 started
+[INFO] [NetworkManager] Thread 757 started
+[INFO] [NetworkManager] Thread 758 started
+[INFO] [NetworkManager] Thread 756 started
+[INFO] [NetworkManager] Thread 741 started
+[INFO] [NetworkManager] Thread 760 started
+[INFO] [NetworkManager] Thread 743 started
+[INFO] [NetworkManager] Thread 762 started
+[INFO] [NetworkManager] Thread 763 started
+[INFO] [NetworkManager] Thread 764 started
+[INFO] [NetworkManager] Thread 765 started
+[INFO] [NetworkManager] Thread 766 started
+[INFO] [NetworkManager] Thread 731 started
+[INFO] [NetworkManager] Thread 768 started
+[INFO] [NetworkManager] Thread 769 started
+[INFO] [NetworkManager] Thread 770 started
+[INFO] [NetworkManager] Thread 788 started
+[INFO] [NetworkManager] Thread 772 started
+[INFO] [NetworkManager] Thread 754 started
+[INFO] [NetworkManager] Thread 774 started
+[INFO] [NetworkManager] Thread 775 started
+[INFO] [NetworkManager] Thread 776 started
+[INFO] [NetworkManager] Thread 777 started
+[INFO] [NetworkManager] Thread 778 started
+[INFO] [NetworkManager] Thread 779 started
+[INFO] [NetworkManager] Thread 780 started
+[INFO] [NetworkManager] Thread 178 started
+[INFO] [NetworkManager] Thread 782 started
+[INFO] [NetworkManager] Thread 784 started
+[INFO] [NetworkManager] Thread 783 started
+[INFO] [NetworkManager] Thread 785 started
+[INFO] [NetworkManager] Thread 787 started
+[INFO] [NetworkManager] Thread 786 started
+[INFO] [NetworkManager] Thread 809 started
+[INFO] [NetworkManager] Thread 789 started
+[INFO] [NetworkManager] Thread 791 started
+[INFO] [NetworkManager] Thread 790 started
+[INFO] [NetworkManager] Thread 793 started
+[INFO] [NetworkManager] Thread 792 started
+[INFO] [NetworkManager] Thread 794 started
+[INFO] [NetworkManager] Thread 795 started
+[INFO] [NetworkManager] Thread 797 started
+[INFO] [NetworkManager] Thread 799 started
+[INFO] [NetworkManager] Thread 796 started
+[INFO] [NetworkManager] Thread 800 started
+[INFO] [NetworkManager] Thread 801 started
+[INFO] [NetworkManager] Thread 798 started
+[INFO] [NetworkManager] Thread 802 started
+[INFO] [NetworkManager] Thread 803 started
+[INFO] [NetworkManager] Thread 831 started
+[INFO] [NetworkManager] Thread 806 started
+[INFO] [NetworkManager] Thread 804 started
+[INFO] [NetworkManager] Thread 807 started
+[INFO] [NetworkManager] Thread 808 started
+[INFO] [NetworkManager] Thread 771 started
+[INFO] [NetworkManager] Thread 811 started
+[INFO] [NetworkManager] Thread 810 started
+[INFO] [NetworkManager] Thread 812 started
+[INFO] [NetworkManager] Thread 813 started
+[INFO] [NetworkManager] Thread 815 started
+[INFO] [NetworkManager] Thread 814 started
+[INFO] [NetworkManager] Thread 817 started
+[INFO] [NetworkManager] Thread 816 started
+[INFO] [NetworkManager] Thread 843 started
+[INFO] [NetworkManager] Thread 845 started
+[INFO] [NetworkManager] Thread 820 started
+[INFO] [NetworkManager] Thread 822 started
+[INFO] [NetworkManager] Thread 847 started
+[INFO] [NetworkManager] Thread 821 started
+[INFO] [NetworkManager] Thread 824 started
+[INFO] [NetworkManager] Thread 825 started
+[INFO] [NetworkManager] Thread 177 started
+[INFO] [NetworkManager] Thread 827 started
+[INFO] [NetworkManager] Thread 829 started
+[INFO] [NetworkManager] Thread 828 started
+[INFO] [NetworkManager] Thread 830 started
+[INFO] [NetworkManager] Thread 805 started
+[INFO] [NetworkManager] Thread 832 started
+[INFO] [NetworkManager] Thread 833 started
+[INFO] [NetworkManager] Thread 834 started
+[INFO] [NetworkManager] Thread 835 started
+[INFO] [NetworkManager] Thread 836 started
+[INFO] [NetworkManager] Thread 837 started
+[INFO] [NetworkManager] Thread 838 started
+[INFO] [NetworkManager] Thread 860 started
+[INFO] [NetworkManager] Thread 196 started
+[INFO] [NetworkManager] Thread 861 started
+[INFO] [NetworkManager] Thread 842 started
+[INFO] [NetworkManager] Thread 818 started
+[INFO] [NetworkManager] Thread 844 started
+[INFO] [NetworkManager] Thread 819 started
+[INFO] [NetworkManager] Thread 865 started
+[INFO] [NetworkManager] Thread 823 started
+[INFO] [NetworkManager] Thread 848 started
+[INFO] [NetworkManager] Thread 849 started
+[INFO] [NetworkManager] Thread 850 started
+[INFO] [NetworkManager] Thread 200 started
+[INFO] [NetworkManager] Thread 852 started
+[INFO] [NetworkManager] Thread 853 started
+[INFO] [NetworkManager] Thread 854 started
+[INFO] [NetworkManager] Thread 856 started
+[INFO] [NetworkManager] Thread 855 started
+[INFO] [NetworkManager] Thread 857 started
+[INFO] [NetworkManager] Thread 859 started
+[INFO] [NetworkManager] Thread 858 started
+[INFO] [NetworkManager] Thread 839 started
+[INFO] [NetworkManager] Thread 870 started
+[INFO] [NetworkManager] Thread 862 started
+[INFO] [NetworkManager] Thread 863 started
+[INFO] [NetworkManager] Thread 846 started
+[INFO] [NetworkManager] Thread 864 started
+[INFO] [NetworkManager] Thread 866 started
+[INFO] [NetworkManager] Thread 867 started
+[INFO] [NetworkManager] Thread 868 started
+[INFO] [NetworkManager] Thread 869 started
+[INFO] [NetworkManager] Thread 841 started
+[INFO] [NetworkManager] Thread 872 started
+[INFO] [NetworkManager] Thread 871 started
+[INFO] [NetworkManager] Thread 873 started
+[INFO] [NetworkManager] Thread 874 started
+[INFO] [NetworkManager] Thread 876 started
+[INFO] [NetworkManager] Thread 875 started
+[INFO] [NetworkManager] Thread 877 started
+[INFO] [NetworkManager] Thread 878 started
+[INFO] [NetworkManager] Thread 879 started
+[INFO] [NetworkManager] Thread 881 started
+[INFO] [NetworkManager] Thread 880 started
+[INFO] [NetworkManager] Thread 882 started
+[INFO] [NetworkManager] Thread 885 started
+[INFO] [NetworkManager] Thread 884 started
+[INFO] [NetworkManager] Thread 883 started
+[INFO] [NetworkManager] Thread 886 started
+[INFO] [NetworkManager] Thread 887 started
+[INFO] [NetworkManager] Thread 888 started
+[INFO] [NetworkManager] Thread 889 started
+[INFO] [NetworkManager] Thread 890 started
+[INFO] [NetworkManager] Thread 891 started
+[INFO] [NetworkManager] Thread 892 started
+[INFO] [NetworkManager] Thread 893 started
+[INFO] [NetworkManager] Thread 894 started
+[INFO] [NetworkManager] Thread 895 started
+[INFO] [NetworkManager] Thread 896 started
+[INFO] [NetworkManager] Thread 897 started
+[INFO] [NetworkManager] Thread 898 started
+[INFO] [NetworkManager] Thread 899 started
+[INFO] [NetworkManager] Thread 902 started
+[INFO] [NetworkManager] Thread 901 started
+[INFO] [NetworkManager] Thread 900 started
+[INFO] [NetworkManager] Thread 903 started
+[INFO] [NetworkManager] Thread 904 started
+[INFO] [NetworkManager] Thread 906 started
+[INFO] [NetworkManager] Thread 905 started
+[INFO] [NetworkManager] Thread 908 started
+[INFO] [NetworkManager] Thread 907 started
+[INFO] [NetworkManager] Thread 909 started
+[INFO] [NetworkManager] Thread 910 started
+[INFO] [NetworkManager] Thread 911 started
+[INFO] [NetworkManager] Thread 912 started
+[INFO] [NetworkManager] Thread 915 started
+[INFO] [NetworkManager] Thread 914 started
+[INFO] [NetworkManager] Thread 913 started
+[INFO] [NetworkManager] Thread 917 started
+[INFO] [NetworkManager] Thread 916 started
+[INFO] [NetworkManager] Thread 918 started
+[INFO] [NetworkManager] Thread 919 started
+[INFO] [NetworkManager] Thread 920 started
+[INFO] [NetworkManager] Thread 921 started
+[INFO] [NetworkManager] Thread 923 started
+[INFO] [NetworkManager] Thread 922 started
+[INFO] [NetworkManager] Thread 924 started
+[INFO] [NetworkManager] Thread 214 started
+[INFO] [NetworkManager] Thread 927 started
+[INFO] [NetworkManager] Thread 926 started
+[INFO] [NetworkManager] Thread 928 started
+[INFO] [NetworkManager] Thread 929 started
+[INFO] [NetworkManager] Thread 930 started
+[INFO] [NetworkManager] Thread 931 started
+[INFO] [NetworkManager] Thread 932 started
+[INFO] [NetworkManager] Thread 221 started
+[INFO] [NetworkManager] Thread 934 started
+[INFO] [NetworkManager] Thread 935 started
+[INFO] [NetworkManager] Thread 936 started
+[INFO] [NetworkManager] Thread 937 started
+[INFO] [NetworkManager] Thread 938 started
+[INFO] [NetworkManager] Thread 939 started
+[INFO] [NetworkManager] Thread 940 started
+[INFO] [NetworkManager] Thread 941 started
+[INFO] [NetworkManager] Thread 942 started
+[INFO] [NetworkManager] Thread 943 started
+[INFO] [NetworkManager] Thread 944 started
+[INFO] [NetworkManager] Thread 945 started
+[INFO] [NetworkManager] Thread 946 started
+[INFO] [NetworkManager] Thread 947 started
+[INFO] [NetworkManager] Thread 948 started
+[INFO] [NetworkManager] Thread 950 started
+[INFO] [NetworkManager] Thread 949 started
+[INFO] [NetworkManager] Thread 951 started
+[INFO] [NetworkManager] Thread 952 started
+[INFO] [NetworkManager] Thread 953 started
+[INFO] [NetworkManager] Thread 227 started
+[INFO] [NetworkManager] Thread 955 started
+[INFO] [NetworkManager] Thread 956 started
+[INFO] [NetworkManager] Thread 957 started
+[INFO] [NetworkManager] Thread 958 started
+[INFO] [NetworkManager] Thread 229 started
+[INFO] [NetworkManager] Thread 960 started
+[INFO] [NetworkManager] Thread 961 started
+[INFO] [NetworkManager] Thread 963 started
+[INFO] [NetworkManager] Thread 965 started
+[INFO] [NetworkManager] Thread 966 started
+[INFO] [NetworkManager] Thread 962 started
+[INFO] [NetworkManager] Thread 964 started
+[INFO] [NetworkManager] Thread 969 started
+[INFO] [NetworkManager] Thread 970 started
+[INFO] [NetworkManager] Thread 972 started
+[INFO] [NetworkManager] Thread 968 started
+[INFO] [NetworkManager] Thread 973 started
+[INFO] [NetworkManager] Thread 971 started
+[INFO] [NetworkManager] Thread 967 started
+[INFO] [NetworkManager] Thread 974 started
+[INFO] [NetworkManager] Thread 975 started
+[INFO] [NetworkManager] Thread 979 started
+[INFO] [NetworkManager] Thread 233 started
+[INFO] [NetworkManager] Thread 978 started
+[INFO] [NetworkManager] Thread 234 started
+[INFO] [NetworkManager] Thread 980 started
+[INFO] [NetworkManager] Thread 981 started
+[INFO] [NetworkManager] Thread 983 started
+[INFO] [NetworkManager] Thread 982 started
+[INFO] [NetworkManager] Thread 984 started
+[INFO] [NetworkManager] Thread 986 started
+[INFO] [NetworkManager] Thread 985 started
+[INFO] [NetworkManager] Thread 990 started
+[INFO] [NetworkManager] Thread 988 started
+[INFO] [NetworkManager] Thread 992 started
+[INFO] [NetworkManager] Thread 994 started
+[INFO] [NetworkManager] Thread 236 started
+[INFO] [NetworkManager] Thread 989 started
+[INFO] [NetworkManager] Thread 993 started
+[INFO] [NetworkManager] Thread 987 started
+[INFO] [NetworkManager] Thread 995 started
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Thread 997 started
+[INFO] [NetworkManager] Thread 996 started
+[INFO] [NetworkManager] Thread 998 started
+[INFO] [NetworkManager] Thread 1000 started
+[INFO] [NetworkManager] Thread 999 started
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Starting 0 GameServers
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 54029, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 56029, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] Assigned socket to client: Port 56029, Client count: 2
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[WARNING] [Database] Database loaded with success !
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 54355, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 54370, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
