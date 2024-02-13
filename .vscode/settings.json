@@ -1,0 +1,17 @@
+{
+    "editor.inlineSuggest.enabled": true,
+    "files.exclude": {
+        "Nova.cbp": true,
+        "Nova.layout": true,
+        "Nova.depend": true,
+        "compile.bat": true,
+        "client/compile.bat": true,
+        "server/compile.bat": true,
+        "._.git": true,
+        ".gitignore": true,
+        ".gitattributes": true
+    },
+    "editor.minimap.renderCharacters": false,
+    "editor.minimap.enabled": false,
+    "editor.accessibilitySupport": "off"
+}
