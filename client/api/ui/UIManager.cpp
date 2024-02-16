@@ -2,7 +2,6 @@
 #include <fstream>
 
 UIManager::UIManager() {
-
 }
 
 bool UIManager::Init(NetworkManager* networkManager) {

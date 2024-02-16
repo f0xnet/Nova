@@ -8,8 +8,9 @@
 #include "ClientClass.hpp"
 #include "../../system/headers/LoggerManager.hpp"
 #include "../../system/headers/InputManager.hpp"
+#include "../../database/headers/DatabaseManager.hpp"
+
 #include "GameServerClass.hpp"
-#include "DatabaseManager.hpp"
 
 class NetworkManager {
 public:
@@ -49,7 +50,7 @@ private:
     void removeInactiveClients();
     void startGameServers();
     void stopGameServers();
-    bool addClientToGameServer(const std::string& ip, unsigned short port);
+    bool addClientToGameServer(ClientClass* client);
 
     std::vector<std::unique_ptr<SocketInfo>> initializeSockets(int count);
     sf::UdpSocket* getAvailableSocket();

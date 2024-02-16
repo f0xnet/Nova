@@ -1351,3 +1351,96 @@ lled
 [INFO] [NetworkManager] Starting game servers
 [INFO] [NetworkManager] Gameservers started with success >  100
 [INFO] [NetworkManager] Starting NetworkManager run loop
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [AccountDBClass] User added with success.
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 64347, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 60479, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [AccountDBClass] User added successfully.
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 62427, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 62959, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[ERROR] [NetworkManager] E-Mail exist
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager run loop stopped
+[INFO] [NetworkManager] NetworkManager destructor called
+[INFO] [NetworkManager] Cleaning up clients
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 55961, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[ERROR] [NetworkManager] E-Mail exist
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 49665, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:53002
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:53002
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 61509, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:63510
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:63510
+[WARNING] [Database] Database loaded with success !
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 56871, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:56870
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:56870
+[INFO] [NetworkManager] Assigned socket to client: Port 56871, Client count: 2
+[INFO] [NetworkManager] New client connected: 127.0.0.1:56870
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:56870

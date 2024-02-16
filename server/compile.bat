@@ -14,7 +14,7 @@ if not exist "%bin_dir%" mkdir "%bin_dir%"
 if not exist "%obj_dir%" mkdir "%obj_dir%"
 
 :: Liste des fichiers source
-set "files=main.cpp network\NetworkManager.cpp network\ClientClass.cpp network/PacketClass.cpp network/DatabaseManager.cpp system/LoggerManager.cpp system/InputManager.cpp network/GameServerClass.cpp"
+set "files=main.cpp network\NetworkManager.cpp network\ClientClass.cpp network\PacketClass.cpp database\DatabaseManager.cpp database\AccountDBClass.cpp system/LoggerManager.cpp system/InputManager.cpp network/GameServerClass.cpp"
 
 :: Compilation
 for %%f in (%files%) do (

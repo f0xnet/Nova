@@ -240,6 +240,12 @@ bool UIButton::CheckMouseEvent()
     return true;
 }
 
+/*bool UIButton::executeAction() {
+    if(this->button->id == "login") {
+        std::cout << "Login button pressed" << std::endl;
+    }
+    return true;
+}*/
 
 bool UIButton::getButtonState() const {
     return this->buttonPressed;

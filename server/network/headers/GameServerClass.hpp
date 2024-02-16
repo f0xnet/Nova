@@ -7,12 +7,15 @@
 #include <thread>
 #include <atomic>
 
+#include "ClientClass.hpp"
+
 class LoggerManager;
 
 struct ThreadState {
     std::unique_ptr<sf::UdpSocket> socket;
     std::thread thread;
     std::atomic<int> clientCount;
+    std::vector<ClientClass*> clients;
 
     ThreadState() : clientCount(0) {}
     // Supprimer le constructeur de copie et l'opérateur d'affectation pour atomic
@@ -41,7 +44,7 @@ public:
     bool init(int maxClients);
     void run();
     void stop();
-    void addLoggedClient(const std::string& ip, unsigned short port);
+    void addLoggedClient(ClientClass* client);
     void receiveData(ThreadState* state);
     int getCurrentClientCount() const;
 };

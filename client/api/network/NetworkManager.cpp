@@ -15,7 +15,7 @@ bool NetworkManager::Init(const std::string& ip, unsigned short port) {
     this->ip = ip;
     this->port = port;
     this->localPort = port+2;
-    if (socket.bind(this->localPort) != sf::Socket::Done) {
+    if (socket.bind(0) != sf::Socket::Done) {
         log("ERROR", "Failed to bind UDP socket");
         return false;
     }
@@ -24,13 +24,13 @@ bool NetworkManager::Init(const std::string& ip, unsigned short port) {
 }
 
 bool NetworkManager::Connect() {
-    if (running) {
+    if (this->running) {
         this->disconnect();
     }
     running = true;
     packetHandlerThread = std::make_unique<std::thread>(&NetworkManager::handlePackets, this);
 
-    json data = {{"pid", "login"}, {"username", "f0x"}, {"password", "hellsing"}};
+    json data = {{"pid", "register"}, {"username", "f0x"}, {"password", "hellsing"}, {"email", "maghielounet@gmail.com"}};
     sf::Packet packet;
     packet << data;
     // En UDP, on utilise sendTo pour envoyer un paquet à une adresse et un port spécifiques
@@ -58,8 +58,8 @@ void NetworkManager::handlePackets() {
         if (socket.receive(packet, senderIp, senderPort) == sf::Socket::Done) {
             packet >> data;
             json receivedData = json::parse(data);
-            std::string username = receivedData["pid"];
-            log("INFO", "Received packet from " + senderIp.toString() + ": " + username);
+            std::string pid = receivedData["pid"];
+            log("INFO", "Received packet from " + senderIp.toString() + ": " + pid);
         }
     }
 }

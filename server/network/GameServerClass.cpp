@@ -42,9 +42,11 @@ void GameServerClass::stop() {
     alive = false;
 }
 
-void GameServerClass::addLoggedClient(const std::string& ip, unsigned short port) {
+void GameServerClass::addLoggedClient(ClientClass* client) {
     ThreadState* availableState = findAvailableThreadState();
-    if (availableState != nullptr) {
+    if (availableState != nullptr && availableState->clientCount.load() < 10) {
+        client->setGameServerSocket(*availableState->socket);
+        availableState->clients.push_back(client);
         availableState->clientCount++;
         std::cout << "Client added to ThreadState with less than 10 clients. Total now: " << availableState->clientCount.load() << std::endl;
         this->currentClientCount++;

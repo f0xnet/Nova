@@ -1,7 +1,10 @@
+#ifndef CLIENTCLASS_HPP
+#define CLIENTCLASS_HPP
 #include <SFML/Network.hpp>
 #include <functional>
 #include <chrono>
 #include "../../system/headers/LoggerManager.hpp"
+#include "../../database/headers/DatabaseManager.hpp"
 #include "PacketClass.hpp"
 
 struct ClientIdentity {
@@ -30,6 +33,7 @@ public:
     size_t getPacketStackSize() const;
     void setLastPacketTime();
     void setGameServerSocket(sf::UdpSocket& gameServerSocket);
+    bool tryLogin(sf::Packet& packet, DatabaseManager* databaseManager);
     sf::UdpSocket& getGameServerSocket() const;
     sf::UdpSocket& socket;
 
@@ -39,3 +43,4 @@ private:
     std::chrono::steady_clock::time_point lastPacketTime;
     sf::UdpSocket* gameServerSocket;
 };
+#endif // CLIENTCLASS_HPP

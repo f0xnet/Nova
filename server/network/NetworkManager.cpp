@@ -27,7 +27,6 @@ void NetworkManager::run() {
     this->startGameServers();
     this->loggerManager->info("NetworkManager", "Starting NetworkManager run loop");
     this->databaseManager->init();
-
     this->inputManager->startListening();
 
     while (this->alive) {
@@ -70,20 +69,21 @@ void NetworkManager::startLoginServer() {
             if (insertResult.second) { 
                 this->loggerManager->info("NetworkManager", "New client connected: " + senderIP.toString() + ":" + std::to_string(senderPort));
                 insertResult.first->second->addPacket(packet);
-                this->addClientToGameServer(senderIP.toString(), senderPort);
             } else {
                 this->loggerManager->error("NetworkManager", "Failed to add new client: " + senderIP.toString() + ":" + std::to_string(senderPort));
             }
         } else {
-            clientIter->second->addPacket(packet);
+            if(clientIter->second->tryLogin(packet, this->databaseManager.get())) {
+                this->addClientToGameServer(clientIter->second.get());
+            }
         }
     }
 }
 
-bool NetworkManager::addClientToGameServer(const std::string& ip, unsigned short port) {
+bool NetworkManager::addClientToGameServer(ClientClass* client) {
     for (auto& gameServer : this->gameServers) {
         if(gameServer->getCurrentClientCount() < CLIENTS_BY_GAMESERVER) {
-           gameServer->addLoggedClient(ip, port);
+           gameServer->addLoggedClient(client);
            return true;
         }
     }

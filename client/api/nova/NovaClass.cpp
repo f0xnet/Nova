@@ -15,8 +15,8 @@ Nova::Nova() {
 }
 
 bool Nova::Init() { //We initialize all the classes Nova contains and check if they are initialized correctly
-std::string ipAddress = "127.0.0.1"; // Remplacez par l'adresse IP souhaitée
-unsigned short port = 53000; 
+    std::string ipAddress = "127.0.0.1"; // Remplacez par l'adresse IP souhaitée
+    unsigned short port = 53000; 
     if (!this->networkmanager || !this->networkmanager->Init(ipAddress, port)) return false;
     if (!this->draw || !this->draw->Init()) return false;
     if (!this->system || !this->system->Init()) return false;
