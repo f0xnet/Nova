@@ -6,8 +6,9 @@ UIButton::UIButton() {
     std::cout << "UIButton created" << std::endl;
 } 
 
-bool UIButton::newButton(std::string& id, std::string& groupID, bool haveText, std::string& text, std::string& fontPath, int fontSize, std::string& color, int x, int y, int width, int height, const std::string& path, const std::string& path_hover, 
+bool UIButton::newButton(std::string& uid, std::string& id, std::string& groupID, bool haveText, std::string& text, std::string& fontPath, int fontSize, std::string& color, int x, int y, int width, int height, const std::string& path, const std::string& path_hover, 
                          const std::string& path_pressed, const std::string& effect, const std::string& action, const std::string& value, int layer, bool isActive) {
+    this->UIID = uid;
     this->id = id;
     this->groupID = groupID;
     this->haveText = haveText;
@@ -29,7 +30,7 @@ bool UIButton::newButton(std::string& id, std::string& groupID, bool haveText, s
     this->fontSize = fontSize;
     this->color = color;
     this->content = text;
-
+    this->buttonData = this->generateButtonData();
     return true; 
 }
 
@@ -52,6 +53,20 @@ bool UIButton::Init() {
     }
     this->isInit = 1;
     return true;
+}
+
+std::string UIButton::generateButtonData() const {
+    std::string jsonStr = "{";
+    jsonStr += "\"uiid\": \"" + this->UIID + "\", ";
+    jsonStr += "\"button_id\": \"" + this->id + "\", ";
+    jsonStr += "\"action_id\": \"" + this->action + "\", ";
+    jsonStr += "\"value\": \"" + this->value + "\"";
+    jsonStr += "}";
+    return jsonStr;
+}
+
+std::string UIButton::getButtonData() const {
+    return this->buttonData;
 }
 
 bool UIButton::InitTexture(std::string& pathTexture, sf::Sprite& sprite, sf::Texture& texture) {
@@ -119,7 +134,12 @@ bool UIButton::setGroupID(const std::string& groupID) {
     return true;
 }
 
+std::string UIButton::getGroupID() const {
+    return this->groupID;
+}
+
 bool UIButton::setIsActive(bool isActive) {
+    this->isActive = isActive;
     return true;
 }
 
@@ -127,8 +147,8 @@ bool UIButton::getIsActive() const{
     return this->isActive; 
 }
 
-std::string UIButton::getID() const {
-    return this->id;
+std::string UIButton::getButtonAction() const {
+    return this->action;
 }
 
 int UIButton::getLayer() const {
@@ -239,13 +259,6 @@ bool UIButton::CheckMouseEvent()
     }
     return true;
 }
-
-/*bool UIButton::executeAction() {
-    if(this->button->id == "login") {
-        std::cout << "Login button pressed" << std::endl;
-    }
-    return true;
-}*/
 
 bool UIButton::getButtonState() const {
     return this->buttonPressed;

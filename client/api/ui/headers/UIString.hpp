@@ -32,6 +32,7 @@ public:
     bool setPosition();
     bool setEffect();
     bool setLayer();
+    std::string getGroupID() const;
     bool setGroupID(const std::string& groupID);
     bool setIsActive(bool isActive);
     bool getIsActive() const;

@@ -86,7 +86,7 @@ bool Render::setWindowBackground(const std::string& imagePath) {
         return false;
     }
     backgroundSprite.setTexture(backgroundTexture);
-     backgroundSprite.setScale(
+    backgroundSprite.setScale(
         static_cast<float>(renderer.getSize().x) / backgroundTexture.getSize().x,
         static_cast<float>(renderer.getSize().y) / backgroundTexture.getSize().y
     );

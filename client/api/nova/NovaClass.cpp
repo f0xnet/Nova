@@ -3,26 +3,38 @@
 #include <SFML/Audio.hpp>
 
 sf::RenderWindow* renderWindow = nullptr;
-extern sf::RenderWindow* renderWindow;
-sf::RenderTexture renderTexture;
+EventHandler* eventHandlerPtr = nullptr;
+NetworkManager* networkManagerPtr = nullptr;
+UIManager* uiManagerPtr = nullptr;
 
 Nova::Nova() {
+
     this->networkmanager = std::make_unique<NetworkManager>();
     this->render = std::make_unique<Render>();
     this->system = std::make_unique<System>();
     this->draw = std::make_unique<Draw>();
     this->uimanager = std::make_unique<UIManager>();
+    this->eventHandler = std::make_unique<EventHandler>();
 }
 
 bool Nova::Init() { //We initialize all the classes Nova contains and check if they are initialized correctly
+
     std::string ipAddress = "127.0.0.1"; // Remplacez par l'adresse IP souhaitée
     unsigned short port = 53000; 
+
     if (!this->networkmanager || !this->networkmanager->Init(ipAddress, port)) return false;
+    networkManagerPtr = this->networkmanager.get();
+
+    if (!this->eventHandler) return false;
+    eventHandlerPtr = this->eventHandler.get();
+
     if (!this->draw || !this->draw->Init()) return false;
     if (!this->system || !this->system->Init()) return false;
     if (!this->render || !this->render->init(this->draw.get())) return false;
-    if (!this->uimanager || !this->uimanager->Init(this->networkmanager.get())) return false;
-
+    
+    if (!this->uimanager || !this->uimanager->Init()) return false;
+    uiManagerPtr = this->uimanager.get();
+    
     renderWindow = &(this->render->getRenderer());     ///We assign the renderer pointer to our private pointer because we need to use it in other functions
 
     return true;
@@ -68,6 +80,9 @@ void Nova::Game() {
             renderWindow->clear(sf::Color::Transparent);
 
             this->uimanager->show(event);
+            /*std::string uiAction = this->uimanager->getUIAction();
+            if (uiAction != "") {
+            }*/
 
             texture.update(*renderWindow);
             sprite.setTexture(texture);
@@ -79,7 +94,7 @@ void Nova::Game() {
 
             renderWindow->clear();
             renderWindow->draw(sprite, &shader);
-            renderWindow->display();
+            renderWindow->display();  
         }
     } else {
         std::cout << "Render is not initialized!" << std::endl;

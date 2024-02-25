@@ -40,11 +40,16 @@ bool UIGraphic::setLayer() {
     return true;
 }
 
+std::string UIGraphic::getGroupID() const {
+    return this->groupID;
+}
+
 bool UIGraphic::setGroupID(const std::string& groupID) {
     return true;
 }
 
 bool UIGraphic::setIsActive(bool isActive) {
+    this->isActive = isActive;
     return true;
 }
 

@@ -19,6 +19,7 @@ private:
     unsigned short port;
     std::string ip;
     unsigned short localPort;
+    unsigned short gameServerPort;
 
     void handlePackets();
     void log(const std::string& type, const std::string& message);

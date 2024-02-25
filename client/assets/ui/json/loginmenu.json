@@ -1,14 +1,14 @@
 {
     "name": "app_main_menu",
-    "UIID": "app_main_menu",
+    "UIID": "login_menu",
     "language": "en",
     "description": "A simple login menu for the game.",
     "background": "data/images/background.png",
     "layers": 4,
     "buttons": [
         {
-            "ID": "main_widget_background",
-            "groupID": "main",
+            "ID": "login_menu",
+            "groupID": "login_menu_not_connected",
             "haveText": true,
             "text": "Connexion",
             "font": "data/font/SpaceMono-Regular.ttf",
@@ -22,16 +22,37 @@
             "width": 320,
             "height": 68,
             "effect": "move",
-            "action": "default",
-            "value": "Connect",
+            "action": "connect",
+            "value": "",
             "layer": 1,
             "isActive": true
         },
         {
-            "ID": "main_widget_background",
-            "groupID": "main",
+            "ID": "login_menu",
+            "groupID": "login_menu_connected",
             "haveText": true,
-            "text": "Settings",
+            "text": "Login",
+            "font": "data/font/SpaceMono-Regular.ttf",
+            "fontSize": 38,
+            "color": "255,255,255",
+            "path": "data/ui/ui_assets/button.png",
+            "path_hover": "data/ui/ui_assets/button_hover.png",
+            "path_pressed": "data/ui/ui_assets/button_clicked.png",
+            "x": 2500,
+            "y": 1230,
+            "width": 320,
+            "height": 68,
+            "effect": "move",
+            "action": "login",
+            "value": "Connect",
+            "layer": 1,
+            "isActive": false
+        },
+        {
+            "ID": "login_menu",
+            "groupID": "login_menu_connected",
+            "haveText": true,
+            "text": "Register",
             "font": "data/font/SpaceMono-Regular.ttf",
             "fontSize": 38,
             "color": "255,255,255",
@@ -43,10 +64,10 @@
             "width": 320,
             "height": 68,
             "effect": "move",
-            "action": "default",
+            "action": "register",
             "value": "Connect",
             "layer": 1,
-            "isActive": true
+            "isActive": false
         }
     ],
     "images": [
@@ -122,7 +143,7 @@
         },
         {
             "ID": "title_news_widget_1",
-            "groupID": "preview_widget",
+            "groupID": "main",
             "description": "Logo text of Nova Project",
             "content": "(C) 2019 Nova Project:://alpha 0.1.0",
             "x": 10,
@@ -138,7 +159,7 @@
         },
         {
             "ID": "title_expand_news_1_content",
-            "groupID": "expand_widget_1",
+            "groupID": "main",
             "description": "Logo text of Nova Project",
             "content": "Hello, world!\nThis is a new line.\nAnd another one!",
             "x": 500,
@@ -154,7 +175,7 @@
         },
         {
             "ID": "title_expand_news_1_content",
-            "groupID": "expand_widget_1",
+            "groupID": "main",
             "description": "Logo text of Nova Project",
             "content": "Random news://qzdqfsefsrgdrgtfhfthf<sedfqzdqzdqzdkjlkqjzd\nRandom news://qzdqfsefsrgdrgtfhfthf<sedfqzdqzdqzdkjlkqjzdq\nRandom news://qzdqfsefsrgdrgtfhfthf<sedfqzdqzdqzdkjlkqjzd\nRandom news://qzdqfsefsrgdrgtfhfthf<sedfqzdqzdqzdkjlkqjzd\nRandom news://qzdqfsefsrgdrgtfhfthf<sedfqzdqzdqzdkjlkqj\nRandom news://qzdqfsefsrgdrgtfhfthf<sedfqzdqzdqzdkjlkqjz!\nRandom news://qzdqfsefsrgdrgtfhfthf<sedfqzdqzdqzdkjlkqjz\n",
             "x": 135,

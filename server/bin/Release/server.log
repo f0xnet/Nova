@@ -1444,3 +1444,191 @@ lled
 [INFO] [NetworkManager] Assigned socket to client: Port 56871, Client count: 2
 [INFO] [NetworkManager] New client connected: 127.0.0.1:56870
 [INFO] [NetworkManager] Client is inactive: 127.0.0.1:56870
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:51260
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:51260
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 2
+[INFO] [NetworkManager] New client connected: 127.0.0.1:60077
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:60077
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 3
+[INFO] [NetworkManager] New client connected: 127.0.0.1:64918
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:64918
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 4
+[INFO] [NetworkManager] New client connected: 127.0.0.1:52617
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:52617
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 5
+[INFO] [NetworkManager] New client connected: 127.0.0.1:52621
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:52621
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 6
+[INFO] [NetworkManager] New client connected: 127.0.0.1:50051
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:50051
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 7
+[INFO] [NetworkManager] New client connected: 127.0.0.1:50052
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:50052
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 8
+[INFO] [NetworkManager] New client connected: 127.0.0.1:57724
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:57724
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 9
+[INFO] [NetworkManager] New client connected: 127.0.0.1:61659
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:61659
+[INFO] [NetworkManager] Assigned socket to client: Port 58068, Client count: 10
+[INFO] [NetworkManager] New client connected: 127.0.0.1:61661
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:61661
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:65215
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:65215
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 2
+[INFO] [NetworkManager] New client connected: 127.0.0.1:65216
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:65216
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 3
+[INFO] [NetworkManager] New client connected: 127.0.0.1:49665
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:49665
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 4
+[INFO] [NetworkManager] New client connected: 127.0.0.1:49666
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:49666
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 5
+[INFO] [NetworkManager] New client connected: 127.0.0.1:49669
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:49669
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 6
+[INFO] [NetworkManager] New client connected: 127.0.0.1:64244
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:64244
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 7
+[INFO] [NetworkManager] New client connected: 127.0.0.1:64248
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:64248
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 8
+[INFO] [NetworkManager] New client connected: 127.0.0.1:64253
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:64253
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 9
+[INFO] [NetworkManager] New client connected: 127.0.0.1:64256
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:64256
+[INFO] [NetworkManager] Assigned socket to client: Port 58069, Client count: 10
+[INFO] [NetworkManager] New client connected: 127.0.0.1:64259
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:64259
+[INFO] [NetworkManager] Assigned socket to client: Port 58070, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:64260
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:64260
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 52078, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54084
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54084
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 53286, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:55287
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:55287
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 57291, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:59292
+[INFO] [NetworkManager] Assigned socket to client: Port 57291, Client count: 2
+[INFO] [NetworkManager] New client connected: 127.0.0.1:59293
+[INFO] [NetworkManager] Assigned socket to client: Port 57291, Client count: 3
+[INFO] [NetworkManager] New client connected: 127.0.0.1:59294
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:59292
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:59293
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:59294
+[WARNING] [Database] Database loaded with success !
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 50378, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:50377
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:50377
+[INFO] [NetworkManager] Assigned socket to client: Port 50378, Client count: 2
+[INFO] [NetworkManager] New client connected: 127.0.0.1:52382
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:52382
+[INFO] [NetworkManager] Assigned socket to client: Port 50378, Client count: 3
+[INFO] [NetworkManager] New client connected: 127.0.0.1:52383
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:52383
+[INFO] [GameServerClass] Game server port sent to client: 51392
+[INFO] [GameServerClass] Game server port sent to client: 51392
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Game server port sent to client: 51392
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 52386, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:52385
+[INFO] [NetworkManager] Assigned socket to client: Port 52386, Client count: 2
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54387
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:52385
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54387
+[INFO] [GameServerClass] Game server port sent to client: 53397
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [NetworkManager] Assigned socket to client: Port 52386, Client count: 3
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54388
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54388
+[INFO] [NetworkManager] Assigned socket to client: Port 52386, Client count: 4
+[INFO] [NetworkManager] New client connected: 127.0.0.1:1200
+[INFO] [GameServerClass] Game server port sent to client: 53397
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Game server port sent to client: 53397
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:1200

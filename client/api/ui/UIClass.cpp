@@ -1,7 +1,10 @@
 #include "headers/UIClass.hpp"
 
+extern EventHandler* eventHandlerPtr;
+
 UIClass::UIClass() {
     std::cout << "UI Class Created!" << std::endl;
+    this->eventHandler = std::shared_ptr<EventHandler>(eventHandlerPtr);
 }
 
 bool UIClass::Init() {
@@ -19,8 +22,12 @@ bool UIClass::Init() {
     file.close();
     sf::Texture texture;
 
-    std::string UIID = jsonData["UIID"];
+    this->UIID = jsonData["UIID"];
+    this->layer = jsonData["layers"];
+    std::cout << "Layer: " << layer << std::endl;
     std::cout << "UIID: " << UIID << std::endl;
+
+    std::cout << "current UIID: " << this->UIID << std::endl;
 
     // Exemple de parcours des boutons
     for (const auto& button : jsonData["buttons"]) {
@@ -47,7 +54,7 @@ bool UIClass::Init() {
         int layer = button["layer"];
         bool isActive = button["isActive"];  
 
-        if (!buttonHeap.back().button.newButton(buttonID, groupID, haveText, text, fontPath, fontSize, color, x, y, width, height, path, path_hover, path_pressed, effect, action, value, layer, isActive)) {
+        if (!buttonHeap.back().button.newButton(UIID, buttonID, groupID, haveText, text, fontPath, fontSize, color, x, y, width, height, path, path_hover, path_pressed, effect, action, value, layer, isActive)) {
             std::cerr << "Failed to initialize UIButton for ID: " << buttonID << std::endl;
             buttonHeap.pop_back();
             continue; // Continue avec le prochain élément si celui-ci échoue
@@ -100,11 +107,20 @@ bool UIClass::Init() {
             continue;
         }
     }
+    this->isActive = true;
     return true;
 }
 
+bool UIClass::getIsActive() const {
+    return this->isActive;
+}
+
+std::string UIClass::getButtonData() {
+    return this->clickedbButtonData;
+}
+
 bool UIClass::show() {
-    int numberOfLayers = 5;
+    int numberOfLayers = this->layer;
 
     for (int layer = 0; layer < numberOfLayers; ++layer) {
         for (size_t i = 0; i < this->graphicHeap.size();) {
@@ -123,12 +139,10 @@ bool UIClass::show() {
                     this->buttonHeap.erase(this->buttonHeap.begin() + i);
                     continue;
                 }
-                bool buttonState = this->buttonHeap[i].button.getButtonState();
-                if (buttonState == true) {
-                    std::cout << "ID: " << this->buttonHeap[i].button.getID() << " > i : " << i << std::endl;
-                    std::cout << "Button pressed!" << std::endl;
+                if (this->buttonHeap[i].button.getButtonState() == true) { //Button is clicked
+                    std::cout << "button event : " << this->buttonHeap[i].button.getButtonData() << std::endl;
+                    this->eventHandler->handleEvent(this->eventHandler->button_click, this->buttonHeap[i].button.getButtonData());
                     this->buttonHeap[i].button.resetClick();
-                    this->networkManager->Connect(); 
                 }
             }
             ++i;
@@ -145,6 +159,30 @@ bool UIClass::show() {
     }
     return true;
 }
+
+bool UIClass::setGroupID(const std::string& newGroupID) {
+
+    for (auto& elem : graphicHeap) {
+        const std::string& currentGroupID = elem.graphic.getGroupID();
+        if (currentGroupID != "main") { 
+            elem.graphic.setIsActive(newGroupID == currentGroupID);
+        }
+    }
+    for (auto& elem : buttonHeap) {
+        const std::string& currentGroupID = elem.button.getGroupID();
+        if (currentGroupID != "main") {
+            elem.button.setIsActive(newGroupID == currentGroupID);
+        }
+    }
+    for (auto& elem : stringHeap) {
+        const std::string& currentGroupID = elem.string.getGroupID();
+        if (currentGroupID != "main") {
+            elem.string.setIsActive(newGroupID == currentGroupID);
+        }
+    }
+    return true;
+}
+
 
 UIClass::~UIClass() {
 }

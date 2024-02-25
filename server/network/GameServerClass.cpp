@@ -50,15 +50,38 @@ void GameServerClass::addLoggedClient(ClientClass* client) {
         availableState->clientCount++;
         std::cout << "Client added to ThreadState with less than 10 clients. Total now: " << availableState->clientCount.load() << std::endl;
         this->currentClientCount++;
+
+        sf::Packet packet;
+        unsigned short gameServerPort = availableState->socket->getLocalPort(); // Récupère le port local du socket du serveur
+        std::string jsonStr = "{\"pid\": \"swgm\", \"gmp\": " + std::to_string(gameServerPort) + "}";
+        packet << jsonStr;
+
+        if (client->getGameServerSocket().send(packet, client->identity.ip, client->identity.port) != sf::Socket::Done) {
+            loggerManager->error("GameServerClass", "Failed to send game server port to client");
+        } else {
+            loggerManager->info("GameServerClass", "Game server port sent to client: " + std::to_string(gameServerPort));
+        }
     } else {
         std::cout << "All threads are at full capacity." << std::endl;
     }
 }
 
 void GameServerClass::receiveData(ThreadState* state) {
+    sf::Packet packet;
+    sf::IpAddress sender;
+    unsigned short port;
+
     while (alive) {
-        // Logique de réception des données
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Pour éviter une utilisation excessive du CPU
+        sf::Socket::Status status = state->socket->receive(packet, sender, port);
+
+        if (status == sf::Socket::Done) {
+            loggerManager->info("GameServerClass", "Packet received from " + sender.toString());
+            packet.clear();
+        } else if (status == sf::Socket::NotReady) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Pour éviter une utilisation excessive du CPU
+        } else {
+            loggerManager->error("GameServerClass", "Failed to receive packet from " + sender.toString());
+        }
     }
 }
 

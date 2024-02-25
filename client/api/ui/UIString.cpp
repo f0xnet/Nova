@@ -38,11 +38,16 @@ bool UIString::setLayer() {
     return true;
 }
 
+std::string UIString::getGroupID() const {
+    return this->groupID;
+}
+
 bool UIString::setGroupID(const std::string& groupID) {
     return true;
 }
 
 bool UIString::setIsActive(bool isActive) {
+    this->isActive = isActive;
     return true;
 }
 
@@ -66,7 +71,7 @@ void UIString::rescale(sf::Text& text, sf::Vector2u resolution, sf::Vector2u nat
     float scaleX = static_cast<float>(resolution.x) / nativeResolution.x;
     float scaleY = static_cast<float>(resolution.y) / nativeResolution.y;
 
-float scale;
+    float scale;
     if (resolution.x > nativeResolution.x || resolution.y > nativeResolution.y) {
         // Utilisez le facteur d'échelle minimum pour agrandir l'image
         scale = std::min(scaleX, scaleY);
@@ -93,7 +98,6 @@ bool UIString::show() {
             std::cerr << "Error loading font from file: " << this->font << std::endl;
             return false;
         }
-        //std::cout << "Loaded font from file: " << this->font << std::endl;
         // Set the font smoothing
         this->text.setFont(this->fontObj);
 
