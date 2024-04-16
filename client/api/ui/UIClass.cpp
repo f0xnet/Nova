@@ -140,7 +140,6 @@ bool UIClass::show() {
                     continue;
                 }
                 if (this->buttonHeap[i].button.getButtonState() == true) { //Button is clicked
-                    std::cout << "button event : " << this->buttonHeap[i].button.getButtonData() << std::endl;
                     this->eventHandler->handleEvent(this->eventHandler->button_click, this->buttonHeap[i].button.getButtonData());
                     this->buttonHeap[i].button.resetClick();
                 }

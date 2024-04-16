@@ -14,13 +14,13 @@ if not exist "%bin_dir%" mkdir "%bin_dir%"
 if not exist "%obj_dir%" mkdir "%obj_dir%"
 
 :: Copier les assets
-xcopy /E /I /Y "%source_dir%\assets\ui\json\" "%bin_dir%\data\ui\json"
+xcopy /E /I /Y "%source_dir%\assets\" "%bin_dir%\data\"
 
 :: Compiler les ressources
 windres "%source_dir%\icon\appicon.rc" -O coff -o "%source_dir%\icon\appicon.res"
 
 :: Liste des fichiers source
-set "files=main.cpp api\nova\RenderClass.cpp api\nova\NovaClass.cpp api\draw\DrawClass.cpp api\nova\SystemClass.cpp api\ui\UIManager.cpp api\ui\UIClass.cpp api\ui\UIGraphic.cpp api\ui\UIString.cpp api\ui\UIbutton.cpp api\network\NetworkManager.cpp api/event/EventHandler.cpp api/event/ButtonEvent.cpp"
+set "files=main.cpp api\nova\RenderClass.cpp api\nova\NovaClass.cpp api\draw\DrawClass.cpp api\nova\SystemClass.cpp api\ui\UIManager.cpp api\ui\UIClass.cpp api\ui\UIGraphic.cpp api\ui\UIString.cpp api\ui\UIbutton.cpp api\network\NetworkManager.cpp api/event/EventHandler.cpp api/event/ButtonEvent.cpp api/nova/SceneManager.cpp"
 
 :: Compilation
 for %%f in (%files%) do (

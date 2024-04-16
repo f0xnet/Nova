@@ -1,0 +1,118 @@
+{
+    "scenes": [
+      {
+        "id": "scene1",
+        "character": "Rin",
+        "dialogues": [
+          {
+            "text": "How are you feeling today?",
+            "condition": {
+              "love": "> 20"
+            }
+          },
+          {
+            "text": "You look a bit down, something the matter?",
+            "condition": {
+              "love": "between 10 and 20"
+            }
+          },
+          {
+            "text": "Oh, it's you...",
+            "condition": {
+              "love": "< 10"
+            }
+          }
+        ],
+        "responses": {
+          "responseA": [
+            {
+              "text": "I'm feeling great, thanks!",
+              "conditions": {
+                "love": "> 15",
+                "mood": "happy"
+              },
+              "effects": {
+                "love": "+5"
+              }
+            },
+            {
+              "text": "I'm okay, I guess.",
+              "conditions": {
+                "love": "<= 15",
+                "mood": "neutral"
+              },
+              "effects": {
+                "love": "+1"
+              }
+            }
+          ],
+          "responseB": [
+            {
+              "text": "Could be better, honestly.",
+              "conditions": {
+                "stress": "> 5"
+              },
+              "effects": {
+                "love": "-1",
+                "stress": "-2"
+              }
+            },
+            {
+              "text": "Just the usual ups and downs.",
+              "conditions": {
+                "stress": "<= 5"
+              },
+              "effects": {
+                "love": "+2",
+                "stress": "+1"
+              }
+            }
+          ],
+          "responseC": [
+            {
+              "text": "Why do you care?",
+              "conditions": {
+                "relationship": "strained"
+              },
+              "effects": {
+                "love": "-5"
+              }
+            },
+            {
+              "text": "I'd rather not say.",
+              "conditions": {
+                "relationship": "neutral",
+                "trust": "< 5"
+              },
+              "effects": {
+                "love": "-2",
+                "trust": "-1"
+              }
+            }
+          ],
+          "responseD": [
+            {
+              "text": "I appreciate your concern.",
+              "conditions": {
+                "trust": ">= 5"
+              },
+              "effects": {
+                "love": "+3",
+                "trust": "+2"
+              }
+            },
+            {
+              "text": "It's none of your business.",
+              "conditions": {
+                "trust": "< 5"
+              },
+              "effects": {
+                "love": "-3"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+  

@@ -73,9 +73,9 @@ bool UIButton::InitTexture(std::string& pathTexture, sf::Sprite& sprite, sf::Tex
     if (texture.loadFromFile(pathTexture)) {
         if (texture.getSize().x > 0 && texture.getSize().y > 0) {
             sprite.setTexture(texture);
-            sf::Vector2u nativeResolution(3840, 2160); // Remplacez ceci par votre résolution native
+            sf::Vector2u nativeResolution(3840, 2160);
             sf::Vector2u resolution = renderWindow->getSize();
-            sf::Vector2f initialPosition(this->x, this->y); // Remplacez ceci par la position initiale de l'image
+            sf::Vector2f initialPosition(this->x, this->y);
             this->rescaleBackground(sprite, resolution, nativeResolution, initialPosition);
         } else {
             std::cerr << "Texture invalide - Dimensions nulles pour path: " << pathTexture << std::endl;
@@ -106,12 +106,29 @@ bool UIButton::InitText() {
 
     this->text.setString(this->content);
     this->text.setCharacterSize(this->fontSize);
-    this->text.setFillColor(sf::Color::White);
+    //convert hex color string to sf::Color (format from color variable 0, 0, 0)
+    std::string delimiter = ",";
+    size_t pos = 0;
+    std::string token;
+    int i = 0;
+    int colorArray[3];
+    while ((pos = this->color.find(delimiter)) != std::string::npos) {
+        token = this->color.substr(0, pos);
+        colorArray[i] = std::stoi(token);
+        this->color.erase(0, pos + delimiter.length());
+        i++;
+    }
+    colorArray[i] = std::stoi(this->color);
+    std::cout << "Color: " << colorArray[0] << ", " << colorArray[1] << ", " << colorArray[2] << std::endl;
+    this->text.setFillColor(sf::Color(colorArray[0], colorArray[1], colorArray[2]));
+    
     this->text.setPosition(this->x, this->y);
 
     sf::Vector2u nativeResolution(3840, 2160);
     sf::Vector2u resolution = renderWindow->getSize();
     sf::Vector2f initialPosition(this->x, this->y);
+    //set bold
+    this->text.setStyle(sf::Text::Bold);
     
     this->rescaleText(this->text, resolution, nativeResolution, initialPosition);
     this->centerTextOnImage();

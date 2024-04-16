@@ -45,11 +45,11 @@ bool ClientClass::tryLogin(sf::Packet& packet, DatabaseManager* databaseManager)
     }
     else if(pid == "register") {
         this->loggerManager->info("ClientClass", "Trying to register with username: " + username + " and password: " + password + " and email: " + email);
-        //TO-DO :: use variable to stock the return value of the function instead of calling it multiple times
-        if(databaseManager->accountDB->checkUserExistence(username, email) == -1) {
+        int checkUserExistence = databaseManager->accountDB->checkUserExistence(username, email);
+        if(checkUserExistence == -1) {
            this->loggerManager->error("ClientClass", "E-Mail exist");
            return false;
-        } else if(databaseManager->accountDB->checkUserExistence(username, email) == -2) {
+        } else if(checkUserExistence == -2) {
            this->loggerManager->error("ClientClass", "Username exist");
            return false;
         }

@@ -2,10 +2,14 @@
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Audio.hpp>
 
+
 sf::RenderWindow* renderWindow = nullptr;
 EventHandler* eventHandlerPtr = nullptr;
 NetworkManager* networkManagerPtr = nullptr;
 UIManager* uiManagerPtr = nullptr;
+
+const int NUM_LIGHTS = 3;
+
 
 Nova::Nova() {
 
@@ -48,8 +52,25 @@ void Nova::Game() {
      
     sf::Music music;
     
+    SceneManager sceneManager;
+    sceneManager.LoadScenes("data/dialogs/rin/rin_care_01.json");
+
+    SceneData scene1Data = sceneManager.GetScene("scene1");
+    if (scene1Data.character.empty()) {
+        std::cerr << "Error loading scene data" << std::endl;
+        return;
+    }
+    else {
+            // Utiliser les données de la scène
+    std::cout << "Character: " << scene1Data.character << std::endl;
+    std::cout << "Dialogues:" << std::endl;
+    for (const auto& dialogue : scene1Data.dialogues) {
+        std::cout << "- " << dialogue.text << std::endl;
+    }
+    }
+
     // Chargez votre musique ici
-    if (!music.openFromFile("data/music/main_menu.ogg")) {
+    if (!music.openFromFile("data/music/mainmenu.ogg")) {
         std::cerr << "Error loading music" << std::endl;
     }
     music.play();
@@ -57,48 +78,47 @@ void Nova::Game() {
     music.setLoop(true);
 
     sf::Shader shader;
-    if (!shader.loadFromFile("data/shaders/glow.frag", sf::Shader::Fragment)) {
+    if (!shader.loadFromFile("data/shaders/hdr.frag", sf::Shader::Fragment)) {
         std::cerr << "Failed to load shaders" << std::endl;
         return;
     }
 
-    if (this->render->newWindow(3840, 2160, "Nova", false, false, false)) {
-        renderWindow->setFramerateLimit(60);
-        this->uimanager->newUI("loginmenu");
+if (this->render->newWindow(3840, 2160, "Nova", false, false, false)) {
+    renderWindow->setFramerateLimit(60);
+    this->uimanager->newUI("loginmenu");
 
-        sf::Texture texture;
-        texture.create(3840, 2160);
-        sf::Sprite sprite;
+    sf::Texture texture;
+    texture.create(3840, 2160);
+    sf::Sprite sprite;
 
-        while (renderWindow->isOpen()) {
-            sf::Event event;
-            while (renderWindow->pollEvent(event)) {
-                if (event.type == sf::Event::Closed)
-                    renderWindow->close();
-            }
-
-            renderWindow->clear(sf::Color::Transparent);
-
-            this->uimanager->show(event);
-            /*std::string uiAction = this->uimanager->getUIAction();
-            if (uiAction != "") {
-            }*/
-
-            texture.update(*renderWindow);
-            sprite.setTexture(texture);
-            
-            // Définir les uniformes pour le shader
-            shader.setUniform("scene", texture);
-            shader.setUniform("imageSize", sf::Glsl::Vec2(renderWindow->getSize()));
-            shader.setUniform("imagePosition", sf::Glsl::Vec2(0, 0)); // Ajuster si nécessaire
-
-            renderWindow->clear();
-            renderWindow->draw(sprite, &shader);
-            renderWindow->display();  
+    while (renderWindow->isOpen()) {
+        sf::Event event;
+        while (renderWindow->pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                renderWindow->close();
         }
-    } else {
-        std::cout << "Render is not initialized!" << std::endl;
+        renderWindow->clear(sf::Color::Transparent);
+
+        this->uimanager->show(event);
+
+        shader.setUniform("texture", sf::Shader::CurrentTexture);
+        shader.setUniform("exposure", 6.0f); // Modifier si nécessaire
+        shader.setUniform("gamma", 0.30f); // Modifier si nécessaire
+        shader.setUniform("saturationStrength", 1.4f); // Modifier si nécessaire
+        shader.setUniform("auraStrength", 0.5f); // Modifier si nécessair
+        shader.setUniform("auraBoost", 0.1f); // Modifier si nécessaire
+
+        texture.update(*renderWindow);
+        sprite.setTexture(texture);
+
+        // Appliquer le shader lors du rendu du sprite
+        renderWindow->draw(sprite, &shader);
+
+        renderWindow->display();  
     }
+} else {
+    std::cout << "Render is not initialized!" << std::endl;
+}
 }
 
 Nova::~Nova() {

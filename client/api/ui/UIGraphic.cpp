@@ -76,7 +76,6 @@ void UIGraphic::rescale(sf::Sprite& sprite, sf::Vector2u resolution, sf::Vector2
 
     float scale;
     if (resolution.x > nativeResolution.x || resolution.y > nativeResolution.y) {
-        // Utilisez le facteur d'échelle minimum pour agrandir l'image
         scale = std::min(scaleX, scaleY);
     } else if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
         scale = std::min(scaleX, scaleY);

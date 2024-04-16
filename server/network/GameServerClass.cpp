@@ -48,7 +48,6 @@ void GameServerClass::addLoggedClient(ClientClass* client) {
         client->setGameServerSocket(*availableState->socket);
         availableState->clients.push_back(client);
         availableState->clientCount++;
-        std::cout << "Client added to ThreadState with less than 10 clients. Total now: " << availableState->clientCount.load() << std::endl;
         this->currentClientCount++;
 
         sf::Packet packet;

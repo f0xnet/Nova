@@ -5,6 +5,7 @@
 #include "../../ui/headers/UIManager.hpp"
 #include "../../network/headers/NetworkManager.hpp"
 #include "../../event/headers/EventHandler.hpp"
+#include "SceneManager.hpp"
 #include <memory> // Inclusion de <memory> pour std::unique_ptr
 #include <SFML/Graphics.hpp>
 #include <SFML/Network.hpp>
