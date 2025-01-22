@@ -26,5 +26,4 @@ bool ButtonEvent::parseEvent(const std::string& data) {
     return true;
 }
 
-ButtonEvent::~ButtonEvent() {
-}
+ButtonEvent::~ButtonEvent() {}

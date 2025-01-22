@@ -100,3 +100,5 @@ HWND Render::windowHandle() {
 Render::~Render() {
     std::cout << "Render destroyed!" << std::endl;
 }
+
+//

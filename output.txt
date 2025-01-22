@@ -1,0 +1,3349 @@
+#include "api/nova/headers/NovaClass.hpp"
+
+int main() 
+{   
+    Nova Nova;
+    Nova.Init();
+    Nova.Game();
+
+  return 0;
+} 
+// Animation.cpp
+#include "headers/Animation.hpp"
+#include <iostream> 
+
+Animation::Animation(const std::string& animationId, float animDuration)
+    : id(animationId), frameIndex(0), duration(animDuration), elapsedTime(0.0f), position(0.0f, 0.0f) {}
+
+bool Animation::loadFromFiles(const std::vector<std::string>& filePaths) {
+    for (const auto& path : filePaths) {
+        sf::Texture texture;
+        if (!texture.loadFromFile(path)) {
+            std::cerr << "Failed to load frame: " << path << std::endl;
+            return false;
+        }
+        frames.push_back(texture);
+    }
+    return true;
+}
+
+void Animation::update(float deltaTime) {
+    elapsedTime += deltaTime;
+    if (elapsedTime >= duration) {
+        frameIndex = (frameIndex + 1) % frames.size();
+        elapsedTime = 0.0f;
+    }
+}
+
+void Animation::setPosition(const sf::Vector2f& pos) {
+    position = pos;
+}
+
+const sf::Vector2f& Animation::getPosition() const {
+    return position;
+}
+
+void Animation::reset() {
+    frameIndex = 0;
+    elapsedTime = 0.0f;
+}
+
+const sf::Texture& Animation::getCurrentFrame() const {
+    return frames[frameIndex];
+}
+
+bool Animation::isFinished() const {
+    return frameIndex == frames.size() - 1 && elapsedTime >= duration;
+}
+
+const std::string& Animation::getId() const {
+    return id;
+}
+ 
+// AnimationManager.cpp
+#include "headers/AnimationManager.hpp"
+#include <fstream>
+#include <iostream> 
+#include <nlohmann/json.hpp>
+
+bool AnimationManager::loadAnimationsFromFile(const std::string& filePath) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open animation file: " << filePath << std::endl;
+        return false;
+    }
+
+    nlohmann::json animationsData;
+    file >> animationsData;
+
+    for (auto& [id, animData] : animationsData.items()) {
+        float duration = animData["duration"];
+        std::vector<std::string> frames = animData["frames"];
+        
+        auto animation = std::make_shared<Animation>(id, duration);
+        if (!animation->loadFromFiles(frames)) {
+            std::cerr << "Failed to load frames for animation: " << id << std::endl;
+            return false;
+        }
+        
+        animations[id] = animation;
+    }
+    return true;
+}
+
+void AnimationManager::setAnimation(const std::string& animationId) {
+    auto it = animations.find(animationId);
+    if (it != animations.end()) {
+        currentAnimation = it->second;
+        currentAnimation->reset();
+    } else {
+        std::cerr << "Animation not found: " << animationId << std::endl;
+    }
+}
+
+void AnimationManager::setAnimationPosition(const sf::Vector2f& position) {
+    if (currentAnimation) {
+        currentAnimation->setPosition(position);
+    }
+}
+
+const sf::Vector2f& AnimationManager::getAnimationPosition() const {
+    static sf::Vector2f defaultPos(0.0f, 0.0f);
+    return currentAnimation ? currentAnimation->getPosition() : defaultPos;
+}
+
+void AnimationManager::update(float deltaTime) {
+    if (currentAnimation) {
+        currentAnimation->update(deltaTime);
+    }
+}
+
+const sf::Texture& AnimationManager::getCurrentFrame() const {
+    return currentAnimation ? currentAnimation->getCurrentFrame() : sf::Texture();
+}
+
+bool AnimationManager::isCurrentAnimationFinished() const {
+    return currentAnimation ? currentAnimation->isFinished() : true;
+}
+
+ 
+// Animation.hpp
+#ifndef ANIMATION_HPP
+#define ANIMATION_HPP
+
+#include <string>
+#include <vector>
+#include <SFML/Graphics.hpp>
+
+class Animation {
+private:
+    std::string id;
+    std::vector<sf::Texture> frames;
+    int frameIndex;
+    float duration;
+    float elapsedTime;
+    sf::Vector2f position;
+
+public:
+    Animation(const std::string& animationId, float animDuration);
+
+    bool loadFromFiles(const std::vector<std::string>& filePaths);
+    void update(float deltaTime);
+    void setPosition(const sf::Vector2f& pos);
+    const sf::Vector2f& getPosition() const;
+    void reset();
+    const sf::Texture& getCurrentFrame() const;
+    bool isFinished() const;
+    const std::string& getId() const;
+};
+
+#endif // ANIMATION_HPP
+
+ 
+// AnimationManager.hpp
+#ifndef ANIMATION_MANAGER_HPP
+#define ANIMATION_MANAGER_HPP
+
+#include <unordered_map>
+#include <memory>
+#include <string>
+#include "Animation.hpp"
+
+class AnimationManager {
+private:
+    std::unordered_map<std::string, std::shared_ptr<Animation>> animations;
+    std::shared_ptr<Animation> currentAnimation;
+
+public:
+    bool loadAnimationsFromFile(const std::string& filePath);
+    void setAnimation(const std::string& animationId);
+    void setAnimationPosition(const sf::Vector2f& position);
+    const sf::Vector2f& getAnimationPosition() const;
+    void update(float deltaTime);
+    const sf::Texture& getCurrentFrame() const;
+    bool isCurrentAnimationFinished() const;
+};
+
+#endif // ANIMATION_MANAGER_HPP
+ 
+#include "headers/DrawClass.hpp"
+
+Draw::Draw() {
+    //std::cout << "Draw Class Created!" << std::endl;
+}
+
+bool Draw::Init() {
+    return true;
+} 
+
+void Draw::setScale(sf::Vector2f& position, sf::Vector2f& scale, const sf::Vector2u& currentResolution) {
+    // Chargez les valeurs de position et d'échelle à partir du fichier de configuration pour 1080p
+
+    // Obtenez la résolution actuelle de l'écran
+    sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
+
+    // Calculez les ratios de mise à l'échelle
+    float scaleX = static_cast<float>(currentResolution.x) / 1920.0f; // 1920p est la largeur de référence
+    float scaleY = static_cast<float>(currentResolution.y) / 1080.0f;  // 1080p est la hauteur de référence
+
+    // Appliquez les ratios de mise à l'échelle aux valeurs de position et d'échelle
+    position.x *= scaleX;
+    position.y *= scaleY;
+    scale.x *= scaleX;
+    scale.y *= scaleY;
+}
+
+void Draw::addTexture(const std::string& UIID, const std::string& ID, std::string& groupID, int x, int y, int width, int height, const std::string& path, const std::string& effect, int layer, int isActive) {
+    sf::Texture texture;
+    if (!texture.loadFromFile(path)) {
+        std::cerr << "Failed to load texture: " << path << std::endl;
+        return;
+    }
+    TextureHeap newTexture(UIID, ID, groupID, x, y, width, height, effect, layer, isActive, texture);
+    this->textureHeap.push_back(newTexture);
+    std::cout << "Texture added!" << std::endl;
+}
+
+Draw::~Draw() {
+    std::cout << "Draw destroyed!" << std::endl;
+}
+
+void Draw::renderTextures(sf::RenderWindow& window) {
+    for (const auto& textureHeapItem : textureHeap) {
+        if (textureHeapItem.isActive) { // Vérifie si l'élément est actif
+            sf::Sprite sprite;
+            sprite.setTexture(textureHeapItem.texture);
+            sprite.setPosition(textureHeapItem.x, textureHeapItem.y);
+            sprite.setScale(
+                static_cast<float>(textureHeapItem.width) / textureHeapItem.texture.getSize().x,
+                static_cast<float>(textureHeapItem.height) / textureHeapItem.texture.getSize().y
+            );
+            // Ajoutez ici toute autre configuration nécessaire, comme les effets
+
+            window.draw(sprite); // Dessine le sprite sur la fenêtre
+        }
+    }
+} 
+ 
+#pragma once
+#include <iostream>
+#include <SFML/Graphics.hpp>
+
+class Draw {
+    // Constructor
+
+    private:
+        // Structure pour stocker les propriétés de l'objet à dessiner
+        struct TextureHeap {
+            std::string UIID;
+            std::string ID;
+            std::string groupID;
+            int x, y, width, height, layer, isActive;
+            std::string effect;
+            sf::Texture texture;
+
+            TextureHeap(const std::string& UIID, const std::string& id, std::string& grpID, int posX, int posY, int w, int h, const std::string& eff, int lay, int active, const sf::Texture& texture)
+            : UIID(UIID), ID(id), groupID(grpID), x(posX), y(posY), width(w), height(h), layer(lay), isActive(active), effect(eff), texture(texture) {}
+        };
+        std::vector<TextureHeap> textureHeap;
+        sf::RenderWindow* window;
+
+    public:
+
+    // Déclaration du constructeur
+    Draw();
+
+    bool Init(); // Déclaration de la fonction
+    void setScale(sf::Vector2f& position, sf::Vector2f& scale, const sf::Vector2u& currentResolution);
+    void addTexture(const std::string& UIID, const std::string& id, std::string& groupID, int x, int y, int width, int height, const std::string& path, const std::string& effect, int layer, int isActive);
+    void renderTextures(sf::RenderWindow& window);
+
+    ~Draw(); // Déclaration du destructeur
+};
+ 
+#include "headers/ButtonEvent.hpp"
+#include "../ui/headers/UIManager.hpp"
+
+extern NetworkManager* networkManagerPtr;
+extern UIManager* uiManagerPtr;
+
+ButtonEvent::ButtonEvent() {
+}
+
+bool ButtonEvent::Init() {
+    return true;
+}
+
+bool ButtonEvent::parseEvent(const std::string& data) {
+    nlohmann::json jsonData = nlohmann::json::parse(data);
+    std::string action_id = jsonData["action_id"];
+    std::string uiid = jsonData["uiid"];
+
+    if(action_id == "connect") {
+       networkManagerPtr->Connect();
+       uiManagerPtr->setGroupID(uiid, "login_menu_connected");
+    }
+    if(action_id == "login") {
+        networkManagerPtr->Connect();
+    }
+    return true;
+}
+
+ButtonEvent::~ButtonEvent() {
+} 
+#include "headers/EventHandler.hpp"
+
+EventHandler::EventHandler() {
+    this->buttonEvent = std::make_unique<ButtonEvent>();
+}
+
+void EventHandler::addEvent(const std::string& event) {
+    this->events[event] = [](const nlohmann::json&) {};
+}
+
+void EventHandler::addCallbackEvent(const std::string& event, const std::function<void(const nlohmann::json&)>& callback) {
+    this->events[event] = callback;
+    /*Exemple d'utilisation : 
+    
+    EventHandler handler;
+
+    // Enregistrement d'un événement
+    handler.addCallbackEvent("monEvenement", [](const nlohmann::json& data) {
+        std::cout << "Événement reçu avec les données : " << data.dump() << std::endl;
+    });
+
+    // Déclenchement de l'événement avec des données JSON
+    nlohmann::json data = {{"cle", "valeur"}};
+    handler.handleCallbackEvent("monEvenement", data);
+*/
+}
+
+void EventHandler::handleCallbackEvent(const std::string& event, const nlohmann::json& data) {
+    if (this->events.find(event) != this->events.end()) {
+        this->events[event](data);
+    } else {
+        std::cerr << "Event not found: " << event << std::endl;
+    }
+}
+
+void EventHandler::handleEvent(const std::string& event, const std::string& data) {
+    if (this->events.find(event) != this->events.end()) {
+        if(event == this->button_click){
+           this->buttonEvent->parseEvent(data);
+        }
+    } else {
+        std::cerr << "Event not found: " << event << std::endl;
+    }
+}
+
+void EventHandler::removeEvent(const std::string& event) {
+    if (this->events.find(event) != this->events.end()) {
+        this->events.erase(event);
+    } else {
+        std::cerr << "Event not found: " << event << std::endl;
+    }
+}
+
+void EventHandler::clearEvents() {
+    this->events.clear();
+}
+
+bool EventHandler::isEventRegistered(const std::string& event) const {
+    return this->events.find(event) != this->events.end();
+}
+
+std::vector<std::string> EventHandler::getRegisteredEvents() const {
+    std::vector<std::string> eventList;
+    for (const auto& event : this->events) {
+        eventList.push_back(event.first);
+    }
+    return eventList;
+}
+
+EventHandler::~EventHandler() {
+    std::cout << "EventHandler destroyed" << std::endl;
+} 
+#ifndef BUTTONEVENT_HPP
+#define BUTTONEVENT_HPP
+
+#include <nlohmann/json.hpp>
+#include <functional>
+#include <iostream>
+#include <vector>
+#include <SFML/Network.hpp>
+#include "../../network/headers/NetworkManager.hpp"
+//#include "../../ui/headers/UIManager.hpp"
+
+class ButtonEvent {
+public:
+
+    ButtonEvent();
+    bool Init();
+    bool parseEvent(const std::string& data);
+    ~ButtonEvent();
+private:
+    NetworkManager* networkManager;
+};
+
+#endif // BUTTONEVENT_HPP 
+#ifndef EVENTHANDLER_HPP
+#define EVENTHANDLER_HPP
+
+#include <SFML/Network.hpp>
+#include <functional>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <memory>
+#include <nlohmann/json.hpp>
+#include "ButtonEvent.hpp"
+
+class EventHandler {
+public:
+    std::string button_click = "ui_button_click";
+    std::string input_prompt = "ui_input_prompt";
+
+
+    EventHandler();
+    void addEvent(const std::string& event);
+    void addCallbackEvent(const std::string& event, const std::function<void(const nlohmann::json&)>& callback);
+    void handleEvent(const std::string& event, const std::string& data);
+    void handleCallbackEvent(const std::string& event, const nlohmann::json& data);
+    void removeEvent(const std::string& event);
+    void clearEvents();
+    bool isEventRegistered(const std::string& event) const;
+    std::vector<std::string> getRegisteredEvents() const;
+    ~EventHandler();
+private:
+    std::map<std::string, std::function<void(const nlohmann::json&)>> events;
+    std::unique_ptr<ButtonEvent> buttonEvent;
+};
+
+#endif // EVENTHANDLER_HPP
+ 
+// PLayerClass concept implementation
+// Date: 2021-06-15
+// Version: 1.0
+
+#include "playerClass.h"
+
+PlayerClass::PlayerClass() {
+   //if the player is local, we initialize the local data
+   this->initLocalData();
+   //else we send a request to the server to get the player data
+}
+
+void PlayerClass::initLocalData() {
+    //read saved data
+}
+
+void PlayerClass::initOnlineData() {
+    //used by the server to update the player data
+}
+
+void PlayerClass::setPlayerName(std::string name) {
+    this->playerName = name;
+}
+
+std::string PlayerClass::getPlayerName() {
+    return this->playerName;
+}
+
+bool PlayerClass::update() {
+    this->positionX = x;
+    this->positionY = y;
+    //animation update of the player character
+    return true;
+}
+
+int PlayerClass::getPositionX() {
+    return this->positionX;
+}
+
+int PlayerClass::getPositionY() {
+    return this->positionY;
+}
+
+bool PlayerClass::setAnimation() {
+    //set animation for player character ? send to the animation class the id of the animation and other needed value (loop, speed, etc.)
+    return true;
+} 
+#include "headers/NetworkManager.hpp"
+#include <iostream>
+
+// Surcharge de l'opérateur '<<' pour ajouter un objet JSON à un sf::Packet
+sf::Packet& operator <<(sf::Packet& packet, const json& data) {
+    std::string jsonString = data.dump(); // Convertit l'objet JSON en chaîne JSON
+    return packet << jsonString;
+}
+
+// Constructor
+NetworkManager::NetworkManager() {
+}
+
+bool NetworkManager::Init(const std::string& ip, unsigned short port) {
+    this->ip = ip;
+    this->gameServerPort = port;
+    this->localPort = port+2;
+    if (socket.bind(0) != sf::Socket::Done) {
+        log("ERROR", "Failed to bind UDP socket");
+        return false;
+    }
+    socket.setBlocking(false);
+    return true;
+}
+
+bool NetworkManager::Connect() {
+    if (this->running) {
+        this->disconnect();
+    }
+    running = true;
+    packetHandlerThread = std::make_unique<std::thread>(&NetworkManager::handlePackets, this);
+
+    json data = {{"pid", "login"}, {"username", "f0x"}, {"password", "hellsing"}, {"email", "maghielounet@gmail.com"}};
+    sf::Packet packet;
+    packet << data;
+    // En UDP, on utilise sendTo pour envoyer un paquet à une adresse et un port spécifiques
+    socket.send(packet, sf::IpAddress(ip), this->gameServerPort);
+
+    return true;
+}
+
+void NetworkManager::disconnect() {
+    if (running) {
+        running = false;
+        if (packetHandlerThread && packetHandlerThread->joinable()) {
+            packetHandlerThread->join();
+        }
+    }
+}
+
+void NetworkManager::handlePackets() {
+    while (running) {
+        sf::Packet packet;
+        sf::IpAddress senderIp;
+        unsigned short senderPort;
+        std::string data;
+        if (socket.receive(packet, senderIp, senderPort) == sf::Socket::Done) {
+            packet >> data;
+            json receivedData = json::parse(data);
+            std::string pid = receivedData["pid"];
+            this->gameServerPort = receivedData["gmp"];
+            log("INFO", "Received packet from " + senderIp.toString() + ": " + pid + " / Gameserver Port :" + std::to_string(this->gameServerPort));
+        }
+    }
+}
+
+// Destructor
+NetworkManager::~NetworkManager() {
+    disconnect();
+}
+
+void NetworkManager::log(const std::string& type, const std::string& message) {
+    std::lock_guard<std::mutex> guard(this->logMutex);
+    std::cout << "[" << type << "] " << message << std::endl;
+}
+ 
+#ifndef NETWORK_MANAGER_HPP
+#define NETWORK_MANAGER_HPP
+
+#include <string>
+#include <memory>
+#include <thread>
+#include <mutex>
+#include <nlohmann/json.hpp>
+#include <SFML/Network.hpp>
+
+using json = nlohmann::json;
+
+class NetworkManager {
+private:
+    sf::UdpSocket socket;
+    std::unique_ptr<std::thread> packetHandlerThread;
+    bool running = false;
+    std::mutex logMutex;
+    unsigned short port;
+    std::string ip;
+    unsigned short localPort;
+    unsigned short gameServerPort;
+
+    void handlePackets();
+    void log(const std::string& type, const std::string& message);
+
+public:
+    NetworkManager();
+    ~NetworkManager();
+    bool Init(const std::string& ip, unsigned short port);
+    bool Connect();
+    void disconnect();
+};
+
+#endif // NETWORK_MANAGER_HPP
+ 
+#include "headers/NovaClass.hpp"
+#include <SFML/Graphics/Shader.hpp>
+#include <SFML/Audio.hpp>
+
+
+sf::RenderWindow* renderWindow = nullptr;
+EventHandler* eventHandlerPtr = nullptr;
+NetworkManager* networkManagerPtr = nullptr;
+UIManager* uiManagerPtr = nullptr;
+
+const int NUM_LIGHTS = 3;
+
+Nova::Nova() {
+
+    this->networkmanager = std::make_unique<NetworkManager>();
+    this->render = std::make_unique<Render>();
+    this->system = std::make_unique<System>();
+    this->draw = std::make_unique<Draw>();
+    this->uimanager = std::make_unique<UIManager>();
+    this->eventHandler = std::make_unique<EventHandler>();
+}
+
+bool Nova::Init() { //We initialize all the classes Nova contains and check if they are initialized correctly
+
+    std::string ipAddress = "127.0.0.1"; // Remplacez par l'adresse IP souhaitée
+    unsigned short port = 53000; 
+
+    if (!this->networkmanager || !this->networkmanager->Init(ipAddress, port)) return false;
+    networkManagerPtr = this->networkmanager.get();
+
+    if (!this->eventHandler) return false;
+    eventHandlerPtr = this->eventHandler.get();
+
+    if (!this->draw || !this->draw->Init()) return false;
+    if (!this->system || !this->system->Init()) return false;
+    if (!this->render || !this->render->init(this->draw.get())) return false;
+    
+    if (!this->uimanager || !this->uimanager->Init()) return false;
+    uiManagerPtr = this->uimanager.get();
+    
+    renderWindow = &(this->render->getRenderer());     ///We assign the renderer pointer to our private pointer because we need to use it in other functions
+
+    return true;
+}
+
+void Nova::Game() {
+    // Charger les shaders
+     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+
+     std::cout << desktop.width << " " << desktop.height << std::endl;
+     
+    sf::Music music;
+    
+    SceneManager sceneManager;
+    sceneManager.load_from_file("data/dialogs/rin/rin_care_01.json");
+    sceneManager.print_scene_details();
+    std::string selected_dialogue = sceneManager.select_dialogue("scene1", 10);
+
+    // Affichez le dialogue sélectionné (ou un message approprié si aucun dialogue n'est sélectionné)
+    if (!selected_dialogue.empty()) {
+        std::cout << "Selected Dialogue: " << selected_dialogue << std::endl;
+    } else {
+        std::cout << "No dialogue selected." << std::endl;
+    }
+
+    // Chargez votre musique ici
+    if (!music.openFromFile("data/music/mainmenu.ogg")) {
+        std::cerr << "Error loading music" << std::endl;
+    }
+    music.play();
+    music.setVolume(5);
+    music.setLoop(true);
+
+    sf::Shader shader;
+    if (!shader.loadFromFile("data/shaders/hdr.frag", sf::Shader::Fragment)) {
+        std::cerr << "Failed to load shaders" << std::endl;
+        return;
+    }
+
+if (this->render->newWindow(3840, 2160, "Nova", false, false, false)) {
+    renderWindow->setFramerateLimit(60);
+    this->uimanager->newUI("loginmenu");
+
+    sf::Texture texture;
+    texture.create(3840, 2160);
+    sf::Sprite sprite;
+
+    while (renderWindow->isOpen()) {
+        sf::Event event;
+        while (renderWindow->pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                renderWindow->close();
+        }
+        renderWindow->clear(sf::Color::Transparent);
+
+        this->uimanager->show(event);
+
+        shader.setUniform("texture", sf::Shader::CurrentTexture);
+        shader.setUniform("exposure", 6.0f); // Modifier si nécessaire
+        shader.setUniform("gamma", 0.30f); // Modifier si nécessaire
+        shader.setUniform("saturationStrength", 1.4f); // Modifier si nécessaire
+        shader.setUniform("auraStrength", 0.5f); // Modifier si nécessair
+        shader.setUniform("auraBoost", 0.1f); // Modifier si nécessaire
+
+        texture.update(*renderWindow);
+        sprite.setTexture(texture);
+        
+
+        // Appliquer le shader lors du rendu du sprite
+        renderWindow->draw(sprite, &shader);
+
+        renderWindow->display();  
+    }
+} else {
+    std::cout << "Render is not initialized!" << std::endl;
+}
+}
+
+Nova::~Nova() {
+    std::cout << "Nova destroyed!" << std::endl;
+}
+
+   /*if (clock.getElapsedTime().asMilliseconds() > 100) {
+                std::array<int, 4> windowInfo = this->system->getFocusedWindowX();
+                if(lastWindowX != windowInfo[0] && lastWindowY != windowInfo[1]) 
+                {
+                    lastWindowX = windowInfo[0];
+                    lastWindowY = windowInfo[1];
+                    int x = windowInfo[0] + windowInfo[2] - 390;
+                    int y = windowInfo[1] - 390;
+
+                    this->renderWindow->setPosition(sf::Vector2i(x, y));
+                    clock.restart();
+                }
+            }*/
+ 
+#include "headers/RenderClass.hpp"
+
+Render::Render() {
+    std::cout << "Render Class Created!" << std::endl;
+
+}
+
+bool Render::init(Draw *drawPtr) {
+    /// SFML s'initialise avec la création de la fenêtre
+    return true;
+}
+
+bool Render::newWindow(int width, int height, const std::string& title, bool fullscreen, bool isSplashScreen, bool borderless) {
+    sf::Uint32 style;
+    if (fullscreen) {
+        style = sf::Style::Fullscreen;
+    } else if (borderless) {
+        style = sf::Style::None; // Style pour une fenêtre sans bordures
+    } else {
+        style = sf::Style::Default;
+    }
+
+    // Utiliser la résolution spécifiée que ce soit pour le mode plein écran ou fenêtré
+    sf::VideoMode videoMode(width, height);
+
+    renderer.create(videoMode, title, style);
+
+    if (fullscreen) {
+        // Ajuster la vue pour le mode plein écran
+        sf::View view(sf::FloatRect(0.f, 0.f, static_cast<float>(videoMode.width), static_cast<float>(videoMode.height)));
+        renderer.setView(view);
+    }
+
+    if (isSplashScreen) {
+        HWND hwnd = windowHandle();
+        LONG lStyle = GetWindowLong(hwnd, GWL_STYLE);
+        lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+        SetWindowLong(hwnd, GWL_STYLE, lStyle);
+        LONG lExStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, lExStyle);
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
+        this->setWindowBackground("image.png");
+        this->enableTransparency();
+    }
+    return true;
+}
+
+void Render::render(sf::RenderStates states) {
+    renderer.clear(sf::Color::Transparent);
+    //renderer.draw(backgroundSprite, states);
+    renderer.draw(backgroundSprite);
+    //renderer.display();
+}
+
+int Render::enableTransparency() {
+    HWND handle = windowHandle();
+
+    #ifdef _WIN64
+        // Version 64 bits
+        LONG_PTR result = SetWindowLongPtr(handle, GWL_EXSTYLE, GetWindowLongPtr(handle, GWL_EXSTYLE) | WS_EX_LAYERED);
+    #else
+        // Version 32 bits
+        LONG result = SetWindowLong(handle, GWL_EXSTYLE, GetWindowLong(handle, GWL_EXSTYLE) | WS_EX_LAYERED);
+    #endif
+
+    if (result == 0 && GetLastError() != ERROR_SUCCESS) {
+        std::cerr << "SetWindowLong Error: " << GetLastError() << std::endl;
+        return 0;
+    }
+    if (!SetLayeredWindowAttributes(handle, RGB(0, 0, 0), 0, LWA_COLORKEY)) {
+        std::cerr << "SetLayeredWindowAttributes Error: " << GetLastError() << std::endl;
+        return 0;
+    }
+    return 1;
+}
+
+sf::RenderWindow& Render::getRenderer() {
+    return renderer;
+}
+
+bool Render::setWindowBackground(const std::string& imagePath) {
+    if (!backgroundTexture.loadFromFile(imagePath)) {
+        std::cerr << "Image loading failed" << std::endl;
+        return false;
+    }
+    backgroundSprite.setTexture(backgroundTexture);
+    backgroundSprite.setScale(
+        static_cast<float>(renderer.getSize().x) / backgroundTexture.getSize().x,
+        static_cast<float>(renderer.getSize().y) / backgroundTexture.getSize().y
+    );
+    return true;
+}
+
+HWND Render::windowHandle() {
+    return renderer.getSystemHandle();
+}
+
+Render::~Render() {
+    std::cout << "Render destroyed!" << std::endl;
+} 
+#include "headers/Scene.hpp"
+#include <iostream>
+
+void Scene::Condition::from_json(const json& j) {
+    attribute = j.begin().key();
+    auto val = j.begin().value();
+    if (val.is_array() && val.size() == 2 && val[0].is_string() && val[1].is_number()) {
+        operator_ = val[0].get<std::string>();
+        value = val[1].get<int>();
+    } else {
+        std::cerr << "Error: Condition values are not formatted correctly for '" << attribute << "'.\n";
+    }
+}
+
+void Scene::Effect::from_json(const json& j) {
+    attribute = j.begin().key();
+    auto val = j.begin().value();
+    if (val.is_array() && val.size() == 2 && val[1].is_number()) {
+        change = val[1].get<int>();
+    } else {
+        std::cerr << "Error: Effect values are not formatted correctly for '" << attribute << "'.\n";
+    }
+}
+
+void Scene::Response::from_json(const json& j) {
+    j.at("text").get_to(text);
+    if (j.contains("conditions") && j["conditions"].is_array()) {
+        for (const auto& item : j["conditions"]) {
+            Condition condition;
+            condition.from_json(item);
+            conditions.push_back(condition);
+        }
+    }
+
+    if (j.contains("effects") && j["effects"].is_array()) {
+        for (const auto& item : j["effects"]) {
+            Effect effect;
+            effect.from_json(item);
+            effects.push_back(effect);
+        }
+    }
+}
+
+void Scene::ResponseCategory::from_json(const json& j) {
+    if (j.is_array()) {
+        for (const auto& resp : j) {
+            Response response;
+            response.from_json(resp);
+            responses.push_back(response);
+        }
+    }
+}
+
+void Scene::Dialogue::from_json(const json& j) {
+    j.at("text").get_to(text);
+    condition.from_json(j.at("condition"));
+}
+
+void Scene::from_json(const json& j) {
+    j.at("id").get_to(id);
+    j.at("character").get_to(character);
+
+    for (const auto& dlg : j["dialogues"]) {
+        Dialogue dialogue;
+        dialogue.from_json(dlg);
+        dialogues.push_back(dialogue);
+    }
+
+    if (j.contains("responses") && j["responses"].is_object()) {
+        for (const auto& [key, category] : j["responses"].items()) {
+            ResponseCategory responseCategory;
+            responseCategory.from_json(category);
+            responseCategories[key] = responseCategory;
+        }
+    }
+}
+ 
+#include "headers/SceneManager.hpp"
+#include <fstream>
+#include <iostream>
+
+void SceneManager::load_from_file(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " + filename << std::endl;
+        return;
+    }
+    json j;
+    file >> j;
+
+    for (const auto& obj : j["scenes"]) {
+        Scene scene;
+        scene.from_json(obj);
+        scenes.push_back(scene);
+    }
+    
+}
+
+void SceneManager::print_scene_details() const {
+    for (const auto& scene : scenes) {
+        std::cout << "Scene ID: " << scene.id << std::endl;
+        std::cout << "Character: " << scene.character << std::endl;
+
+        // Parcours de tous les dialogues de la scène
+        for (const auto& dialogue : scene.dialogues) {
+            std::cout << "Dialogue: " << dialogue.text << std::endl;
+            std::cout << "Condition Attribute: " << dialogue.condition.attribute << std::endl;
+            std::cout << "Condition Operator: " << dialogue.condition.operator_ << std::endl;
+            std::cout << "Condition Value: " << dialogue.condition.value << std::endl;
+        }
+
+        // Parcours de toutes les catégories de réponses de la scène
+        for (const auto& [category, responseCategory] : scene.responseCategories) {
+            std::cout << "Response Category: " << category << std::endl;
+            
+            // Parcours de toutes les réponses de la catégorie
+            for (const auto& response : responseCategory.responses) {
+                std::cout << "Response Text: " << response.text << std::endl;
+
+                // Parcours de toutes les conditions de la réponse
+                for (const auto& condition : response.conditions) {
+                    std::cout << "Condition Attribute: " << condition.attribute << std::endl;
+                    std::cout << "Condition Operator: " << condition.operator_ << std::endl;
+                    std::cout << "Condition Value: " << condition.value << std::endl;
+                }
+
+                // Parcours de tous les effets de la réponse
+                for (const auto& effect : response.effects) {
+                    std::cout << "Effect Attribute: " << effect.attribute << std::endl;
+                    std::cout << "Effect Change: " << effect.change << std::endl;
+                }
+            }
+        }
+    }
+}
+
+std::string SceneManager::select_dialogue(const std::string& scene_id, int love_value) const {
+    for (const auto& scene : scenes) {
+        if (scene.id == scene_id) {
+            for (const auto& dialogue : scene.dialogues) {
+                bool conditions_met = false; // On initialise à false, puisqu'on va évaluer chaque condition
+                if (dialogue.condition.attribute == "love") {
+                    if (dialogue.condition.operator_ == ">") {
+                        conditions_met = love_value >= dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "<") {
+                        conditions_met = love_value <= dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "=") {
+                        conditions_met = love_value == dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "!=") {
+                        conditions_met = love_value != dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == ">=") {
+                        conditions_met = love_value >= dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "<=") {
+                        conditions_met = love_value <= dialogue.condition.value;
+                    }
+                }
+                // Ajoutez d'autres conditions selon vos besoins
+
+                // Si toutes les conditions sont satisfaites, sélectionnez le dialogue
+                if (conditions_met) {
+                    return dialogue.text;
+                }
+            }
+        }
+    }
+    // Si aucune condition n'est satisfaite pour aucun dialogue, retournez une chaîne vide
+    return "";
+}
+ 
+#include "headers/SystemClass.hpp"
+
+std::mutex System::windowMutex;
+HWND System::currentWindow = nullptr;
+RECT System::currentRect = {0};
+TCHAR System::currentTitle[256] = {0};
+
+int System::focusedWindowWidth = 0;
+int System::focusedWindowHeight = 0;
+int System::focusedWindowX = 0;
+int System::focusedWindowY = 0;
+
+System::System() {
+   // std::cout << "System Class Created!" << std::endl;
+}
+
+bool System::Init() {
+    std::thread getWindowThread([this]() {
+        while (true) {
+            getWindowInfo();
+            std::this_thread::sleep_for(std::chrono::milliseconds(30)); // Attendre un peu entre chaque vérification
+        }
+    });
+    getWindowThread.detach(); // Détacher la thread pour qu'elle s'exécute en arrière-plan
+    return true;
+}  
+
+void System::getWindowInfo() {
+    std::lock_guard<std::mutex> lock(windowMutex);
+
+    HWND foreground = GetForegroundWindow(); 
+
+    if (foreground != NULL) {
+        GetWindowRect(foreground, &currentRect); 
+
+        //int width = currentRect.right - currentRect.left;
+        //int height = currentRect.bottom - currentRect.top;
+
+        GetWindowText(foreground, currentTitle, sizeof(currentTitle)); 
+        //std::wcout << "Current window: " << currentTitle << std::endl;
+        currentWindow = foreground;
+    }
+    focusedWindowWidth = currentRect.right - currentRect.left;
+    focusedWindowHeight = currentRect.bottom - currentRect.top;
+    focusedWindowX = currentRect.left;
+    focusedWindowY = currentRect.top;
+}
+
+std::array<int, 4> System::getFocusedWindowX() {
+    return { focusedWindowX, focusedWindowY, focusedWindowWidth, focusedWindowHeight };
+}
+
+System::~System() {
+    std::cout << "System destroyed!" << std::endl;
+} 
+#pragma once
+#include "RenderClass.hpp"
+#include "SystemClass.hpp"
+#include "../../draw/headers/DrawClass.hpp"
+#include "../../ui/headers/UIManager.hpp"
+#include "../../network/headers/NetworkManager.hpp"
+#include "../../event/headers/EventHandler.hpp"
+#include "SceneManager.hpp"
+#include <memory> // Inclusion de <memory> pour std::unique_ptr
+#include <SFML/Graphics.hpp>
+#include <SFML/Network.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/Audio.hpp>
+
+class Nova {
+private:
+
+public:
+    std::unique_ptr<Render> render; // Utilisation de std::unique_ptr pour Render
+    std::unique_ptr<System> system; // Utilisation de std::unique_ptr pour System
+    std::unique_ptr<Draw> draw; // Utilisation de std::unique_ptr pour Draw
+    std::unique_ptr<UIManager> uimanager; // Utilisation de std::unique_ptr pour UI
+    std::unique_ptr<NetworkManager> networkmanager; // Utilisation de std::unique_ptr pour NetworkManager
+    std::unique_ptr<EventHandler> eventHandler; // Utilisation de std::unique_ptr pour EventHandler
+
+
+    Nova(); // Déclaration du constructeur
+
+    bool Init(); // Déclaration de la fonction
+    void Game();
+
+    ~Nova(); // Déclaration du destructeur
+}; 
+// RenderClass.hpp
+#pragma once
+#include <iostream>
+#include <SFML/Graphics.hpp>
+#include <Windows.h>
+#include "../../draw/headers/DrawClass.hpp"
+#include <SFML/Graphics/Shader.hpp>
+
+class Render {
+private:
+    sf::RenderWindow renderer;
+    sf::Texture backgroundTexture;
+    sf::Sprite backgroundSprite;
+    sf::RenderStates states;
+
+public:
+    sf::RenderWindow& getRenderer();
+
+    Render();
+    bool init(Draw *drawPtr);
+    bool newWindow(int width, int height, const std::string& title, bool fullscreen, bool isSplashScreen, bool borderless);
+    int enableTransparency();
+    bool setWindowBackground(const std::string& imagePath);
+    HWND windowHandle();
+    void render(sf::RenderStates states);
+    ~Render();
+}; 
+#ifndef SCENE_HPP
+#define SCENE_HPP
+
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+class Scene {
+public:
+    struct Condition {
+        std::string attribute;
+        std::string operator_;
+        int value;
+
+        void from_json(const json& j);
+    };
+
+    struct Effect {
+        std::string attribute;
+        int change;
+
+        void from_json(const json& j);
+    };
+
+    struct Response {
+        std::string text;
+        std::vector<Condition> conditions;
+        std::vector<Effect> effects;
+
+        void from_json(const json& j);
+    };
+
+    struct ResponseCategory {
+        std::vector<Response> responses;
+
+        void from_json(const json& j);
+    };
+
+    struct Dialogue {
+        std::string text;
+        Condition condition;
+
+        void from_json(const json& j);
+    };
+
+    std::string id;
+    std::string character;
+    std::vector<Dialogue> dialogues;
+    std::unordered_map<std::string, ResponseCategory> responseCategories;
+
+    void from_json(const json& j);
+};
+#endif // SCENE_HPP 
+#ifndef SCENE_MANAGER_HPP
+#define SCENE_MANAGER_HPP
+
+#include <string>
+#include <vector>
+#include <map>
+#include <nlohmann/json.hpp>
+#include <vector>
+#include <string>
+#include "Scene.hpp"
+
+using json = nlohmann::json;
+
+class SceneManager {
+public:
+    void load_from_file(const std::string& filename);
+    void print_scene_details() const;
+    std::string select_dialogue(const std::string& scene_id, int love_value) const;
+
+private:
+    std::vector<Scene> scenes;
+};
+
+#endif // SCENE_MANAGER_HPP
+ 
+#pragma once
+#include <memory> // Inclusion de <memory> pour std::unique_ptr
+#include <Windows.h> 
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <array>
+
+class System {
+private:
+    static std::mutex windowMutex;
+    static HWND currentWindow;
+    static RECT currentRect;
+    static TCHAR currentTitle[256];
+
+    static int focusedWindowWidth;
+    static int focusedWindowHeight;
+    static int focusedWindowX;
+    static int focusedWindowY;
+
+public: // Utilisation de std::unique_ptr pour Render
+
+    System(); // Déclaration du constructeur
+
+    bool Init(); // Déclaration de la fonction
+    static void getWindowInfo();
+    static std::tuple<HWND, RECT, TCHAR*> getCurrentWindowInfo();
+    std::array<int, 4> getFocusedWindowX();
+
+    ~System(); // Déclaration du destructeur
+}; 
+#include "headers/UIButton.hpp"
+
+extern sf::RenderWindow* renderWindow;
+
+UIButton::UIButton() {
+    std::cout << "UIButton created" << std::endl;
+} 
+
+bool UIButton::newButton(std::string& uid, std::string& id, std::string& groupID, bool haveText, std::string& text, std::string& fontPath, int fontSize, std::string& color, int x, int y, int width, int height, const std::string& path, const std::string& path_hover, 
+                         const std::string& path_pressed, const std::string& effect, const std::string& action, const std::string& value, int layer, bool isActive) {
+    this->UIID = uid;
+    this->id = id;
+    this->groupID = groupID;
+    this->haveText = haveText;
+    this->x = x;
+    this->y = y;
+    this->width = width;
+    this->height = height;
+    this->path = path;
+    this->path_hover = path_hover;
+    this->path_pressed = path_pressed;
+    this->effect = effect;
+    this->action = action;
+    this->value = value;
+    this->layer = layer;
+    this->isActive = isActive;
+    this->buttonState = 0;
+    this->isInit = false;
+    this->font = fontPath;
+    this->fontSize = fontSize;
+    this->color = color;
+    this->content = text;
+    this->buttonData = this->generateButtonData();
+    return true; 
+}
+
+bool UIButton::Init() {
+    if(!this->InitTexture(this->path, this->sprite, this->texture)) {
+        std::cout << "Error while setting texture" << std::endl;
+        return false;
+    }
+    if(!this->InitTexture(this->path_hover, this->sprite_hover, this->texture_hover)) {
+        std::cout << "Error while setting texture" << std::endl;
+        return false;
+    }
+    if(!this->InitTexture(this->path_pressed, this->sprite_pressed, this->texture_pressed)) {
+        std::cout << "Error while setting texture" << std::endl;
+        return false;
+    }
+    if(!this->InitText()) {
+        std::cout << "Error while setting text" << std::endl;
+        return false;
+    }
+    this->isInit = 1;
+    return true;
+}
+
+std::string UIButton::generateButtonData() const {
+    std::string jsonStr = "{";
+    jsonStr += "\"uiid\": \"" + this->UIID + "\", ";
+    jsonStr += "\"button_id\": \"" + this->id + "\", ";
+    jsonStr += "\"action_id\": \"" + this->action + "\", ";
+    jsonStr += "\"value\": \"" + this->value + "\"";
+    jsonStr += "}";
+    return jsonStr;
+}
+
+std::string UIButton::getButtonData() const {
+    return this->buttonData;
+}
+
+bool UIButton::InitTexture(std::string& pathTexture, sf::Sprite& sprite, sf::Texture& texture) {
+    if (texture.loadFromFile(pathTexture)) {
+        if (texture.getSize().x > 0 && texture.getSize().y > 0) {
+            sprite.setTexture(texture);
+            sf::Vector2u nativeResolution(3840, 2160);
+            sf::Vector2u resolution = renderWindow->getSize();
+            sf::Vector2f initialPosition(this->x, this->y);
+            this->rescaleBackground(sprite, resolution, nativeResolution, initialPosition);
+        } else {
+            std::cerr << "Texture invalide - Dimensions nulles pour path: " << pathTexture << std::endl;
+            return false;
+        }
+    } else {
+        std::cerr << "Error loading texture from file: " << pathTexture << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void UIButton::centerTextOnImage() {
+    sf::FloatRect textRect = this->text.getLocalBounds();
+    this->text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
+
+    float x = this->activeX + (this->activeWidth / 2.0f);
+    float y = this->activeY + (this->activeHeight / 2.0f) - (this->text.getLocalBounds().height / 8.0f);
+    this->text.setPosition(x, y);
+}
+
+bool UIButton::InitText() {
+    if (!this->fontObj.loadFromFile(this->font)) {
+            std::cerr << "Error loading font from file: " << this->font << std::endl;
+            return false;
+    }
+    this->text.setFont(this->fontObj);
+
+    this->text.setString(this->content);
+    this->text.setCharacterSize(this->fontSize);
+    //convert hex color string to sf::Color (format from color variable 0, 0, 0)
+    std::string delimiter = ",";
+    size_t pos = 0;
+    std::string token;
+    int i = 0;
+    int colorArray[3];
+    while ((pos = this->color.find(delimiter)) != std::string::npos) {
+        token = this->color.substr(0, pos);
+        colorArray[i] = std::stoi(token);
+        this->color.erase(0, pos + delimiter.length());
+        i++;
+    }
+    colorArray[i] = std::stoi(this->color);
+    std::cout << "Color: " << colorArray[0] << ", " << colorArray[1] << ", " << colorArray[2] << std::endl;
+    this->text.setFillColor(sf::Color(colorArray[0], colorArray[1], colorArray[2]));
+    
+    this->text.setPosition(this->x, this->y);
+
+    sf::Vector2u nativeResolution(3840, 2160);
+    sf::Vector2u resolution = renderWindow->getSize();
+    sf::Vector2f initialPosition(this->x, this->y);
+    //set bold
+    this->text.setStyle(sf::Text::Bold);
+    
+    this->rescaleText(this->text, resolution, nativeResolution, initialPosition);
+    this->centerTextOnImage();
+    return true;
+} 
+
+bool UIButton::setPosition() {
+    return true;
+}
+
+bool UIButton::setEffect() {
+    return true;
+}
+
+bool UIButton::setLayer() {
+    return true;
+}
+
+bool UIButton::setGroupID(const std::string& groupID) {
+    return true;
+}
+
+std::string UIButton::getGroupID() const {
+    return this->groupID;
+}
+
+bool UIButton::setIsActive(bool isActive) {
+    this->isActive = isActive;
+    return true;
+}
+
+bool UIButton::getIsActive() const{
+    return this->isActive; 
+}
+
+std::string UIButton::getButtonAction() const {
+    return this->action;
+}
+
+int UIButton::getLayer() const {
+    return this->layer;
+}   
+
+sf::Sprite UIButton::getSprite() const {
+    return this->sprite;
+}
+
+void UIButton::rescaleBackground(sf::Sprite& sprite, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition) {
+
+    float scaleX = static_cast<float>(resolution.x) / nativeResolution.x;
+    float scaleY = static_cast<float>(resolution.y) / nativeResolution.y;
+
+    float scale;
+    if (resolution.x > nativeResolution.x || resolution.y > nativeResolution.y) {
+        // Utilisez le facteur d'échelle minimum pour agrandir l'image
+        scale = std::min(scaleX, scaleY);
+    } else if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        scale = std::min(scaleX, scaleY);
+    } else {
+        scale = 1.0f;
+    }
+
+    sprite.setScale(scale, scale);
+    sf::Vector2f adjustedPosition = initialPosition;
+
+    if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        adjustedPosition.x *= scaleX;
+        adjustedPosition.y *= scaleY;
+    }
+    sprite.setPosition(adjustedPosition);
+
+    this->activeX = adjustedPosition.x;
+    this->activeY = adjustedPosition.y;
+    this->activeWidth = sprite.getLocalBounds().width * sprite.getScale().x;
+    this->activeHeight = sprite.getLocalBounds().height * sprite.getScale().y;
+}
+
+bool UIButton::rescaleText(sf::Text& text, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition) {
+    float scaleX = static_cast<float>(resolution.x) / nativeResolution.x;
+    float scaleY = static_cast<float>(resolution.y) / nativeResolution.y;
+
+    float scale;
+    if (resolution.x > nativeResolution.x || resolution.y > nativeResolution.y) {
+        // Utilisez le facteur d'échelle minimum pour agrandir l'image
+        scale = std::min(scaleX, scaleY);
+    } else if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        scale = std::min(scaleX, scaleY);
+    } else {
+        scale = 1.0f;
+    }
+
+    text.setCharacterSize(static_cast<unsigned int>(fontSize * scale)); // Ajustement de la taille du caractère
+
+    sf::Vector2f adjustedPosition = initialPosition;
+    if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        adjustedPosition.x *= scaleX;
+        adjustedPosition.y *= scaleY;
+    }
+    text.setPosition(adjustedPosition);
+
+    this->textActiveX = adjustedPosition.x;
+    this->textActiveY = adjustedPosition.y;
+    this->textActiveWidth = text.getLocalBounds().width * text.getScale().x;
+    this->textActiveHeight = text.getLocalBounds().height * text.getScale().y;
+    this->text.setString(this->content);
+    return true;
+}
+
+bool UIButton::CheckMouseEvent()
+{
+    sf::Vector2i mousePos = sf::Mouse::getPosition(*renderWindow);
+    bool isMouseOnButton = (mousePos.x >= activeX && mousePos.x <= activeX + activeWidth &&
+                            mousePos.y >= activeY && mousePos.y <= activeY + activeHeight);
+
+    switch (this->event.type)
+    {
+        case sf::Event::MouseMoved:
+            if (!buttonPressed)
+                buttonState = isMouseOnButton ? HOVER : NOT_HOVER;
+            break;
+
+        case sf::Event::MouseButtonPressed:
+            if (this->event.mouseButton.button == sf::Mouse::Left)
+            {
+                if (isMouseOnButton && !buttonPressed)
+                {
+                    buttonState = PRESSED;
+                }
+            }
+            break;
+
+        case sf::Event::MouseButtonReleased:
+            if (this->event.mouseButton.button == sf::Mouse::Left)
+            {
+                if (isMouseOnButton && buttonState == PRESSED)
+                {
+                    buttonPressed = true;
+                }
+                buttonState = isMouseOnButton ? HOVER : NOT_HOVER;
+            }
+            break;
+
+        default:
+            break;
+    }
+    return true;
+}
+
+bool UIButton::getButtonState() const {
+    return this->buttonPressed;
+}
+
+void UIButton::resetClick() {
+    this->buttonPressed = false;
+}
+
+bool UIButton::show() {
+    if(this->isActive) {
+        if(!this->isInit) {
+           if(!this->Init()) {
+               std::cout << "Error while initializing button" << std::endl;
+               return false;
+           }
+        }
+        this->CheckMouseEvent();
+        if (buttonState == NOT_HOVER) renderWindow->draw(sprite);
+        else if (buttonState == HOVER) renderWindow->draw(sprite_hover);
+        else if (buttonState == PRESSED) renderWindow->draw(sprite_pressed);
+        renderWindow->draw(this->text);
+    }
+    return true;
+}
+
+UIButton::~UIButton() {
+} 
+#include "headers/UIClass.hpp"
+
+extern EventHandler* eventHandlerPtr;
+
+UIClass::UIClass() {
+    std::cout << "UI Class Created!" << std::endl;
+    this->eventHandler = std::shared_ptr<EventHandler>(eventHandlerPtr);
+}
+
+bool UIClass::Init() {
+    //std::cout << UIID << std::endl;
+    std::string jsonFile = "data/ui/json/" + UIID + ".json"; 
+
+    std::ifstream file(jsonFile);
+    if (!file.is_open()) {
+        std::cerr << "Unable to open JSON file!" << std::endl;
+        return false;
+    }
+    // Parsing du fichier JSON
+    nlohmann::json jsonData;
+    file >> jsonData;
+    file.close();
+    sf::Texture texture;
+
+    this->UIID = jsonData["UIID"];
+    this->layer = jsonData["layers"];
+    std::cout << "Layer: " << layer << std::endl;
+    std::cout << "UIID: " << UIID << std::endl;
+
+    std::cout << "current UIID: " << this->UIID << std::endl;
+
+    // Exemple de parcours des boutons
+    for (const auto& button : jsonData["buttons"]) {
+        buttonHeap.emplace_back(); // Crée un nouvel objet UIButton dans le vecteur
+        std::cout << "Button found!" << std::endl;
+
+        std::string buttonID = button["ID"];
+        std::string groupID = button["groupID"];
+        bool haveText = button["haveText"];
+        std::string text = button["text"];
+        std::string fontPath = button["font"];
+        int fontSize = button["fontSize"];
+        std::string color = button["color"];
+        int x = button["x"];
+        int y = button["y"];
+        int width = button["width"];
+        int height = button["height"];
+        std::string path = button["path"];
+        std::string path_hover = button["path_hover"];
+        std::string path_pressed = button["path_pressed"];
+        std::string effect = button["effect"];
+        std::string action = button["action"];
+        std::string value = button["value"];
+        int layer = button["layer"];
+        bool isActive = button["isActive"];  
+
+        if (!buttonHeap.back().button.newButton(UIID, buttonID, groupID, haveText, text, fontPath, fontSize, color, x, y, width, height, path, path_hover, path_pressed, effect, action, value, layer, isActive)) {
+            std::cerr << "Failed to initialize UIButton for ID: " << buttonID << std::endl;
+            buttonHeap.pop_back();
+            continue; // Continue avec le prochain élément si celui-ci échoue
+        }
+    }
+
+    // Parcours des textes
+    for (const auto& text : jsonData["text"]) {
+        stringHeap.emplace_back(); // Crée un nouvel objet UIString dans le vecteur
+
+        std::string ID = text["ID"];
+        std::string groupID = text["groupID"];
+        std::string content = text["content"];
+        int x = text["x"];
+        int y = text["y"];
+        int width = text["width"];
+        int height = text["height"];
+        std::string font = text["font"];
+        int fontSize = text["fontSize"];
+        std::string color = text["color"];
+        std::string effect = text["effect"];
+        int layer = text["layer"];
+        bool isActive = text["isActive"];
+
+        if (!stringHeap.back().string.newString(ID, groupID, content, x, y, width, height, font, fontSize, color, effect, layer, isActive)) {
+            std::cerr << "Failed to initialize UIString for ID: " << ID << std::endl;
+            stringHeap.pop_back();
+            continue; // Continue avec le prochain élément si celui-ci échoue
+        }
+    }
+
+    // Exemple de parcours des images
+    for (const auto& image : jsonData["images"]) {
+        std::string imageID = image.value("ID", "");
+        std::string groupID = image.value("groupID", "");
+        int x = image.value("x", 0);
+        int y = image.value("y", 0);
+        int width = image.value("width", 0);
+        int height = image.value("height", 0);
+        std::string path = image.value("image", "");
+        std::string effect = image.value("effect", "");
+        int layer = image.value("layer", 0);
+        bool isActive = image.value("isActive", false);
+
+        this->graphicHeap.emplace_back();
+
+        if (!this->graphicHeap.back().graphic.initGraphic(imageID, groupID, x, y, width, height, path, effect, layer, isActive)) {
+            std::cerr << "Failed to initialize UIGraphic for ID: " << imageID << std::endl;
+            this->graphicHeap.pop_back();
+            continue;
+        }
+    }
+    this->isActive = true;
+    return true;
+}
+
+bool UIClass::getIsActive() const {
+    return this->isActive;
+}
+
+std::string UIClass::getButtonData() {
+    return this->clickedbButtonData;
+}
+
+bool UIClass::show() {
+    int numberOfLayers = this->layer;
+
+    for (int layer = 0; layer < numberOfLayers; ++layer) {
+        for (size_t i = 0; i < this->graphicHeap.size();) {
+            if (this->graphicHeap[i].graphic.getIsActive() && this->graphicHeap[i].graphic.getLayer() == layer) {
+                if (!this->graphicHeap[i].graphic.show()) {
+                    this->graphicHeap.erase(this->graphicHeap.begin() + i);
+                    continue;
+                }
+            }
+            ++i;
+        }
+        for (size_t i = 0; i < this->buttonHeap.size();) {
+            if (this->buttonHeap[i].button.getIsActive() && this->buttonHeap[i].button.getLayer() == layer) {
+                this->buttonHeap[i].button.event = this->event;
+                if (!this->buttonHeap[i].button.show()) {
+                    this->buttonHeap.erase(this->buttonHeap.begin() + i);
+                    continue;
+                }
+                if (this->buttonHeap[i].button.getButtonState() == true) { //Button is clicked
+                    this->eventHandler->handleEvent(this->eventHandler->button_click, this->buttonHeap[i].button.getButtonData());
+                    this->buttonHeap[i].button.resetClick();
+                }
+            }
+            ++i;
+        }
+        for (size_t i = 0; i < this->stringHeap.size();) {
+            if (this->stringHeap[i].string.getIsActive() && this->stringHeap[i].string.getLayer() == layer) {
+                if (!this->stringHeap[i].string.show()) {
+                    this->stringHeap.erase(this->stringHeap.begin() + i);
+                    continue;
+                }
+            }
+            ++i;
+        }
+    }
+    return true;
+}
+
+bool UIClass::setGroupID(const std::string& newGroupID) {
+
+    for (auto& elem : graphicHeap) {
+        const std::string& currentGroupID = elem.graphic.getGroupID();
+        if (currentGroupID != "main") { 
+            elem.graphic.setIsActive(newGroupID == currentGroupID);
+        }
+    }
+    for (auto& elem : buttonHeap) {
+        const std::string& currentGroupID = elem.button.getGroupID();
+        if (currentGroupID != "main") {
+            elem.button.setIsActive(newGroupID == currentGroupID);
+        }
+    }
+    for (auto& elem : stringHeap) {
+        const std::string& currentGroupID = elem.string.getGroupID();
+        if (currentGroupID != "main") {
+            elem.string.setIsActive(newGroupID == currentGroupID);
+        }
+    }
+    return true;
+}
+
+
+UIClass::~UIClass() {
+}
+ 
+#include "headers/UIGraphic.hpp"
+
+extern sf::RenderWindow* renderWindow;
+extern sf::RenderTexture* renderTexture;
+
+UIGraphic::UIGraphic() {
+    //std::cout << "UIGraphic created" << std::endl;
+}
+
+bool UIGraphic::initGraphic(const std::string& id, std::string& groupID, int x, int y, int width, int height, const std::string& path, const std::string& effect, int layer, bool isActive) {
+    this->id = id;
+    this->groupID = groupID;
+    this->x = x;
+    this->y = y;
+    this->width = width;
+    this->height = height;
+    this->path = path;
+    this->effect = effect;
+    this->layer = layer;
+    this->isActive = isActive;
+
+    std::cout << "Graphic created with ID: " << id << std::endl;
+
+    return true;
+}
+
+bool UIGraphic::setTexture() {
+    return true;
+}
+
+bool UIGraphic::setPosition() {
+    return true;
+}
+
+bool UIGraphic::setEffect() {
+    return true;
+}
+
+bool UIGraphic::setLayer() {
+    return true;
+}
+
+std::string UIGraphic::getGroupID() const {
+    return this->groupID;
+}
+
+bool UIGraphic::setGroupID(const std::string& groupID) {
+    return true;
+}
+
+bool UIGraphic::setIsActive(bool isActive) {
+    this->isActive = isActive;
+    return true;
+}
+
+bool UIGraphic::getIsActive() const{
+    return this->isActive; 
+}
+
+std::string UIGraphic::getID() const {
+    return this->id;
+}
+
+int UIGraphic::getLayer() const {
+    return this->layer;
+}
+
+sf::Sprite UIGraphic::getSprite() const {
+    return this->sprite;
+}
+
+void UIGraphic::rescale(sf::Sprite& sprite, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition) 
+{
+    float scaleX = static_cast<float>(resolution.x) / nativeResolution.x;
+    float scaleY = static_cast<float>(resolution.y) / nativeResolution.y;
+
+    float scale;
+    if (resolution.x > nativeResolution.x || resolution.y > nativeResolution.y) {
+        scale = std::min(scaleX, scaleY);
+    } else if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        scale = std::min(scaleX, scaleY);
+    } else {
+        scale = 1.0f;
+    }
+
+    sprite.setScale(scale, scale);
+    sf::Vector2f adjustedPosition = initialPosition;
+
+    if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        adjustedPosition.x *= scaleX;
+        adjustedPosition.y *= scaleY;
+    }
+    sprite.setPosition(adjustedPosition);
+
+    this->activeX = adjustedPosition.x;
+    this->activeY = adjustedPosition.y;
+    this->activeWidth = sprite.getLocalBounds().width * sprite.getScale().x;
+    this->activeHeight = sprite.getLocalBounds().height * sprite.getScale().y;
+}
+
+bool UIGraphic::show() {
+    if (!this->isInit) {
+        if (this->texture.loadFromFile(path)) {
+            if (this->texture.getSize().x > 0 && this->texture.getSize().y > 0) {
+                this->sprite.setTexture(this->texture);
+                sf::Vector2u nativeResolution(3840, 2160); // Remplacez ceci par votre résolution native
+                sf::Vector2u resolution = renderWindow->getSize();
+                sf::Vector2f initialPosition(this->x, this->y); // Remplacez ceci par la position initiale de l'image
+                this->rescale(this->sprite, resolution, nativeResolution, initialPosition);
+                sf::Vector2f spriteSize = this->sprite.getScale();
+                std::cout << "Taille du sprite après redimensionnement: " << spriteSize.x << ", " << spriteSize.y << std::endl;
+                std::cout << "Texture loaded from file: " << path << std::endl;
+            } else {
+                std::cerr << "Texture invalide - Dimensions nulles pour path: " << path << std::endl;
+                return false;
+            }
+        } else {
+            std::cerr << "Error loading texture from file: " << path << std::endl;
+            return false;
+        }
+        this->isInit = 1;
+    }
+    renderWindow->draw(this->sprite);
+    return true;
+}
+
+UIGraphic::~UIGraphic() {
+}
+ 
+#include "headers/UIManager.hpp"
+#include <fstream>
+
+extern EventHandler* eventHandlerPtr;
+
+UIManager::UIManager() {
+}
+
+bool UIManager::Init() {
+    this->eventHandler = std::shared_ptr<EventHandler>(eventHandlerPtr);
+    this->eventHandler->addEvent(this->eventHandler->button_click);
+    //this->eventHandler->addEvent("prompt_submit");
+    return true;
+}
+
+bool UIManager::newUI(const std::string& UIID) {
+    uiHeap.emplace_back();
+    uiHeap.back().ui.UIID = UIID;
+
+    // Initialisez l'objet UIClass nouvellement ajouté
+    if (!uiHeap.back().ui.Init()) {
+        std::cerr << "Failed to initialize UI for UIID: " << UIID << std::endl;
+        uiHeap.pop_back(); // Supprimez l'objet si l'initialisation échoue
+        return false;
+    } else {
+        std::cout << "UI created for UIID: " << UIID << std::endl;
+        return true;
+    }
+}
+
+void UIManager::show(sf::Event& event) {
+    for (size_t i = 0; i < this->uiHeap.size(); ++i){
+        if(this->uiHeap[i].ui.getIsActive()){
+           this->uiHeap[i].ui.event = event;
+           this->uiHeap[i].ui.show();
+        }
+    }
+}
+
+bool UIManager::setGroupID(const std::string& UUIID, const std::string& groupID) {
+    for (size_t i = 0; i < this->uiHeap.size(); ++i) {
+        if (this->uiHeap[i].ui.UIID == UUIID) {
+            this->uiHeap[i].ui.setGroupID(groupID);
+            return true;
+        }
+    }
+    return false;
+}
+
+UIManager::~UIManager() {
+    std::cout << "UI destroyed!" << std::endl;
+} 
+#include "headers/UIString.hpp"
+
+extern sf::RenderWindow* renderWindow;
+
+UIString::UIString() {
+   
+}
+
+bool UIString::newString(const std::string& id, std::string& groupID, std::string& content, int x, int y, int width, int height, const std::string& font, int fontSize, const std::string& color, const std::string& effect, int layer, bool isActive) {
+
+        this->id = id;
+        this->groupID = groupID;
+        this->content = content;
+        this->x = x;
+        this->y = y;
+        this->width = width;
+        this->height = height;
+        this->font = font;
+        this->fontSize = fontSize;
+        this->color = color;
+        this->effect = effect;
+        this->layer = layer;
+        this->isActive = isActive;
+        this->isInit = false;
+
+    return true;
+}
+
+bool UIString::setPosition() {
+    return true;
+}
+
+bool UIString::setEffect() {
+    return true;
+}
+
+bool UIString::setLayer() {
+    return true;
+}
+
+std::string UIString::getGroupID() const {
+    return this->groupID;
+}
+
+bool UIString::setGroupID(const std::string& groupID) {
+    return true;
+}
+
+bool UIString::setIsActive(bool isActive) {
+    this->isActive = isActive;
+    return true;
+}
+
+bool UIString::getIsActive() const {
+    return this->isActive;
+}
+
+std::string UIString::getID() const {
+    return this->id;
+}
+
+int UIString::getLayer() const {
+    return this->layer;
+}
+
+sf::Text UIString::getText() const {
+    return this->text;
+}
+
+void UIString::rescale(sf::Text& text, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition) {
+    float scaleX = static_cast<float>(resolution.x) / nativeResolution.x;
+    float scaleY = static_cast<float>(resolution.y) / nativeResolution.y;
+
+    float scale;
+    if (resolution.x > nativeResolution.x || resolution.y > nativeResolution.y) {
+        scale = std::min(scaleX, scaleY);
+    } else if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        scale = std::min(scaleX, scaleY);
+    } else {
+        scale = 1.0f;
+    }
+
+    text.setCharacterSize(static_cast<unsigned int>(fontSize * scale)); // Ajustement de la taille du caractère
+
+    sf::Vector2f adjustedPosition = initialPosition;
+    if (resolution.x < nativeResolution.x || resolution.y < nativeResolution.y) {
+        adjustedPosition.x *= scaleX;
+        adjustedPosition.y *= scaleY;
+    }
+    text.setPosition(adjustedPosition);
+}
+
+bool UIString::show() {
+    if (!this->isInit) {
+        // Load the font with a specific character size
+        if (!this->fontObj.loadFromFile(this->font)) {
+            std::cerr << "Error loading font from file: " << this->font << std::endl;
+            return false;
+        }
+        // Set the font smoothing
+        this->text.setFont(this->fontObj);
+
+        // Set other properties of the sf::Text object
+        this->text.setString(this->content);
+        this->text.setCharacterSize(this->fontSize);
+        this->text.setFillColor(sf::Color::White);
+        this->text.setPosition(this->x, this->y);
+
+        sf::Vector2u nativeResolution(3840, 2160);
+        sf::Vector2u resolution = renderWindow->getSize();
+        sf::Vector2f initialPosition(this->x, this->y);
+
+        this->rescale(this->text, resolution, nativeResolution, initialPosition);
+
+        this->isInit = true;
+    }
+    renderWindow->draw(this->text);
+    return true;
+}
+
+
+UIString::~UIString() {
+} 
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <memory>
+#include <SFML/Graphics.hpp>
+#include <thread>
+
+class UIButton {
+    // Class for UI graphics :: UI graphics are the images that are displayed on the screen
+private:
+
+    std::string id, groupID, path, path_hover, path_pressed, effect, action, value, font, color, content, 
+    buttonData; // buttonData is the data that will be sent to the server Or event manager when the button is clicked
+    bool haveText, isActive, isInit = false, buttonPressed = false;
+    int x, y, width, height, layer, fontSize, buttonState, textActiveHeight, textActiveWidth, textActiveX, textActiveY;
+    int activeX, activeY, activeWidth, activeHeight;
+    int HOVER = 1, PRESSED = 2, NOT_HOVER = 0;
+    sf::Texture texture, texture_hover, texture_pressed;
+    sf::Sprite sprite, sprite_hover, sprite_pressed;
+    sf::Text text;
+    sf::Font fontObj;
+
+    sf::Vector2i mousePos;
+
+    std::string generateButtonData() const;
+
+public:
+
+    std::string UIID;
+    sf::Event event;
+
+    UIButton();
+
+    bool newButton(std::string& uid, std::string& id, std::string& groupID, bool haveText, std::string& text, std::string& fontPath, int fontSize, std::string& color, int x, int y, int width, int height, const std::string& path, const std::string& path_hover, 
+                         const std::string& path_pressed, const std::string& effect, const std::string& action, const std::string& value, int layer, bool isActive);
+
+    bool InitTexture(std::string& pathTexture, sf::Sprite& sprite, sf::Texture& texture);
+    bool InitText();
+    void centerTextOnImage();
+    bool setPosition();
+    bool setEffect();
+    bool setIsActive(bool isActive);
+    bool setLayer();
+    std::string getGroupID() const;
+    bool setGroupID(const std::string& groupID);
+    bool getIsActive() const;
+    std::string getButtonAction() const;
+    int getLayer() const;
+    sf::Sprite getSprite() const;
+    bool Init();
+    bool show();
+    void rescaleBackground(sf::Sprite& sprite, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition);
+    bool rescaleText(sf::Text& text, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition);
+    bool CheckMouseEvent();
+    bool getButtonState() const;
+    void resetClick();
+    std::string getButtonData() const;
+
+    ~UIButton(); // Déclaration du destructeur
+}; 
+#ifndef UICLASS_HPP
+#define UICLASS_HPP
+#include <iostream>
+#include <vector>
+#include <memory>
+#include <SFML/Graphics.hpp>
+
+#include "UIButton.hpp"
+#include "UIGraphic.hpp"
+#include "UIString.hpp"
+#include "../../event/headers/EventHandler.hpp"
+
+class UIClass {
+    // Constructor
+
+private:
+
+    struct GraphicHeap {
+        UIGraphic graphic;
+        GraphicHeap() : graphic() {}
+    };
+    std::vector<GraphicHeap> graphicHeap; 
+
+    struct StringHeap {
+        UIString string;
+        StringHeap() : string() {}
+    };
+    std::vector<StringHeap> stringHeap;
+
+    struct ButtonHeap {
+        UIButton button;
+        ButtonHeap() : button() {}
+    };
+    std::vector<ButtonHeap> buttonHeap;
+
+    int isActive;
+    int HOVER = 1, PRESSED = 2, NOT_HOVER = 0;
+    bool buttonPressed = false;
+    std::string clickedbButtonData;
+    std::shared_ptr<EventHandler> eventHandler;
+    
+    
+public:
+    std::string UIID;
+    int layer = 0;
+    sf::Event event;
+    // Déclaration du constructeur
+    UIClass();
+
+    bool Init(); // Déclaration de la fonction
+    bool show();
+    bool getIsActive() const;
+    std::string getButtonData();
+    bool setGroupID(const std::string& groupID);
+
+    ~UIClass(); // Déclaration du destructeur
+};
+#endif // UICLASS_HPP 
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <nlohmann/json.hpp>
+#include <SFML/Graphics.hpp>
+#include <SFML/Graphics/Shader.hpp>
+
+#include "../../draw/headers/DrawClass.hpp"
+
+class UIGraphic {
+
+private:
+    std::string id;
+    std::string groupID;
+    std::string path;
+    int x, y, width, height, layer;
+    bool isActive;
+    std::string effect;
+    sf::Texture texture;
+    sf::Sprite sprite;
+    int isInit = 0;
+    int activeX, activeY, activeWidth, activeHeight;
+
+public:
+    std::string UIID;
+
+    UIGraphic();
+
+    bool initGraphic(const std::string& id, std::string& groupID, int x, int y, int width, int height, const std::string& path, const std::string& effect, int layer, bool isActive);
+    bool setTexture();
+    bool setPosition();
+    bool setEffect();
+    bool setIsActive(bool isActive);
+    bool setLayer();
+    std::string getGroupID() const;
+    bool setGroupID(const std::string& groupID);
+    bool getIsActive() const;
+    std::string getID() const;
+    int getLayer() const;
+    sf::Sprite getSprite() const;
+    bool show();
+    void rescale(sf::Sprite& sprite, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition);
+
+    ~UIGraphic();
+}; 
+#ifndef UIMANAGER_HPP
+#define UIMANAGER_HPP
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <SFML/Graphics.hpp>
+#include "../../draw/headers/DrawClass.hpp"
+#include "../../ui/headers/UIClass.hpp"
+#include "../../network/headers/NetworkManager.hpp"
+#include "../../event/headers/EventHandler.hpp"
+
+class UIManager {
+private:
+    struct UIHeap {
+        UIClass ui;
+        UIHeap() : ui() {}
+    };
+    std::vector<UIHeap> uiHeap; 
+    std::shared_ptr<EventHandler> eventHandler;
+
+public:
+    UIManager();
+    ~UIManager();
+
+    bool Init();
+    bool newUI(const std::string& UIID);
+    void show(sf::Event& event);
+    bool setGroupID(const std::string& UUIID, const std::string& groupID);
+    
+
+private:
+};
+#endif // UIMANAGER_HPP 
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <nlohmann/json.hpp>
+#include <SFML/Graphics.hpp>
+#include "../../draw/headers/DrawClass.hpp"
+
+
+class UIString {
+    // Class for UI graphics :: UI graphics are the images that are displayed on the screen
+private:
+
+    std::string id;
+    std::string groupID;
+    std::string content;
+    int x, y, width, height, layer;
+    bool isActive;
+    std::string font;
+    int fontSize;
+    std::string color;
+    std::string effect;
+    sf::Text text;
+    sf::Font fontObj;
+    int isInit = 0;
+    
+public:
+
+    // Déclaration du constructeur
+    UIString();
+
+    bool newString(const std::string& id, std::string& groupID, std::string& content, int x, int y, int width, int height, const std::string& font, int fontSize, const std::string& color, const std::string& effect, int layer, bool isActive);
+    bool setPosition();
+    bool setEffect();
+    bool setLayer();
+    std::string getGroupID() const;
+    bool setGroupID(const std::string& groupID);
+    bool setIsActive(bool isActive);
+    bool getIsActive() const;
+    std::string getID() const;
+    int getLayer() const;
+    sf::Text getText() const;
+    bool show();
+    void rescale(sf::Text& text, sf::Vector2u resolution, sf::Vector2u nativeResolution, sf::Vector2f initialPosition);
+
+    ~UIString(); // Déclaration du destructeur
+}; 
+#include <SFML/Network.hpp>
+#include <iostream>
+#include <string>
+#include <vector>
+#include "network/headers/NetworkManager.hpp"
+
+int main() 
+{
+    NetworkManager networkManager(53000);
+    networkManager.init();
+    networkManager.run();
+
+    return 0;
+} 
+#include "headers/AccountDBClass.hpp"
+
+AccountDBClass::AccountDBClass() {
+    this->loggerManager = std::make_unique<LoggerManager>();
+}
+
+bool AccountDBClass::init(const std::string& databasePath) {
+    this->databasePath = databasePath;
+    if (!openConnection(databasePath)) {
+        return false;
+    }
+    return true;
+}
+
+bool AccountDBClass::openConnection(const std::string& databasePath) {
+    if (sqlite3_open(databasePath.c_str(), &this->db) != SQLITE_OK) {
+        std::cerr << "Error opening database: " << sqlite3_errmsg(this->db) << std::endl;
+        return false;
+    }
+    loggerManager->warning("Database", "Database loaded with success !");
+    return true;
+}
+
+int AccountDBClass::checkUserCredentials(const std::string& username, const std::string& password) {
+    sqlite3_stmt* stmt = nullptr;
+    std::string sqlCheck = "SELECT username, password FROM users WHERE username = ? AND password = ?";
+    
+    if (sqlite3_prepare_v2(this->db, sqlCheck.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
+
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            const unsigned char* dbUsername = sqlite3_column_text(stmt, 0);
+            const unsigned char* dbPassword = sqlite3_column_text(stmt, 1);
+
+            if (username == std::string(reinterpret_cast<const char*>(dbUsername)) && password == std::string(reinterpret_cast<const char*>(dbPassword))) {
+                sqlite3_finalize(stmt);
+                return 1; // Credentials are valid
+            }
+        }
+        sqlite3_finalize(stmt);
+        return -1; // Credentials are invalid
+    } else {
+        std::cerr << "SQL error: " << sqlite3_errmsg(this->db) << std::endl;
+        sqlite3_finalize(stmt);
+        return -1; // Treat SQL preparation error as invalid credentials to avoid false negatives
+    }
+}
+
+int AccountDBClass::checkUserExistence(const std::string& username, const std::string& email) {
+    sqlite3_stmt* stmt = nullptr;
+    std::string sqlCheck = "SELECT username, email FROM users WHERE username = ? OR email = ?";
+    
+    if (sqlite3_prepare_v2(this->db, sqlCheck.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, email.c_str(), -1, SQLITE_STATIC);
+
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            const unsigned char* dbUsername = sqlite3_column_text(stmt, 0);
+            const unsigned char* dbEmail = sqlite3_column_text(stmt, 1);
+
+            if (username == std::string(reinterpret_cast<const char*>(dbUsername))) {
+                sqlite3_finalize(stmt);
+                return -2; // Username exists
+            }
+            if (email == std::string(reinterpret_cast<const char*>(dbEmail))) {
+                sqlite3_finalize(stmt);
+                return -1; // Email exists
+            }
+        }
+        sqlite3_finalize(stmt);
+        return 0; // Neither username nor email exist
+    } else {
+        std::cerr << "SQL error: " << sqlite3_errmsg(this->db) << std::endl;
+        sqlite3_finalize(stmt);
+        return 0; // Treat SQL preparation error as non-existence to avoid false negatives
+    }
+}
+
+bool AccountDBClass::addNewUser(const std::string& username, const std::string& password, const std::string& email, const std::string& lastip) {
+    sqlite3_stmt* stmt = nullptr;
+    std::string sqlInsert = "INSERT INTO users (username, password, email, lastip) VALUES (?, ?, ?, ?)";
+    
+    if (sqlite3_prepare_v2(this->db, sqlInsert.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, email.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, lastip.c_str(), -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) == SQLITE_DONE) {
+            sqlite3_finalize(stmt);
+            this->loggerManager->log("Info", "AccountDBClass", "User added successfully.");
+            return true;
+        } else {
+            std::cerr << "SQL error: " << sqlite3_errmsg(this->db) << std::endl;
+            sqlite3_finalize(stmt);
+            return false;
+        }
+    } else {
+        std::cerr << "SQL error: " << sqlite3_errmsg(this->db) << std::endl;
+        sqlite3_finalize(stmt);
+        return false;
+    }
+}
+
+AccountDBClass::~AccountDBClass() {
+} 
+// DatabaseManager.cpp
+#include "headers/DatabaseManager.hpp"
+
+#include <iostream>
+
+DatabaseManager::DatabaseManager() {
+    this->loggerManager = std::make_unique<LoggerManager>();
+    this->accountDB = std::make_unique<AccountDBClass>();
+}
+
+bool DatabaseManager::init() {
+    if(this->accountDB->init("database/users.db") == false) {
+        return false;
+    }
+    return true;
+}
+
+DatabaseManager::~DatabaseManager() {
+}
+ 
+#ifndef ACCOUNTDBCLASS_HPP
+#define ACCOUNTDBCLASS_HPP
+
+#include <sqlite3.h>
+#include <string>
+#include <memory>
+#include "../../system/headers/LoggerManager.hpp"
+
+class AccountDBClass {
+public:
+    AccountDBClass();
+    ~AccountDBClass();
+
+    bool addNewUser(const std::string& username, const std::string& password, const std::string& email, const std::string& lastip);
+    int checkUserExistence(const std::string& username, const std::string& email);
+    int checkUserCredentials(const std::string& username, const std::string& password);
+
+    bool init(const std::string& databasePath);
+
+private:
+    std::string databasePath;
+    std::unique_ptr<LoggerManager> loggerManager;
+    sqlite3* db;
+
+    bool openConnection(const std::string& databasePath);
+};
+
+#endif 
+// DatabaseManager.hpp
+#ifndef DATABASEMANAGER_HPP
+#define DATABASEMANAGER_HPP
+
+#include <sqlite3.h>
+#include <string>
+#include <memory>
+#include "../../system/headers/LoggerManager.hpp"
+#include "AccountDBClass.hpp"
+
+class DatabaseManager {
+public:
+    std::unique_ptr<AccountDBClass> accountDB;
+
+    DatabaseManager();
+    ~DatabaseManager();
+
+    bool init();
+
+private:
+    std::string databasePath;
+
+    std::unique_ptr<LoggerManager> loggerManager;
+};
+
+#endif // DATABASEMANAGER_HPP
+ 
+#include "headers/ClientClass.hpp"
+#include <iostream>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+//---------- TODO :: Make object of ClientClass packet with std::make_unique
+
+ClientClass::ClientClass(const sf::IpAddress& ip, unsigned short port, sf::UdpSocket& socket) : identity({ip, port}), socket(socket){
+    this->loggerManager = std::make_unique<LoggerManager>();
+    this->loggerManager->info("ClientClass", "New client instance created: " + ip.toString() + ":" + std::to_string(port));
+}
+
+void ClientClass::addPacket(const sf::Packet& packet) {
+    this->packetStack.add(packet);
+    this->loggerManager->info("ClientClass", "Received packet from " + identity.ip.toString() + ":" + std::to_string(identity.port));
+    this->setLastPacketTime();
+}
+
+bool ClientClass::getPacket(sf::Packet& packet) {
+    return this->packetStack.get(packet); // Récupération d'un paquet de la pile
+}
+
+bool ClientClass::tryLogin(sf::Packet& packet, DatabaseManager* databaseManager) {
+    std::string rawData;
+    packet >> rawData;
+    
+    auto data = json::parse(rawData);
+    
+    std::string pid = data["pid"];
+    std::string username = data["username"];
+    std::string password = data["password"];
+    std::string email = data["email"];
+
+    if(pid == "login") {
+        this->loggerManager->info("ClientClass", "Trying to login with username: " + username + " and password: " + password);
+        if(databaseManager->accountDB->checkUserCredentials(username, password) == -1) {
+            this->loggerManager->error("ClientClass", "Invalid credentials");
+            return false;
+        }
+        else {
+            this->loggerManager->info("ClientClass", "Client logged in: " + username);
+            return true;
+        }
+    }
+    else if(pid == "register") {
+        this->loggerManager->info("ClientClass", "Trying to register with username: " + username + " and password: " + password + " and email: " + email);
+        int checkUserExistence = databaseManager->accountDB->checkUserExistence(username, email);
+        if(checkUserExistence == -1) {
+           this->loggerManager->error("ClientClass", "E-Mail exist");
+           return false;
+        } else if(checkUserExistence == -2) {
+           this->loggerManager->error("ClientClass", "Username exist");
+           return false;
+        }
+        else {
+           this->loggerManager->info("ClientClass", "Adding new user to database");
+           int result = databaseManager->accountDB->addNewUser(username, password, email, this->identity.ip.toString());
+              if(result == -1) {
+                this->loggerManager->error("ClientClass", "Failed to add new user to database");
+                return false;
+              }
+              else {
+                this->loggerManager->info("ClientClass", "Client registered: " + username);
+                json data = {{"pid", "login_clb"}};
+                std::string serializedData = data.dump(); // Serialize the JSON object to a string
+                packet << serializedData;
+                this->socket.send(packet, this->identity.ip, this->identity.port);
+                return true;
+              }
+        }
+    }
+    return false;
+}
+
+bool ClientClass::isPacketStackEmpty() const {
+    return this->packetStack.empty(); // Vérification si la pile est vide
+}
+
+size_t ClientClass::getPacketStackSize() const {
+    size_t size = this->packetStack.size();
+    this->loggerManager->info("ClientClass", "Packet stack size: " + std::to_string(size));
+    return this->packetStack.size(); // Récupération de la taille de la pile
+}
+
+void ClientClass::setLastPacketTime() {
+    this->lastPacketTime = std::chrono::steady_clock::now();
+}
+
+void ClientClass::setGameServerSocket(sf::UdpSocket& gameServerSocket) {
+    this->gameServerSocket = &gameServerSocket;
+}
+
+sf::UdpSocket& ClientClass::getGameServerSocket() const {
+    return *this->gameServerSocket;
+}
+
+bool ClientClass::isClientInactive() const {
+    auto now = std::chrono::steady_clock::now();
+    auto inactiveDuration = std::chrono::minutes(1);
+    return (now - this->lastPacketTime) > inactiveDuration;
+}
+
+bool ClientIdentity::operator==(const ClientIdentity& other) const {
+    return ip == other.ip && port == other.port;
+}
+
+namespace std {
+    size_t hash<ClientIdentity>::operator()(const ClientIdentity& identity) const noexcept {
+        return hash<string>()(identity.ip.toString()) ^ hash<unsigned short>()(identity.port);
+    }
+} 
+#include "headers/GameServerClass.hpp"
+#include "../system/headers/LoggerManager.hpp" // Assurez-vous que ce chemin d'accès correspond à votre structure de projet
+#include <iostream>
+
+GameServerClass::GameServerClass() : maxClientsPerThread(10), alive(false) {
+    loggerManager = std::make_unique<LoggerManager>();
+}
+
+GameServerClass::~GameServerClass() {
+    stop();
+    for (auto& state : threadStates) {
+        if (state->thread.joinable()) {
+            state->thread.join();
+        }
+    }
+}
+
+bool GameServerClass::init(int maxClients) {
+    this->alive = true;
+    return this->initRecvSockets();
+}
+
+bool GameServerClass::initRecvSockets() {
+    for (int i = 0; i < maxClientsPerThread; ++i) {
+        auto state = std::make_unique<ThreadState>();
+        state->socket = std::make_unique<sf::UdpSocket>();
+        if (state->socket->bind(sf::Socket::AnyPort) != sf::Socket::Done) {
+            loggerManager->error("GameServerClass", "Failed to bind socket to any port");
+            return false;
+        }
+        state->thread = std::thread(&GameServerClass::receiveData, this, state.get());
+        threadStates.push_back(std::move(state));
+    }
+    return true;
+}
+
+void GameServerClass::run() {
+    loggerManager->info("GameServerClass", "GameServerClass started");
+}
+
+void GameServerClass::stop() {
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        alive = false;
+    }
+    condition.notify_all();
+
+    for (auto& state : threadStates) {
+        state->socket->unbind();
+    }
+    for (auto& state : threadStates) {
+        if (state->thread.joinable()) {
+            state->thread.join();
+        }
+    }
+}
+
+void GameServerClass::receiveData(ThreadState* state) {
+    sf::Packet packet;
+    sf::IpAddress sender;
+    unsigned short port;
+
+    while (true) {
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            if (!alive) break;
+        }
+
+        sf::Socket::Status status = state->socket->receive(packet, sender, port);
+
+        if (status == sf::Socket::Done) {
+            loggerManager->info("GameServerClass", "Packet received from " + sender.toString());
+            packet.clear();
+        } else if (status == sf::Socket::NotReady) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        } else if (status == sf::Socket::Disconnected || status == sf::Socket::Error) {
+            if (state->socket->getLocalPort() == 0) {
+                break;
+            }
+            loggerManager->error("GameServerClass", "Error receiving packet from " + sender.toString());
+        }
+    }
+}
+
+void GameServerClass::addLoggedClient(ClientClass* client) {
+    ThreadState* availableState = findAvailableThreadState();
+    if (availableState != nullptr && availableState->clientCount.load() < 10) {
+        client->setGameServerSocket(*availableState->socket);
+        availableState->clients.push_back(client);
+        availableState->clientCount++;
+        this->currentClientCount++;
+
+        sf::Packet packet;
+        unsigned short gameServerPort = availableState->socket->getLocalPort();
+        std::string jsonStr = "{\"pid\": \"swgm\", \"gmp\": " + std::to_string(gameServerPort) + "}";
+        packet << jsonStr;
+
+        if (client->getGameServerSocket().send(packet, client->identity.ip, client->identity.port) != sf::Socket::Done) {
+            loggerManager->error("GameServerClass", "Failed to send game server port to client");
+        } else {
+            loggerManager->info("GameServerClass", "Game server port sent to client: " + std::to_string(gameServerPort));
+        }
+    } else {
+        std::cout << "All threads are at full capacity." << std::endl;
+    }
+}
+
+int GameServerClass::getCurrentClientCount() const {
+    return this->currentClientCount;
+}
+
+ThreadState* GameServerClass::findAvailableThreadState() {
+    for (auto& state : threadStates) {
+        if (state->clientCount < 10) {
+            return state.get();
+        }
+    }
+    return nullptr;
+} 
+#include "headers/NetworkManager.hpp"
+#include <iostream>
+
+NetworkManager::NetworkManager(unsigned short port) : port(port), alive(false) {
+    this->loggerManager = std::make_unique<LoggerManager>();
+    this->inputManager = std::make_unique<InputManager>();
+    this->databaseManager = std::make_unique<DatabaseManager>();
+
+    this->loggerManager->info("NetworkManager", "NetworkManager constructor called");
+
+    if (this->mainSocket.bind(this->port) != sf::Socket::Done) {
+        throw std::runtime_error("Failed to bind main UDP socket to port " + std::to_string(this->port));
+    }
+    this->mainSocket.setBlocking(false);
+    this->loginSockets = this->initializeSockets(1000);
+}
+
+bool NetworkManager::init() {
+    this->loggerManager->info("NetworkManager", "Initializing NetworkManager");
+    this->alive = true;
+    return true;
+}
+
+void NetworkManager::run() {
+    this->loggerManager->info("NetworkManager", "Starting game servers");
+    this->startGameServers();
+    this->loggerManager->info("NetworkManager", "Starting NetworkManager run loop");
+    this->databaseManager->init();
+    this->inputManager->startListening();
+
+    while (this->alive) {
+        this->startLoginServer();
+        this->removeInactiveClients();
+        this->checkAdminCommands();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    this->loggerManager->info("NetworkManager", "NetworkManager run loop stopped");
+    this->shutdown();
+}
+
+void NetworkManager::startGameServers() {
+    int gameServerCount = MAX_CLIENTS / CLIENTS_BY_GAMESERVER;
+    for (int i = 0; i < gameServerCount; ++i) {
+        auto gameServer = std::make_unique<GameServerClass>();
+        if (gameServer->init(CLIENTS_BY_GAMESERVER)) {
+            this->gameServers.push_back(std::move(gameServer));
+            this->loggerManager->info("NetworkManager", "Initialized GameServer with id: " + std::to_string(i));
+        } else {
+            this->loggerManager->error("NetworkManager", "Failed to initialize GameServer with id: " + std::to_string(i));
+        }
+    }
+    this->loggerManager->info("NetworkManager", "GameServers started successfully: " + std::to_string(gameServerCount));
+}
+
+void NetworkManager::startLoginServer() {
+    sf::Packet packet;
+    sf::IpAddress senderIP;
+    unsigned short senderPort;
+
+    while (mainSocket.receive(packet, senderIP, senderPort) == sf::Socket::Done && this->alive) {
+        ClientIdentity identity = {senderIP, senderPort};
+
+        auto clientIter = clients.find(identity);
+        if (clientIter == clients.end()) {
+            sf::UdpSocket* clientSocket = this->assignSocketToNewClient();
+            auto insertResult = clients.emplace(identity, std::make_unique<ClientClass>(senderIP, senderPort, *clientSocket));
+            if (insertResult.second) {
+                this->loggerManager->info("NetworkManager", "New client connected: " + senderIP.toString() + ":" + std::to_string(senderPort));
+                insertResult.first->second->addPacket(packet);
+            } else {
+                this->loggerManager->error("NetworkManager", "Failed to add new client: " + senderIP.toString() + ":" + std::to_string(senderPort));
+            }
+        } else {
+            if (clientIter->second->tryLogin(packet, this->databaseManager.get())) {
+                this->addClientToGameServer(clientIter->second.get());
+            }
+        }
+    }
+}
+
+bool NetworkManager::addClientToGameServer(ClientClass* client) {
+    for (auto& gameServer : this->gameServers) {
+        if (gameServer->getCurrentClientCount() < CLIENTS_BY_GAMESERVER) {
+            gameServer->addLoggedClient(client);
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::unique_ptr<NetworkManager::SocketInfo>> NetworkManager::initializeSockets(int count) {
+    std::vector<std::unique_ptr<SocketInfo>> initializedSockets;
+    for (int i = 0; i < count; ++i) {
+        initializedSockets.emplace_back(std::make_unique<SocketInfo>());
+    }
+    return initializedSockets;
+}
+
+sf::UdpSocket* NetworkManager::assignSocketToNewClient() {
+    return this->getAvailableSocket();
+}
+
+sf::UdpSocket* NetworkManager::getAvailableSocket() {
+    for (auto& socketInfo : this->loginSockets) {
+        if (socketInfo->clientCount < 10) {
+            socketInfo->clientCount++;
+            this->loggerManager->info("NetworkManager", "Assigned socket to client: Port " + std::to_string(socketInfo->port) + ", Client count: " + std::to_string(socketInfo->clientCount));
+            return &socketInfo->socket;
+        }
+    }
+    return nullptr;
+}
+
+NetworkManager::SocketInfo::SocketInfo() {
+    if (this->socket.bind(0) != sf::Socket::Done) {
+        throw std::runtime_error("Failed to bind socket to an available port");
+    }
+    this->port = this->socket.getLocalPort();
+}
+
+bool NetworkManager::broadcast(const std::string& data) {
+    sf::Packet packet;
+    packet << data;
+    for (auto& client : clients) {
+        if (mainSocket.send(packet, client.second->identity.ip, client.second->identity.port) != sf::Socket::Done) {
+            this->loggerManager->error("NetworkManager", "Failed to broadcast data to client: " + client.second->identity.ip.toString());
+        }
+    }
+    return true;
+}
+
+void NetworkManager::checkAdminCommands() {
+    if (this->inputManager->key == "q") {
+        this->alive = false;
+    }
+}
+
+void NetworkManager::removeInactiveClients() {
+    auto it = clients.begin();
+    while (it != clients.end()) {
+        if (it->second->isClientInactive()) {
+            loggerManager->info("NetworkManager", "Client is inactive: " + it->first.ip.toString() + ":" + std::to_string(it->first.port));
+            it->second->socket.unbind();
+            it = clients.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void NetworkManager::stopGameServers() {
+    for (auto& gameServer : this->gameServers) {
+        gameServer->stop();
+        this->loggerManager->info("NetworkManager", "GameServer stopped");
+    }
+    for (auto& thread : this->threadPool) {
+        if (thread.joinable()) {
+            thread.join();
+            this->loggerManager->info("NetworkManager", "Thread joined");
+        }
+    }
+}
+
+void NetworkManager::cleanupClients() {
+    this->loggerManager->info("NetworkManager", "Cleaning up clients");
+    this->clients.clear();
+}
+
+void NetworkManager::shutdown() {
+    this->loggerManager->info("NetworkManager", "Shutting down NetworkManager");
+    this->alive = false; // Indicate to the main loop to stop
+
+    // Wait for the main loop to stop
+    if (mainThread.joinable()) {
+        mainThread.join();
+        this->loggerManager->info("NetworkManager", "Main thread joined");
+    }
+
+    this->stopGameServers();
+    this->cleanupClients();
+    this->inputManager->stopListening();
+}
+
+NetworkManager::~NetworkManager() {
+    if (this->alive) {
+        this->shutdown();
+    }
+    this->loggerManager->info("NetworkManager", "NetworkManager destructor called");
+} 
+#include "headers/PacketClass.hpp"
+
+void PacketClass::add(const sf::Packet& packet) {
+    std::lock_guard<std::mutex> lock(mutex);
+    stack.push(packet);
+}
+
+bool PacketClass::get(sf::Packet& packet) {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (stack.empty()) {
+        return false;
+    }
+    packet = std::move(stack.top());
+    stack.pop();
+    return true;
+}
+
+bool PacketClass::empty() const {
+    std::lock_guard<std::mutex> lock(mutex);
+    return stack.empty();
+}
+
+size_t PacketClass::size() const {
+    std::lock_guard<std::mutex> lock(mutex);
+    return stack.size();
+}
+
+void PacketClass::log(const std::string& type, const std::string& message) {
+    std::thread([this, type, message]() {
+        std::lock_guard<std::mutex> guard(this->logMutex); // Verrouillage du mutex
+        // Affichage du message avec le type
+        std::cout << "[" << type << "] " << message << std::endl;
+    }).detach(); // Détachement de la thread pour permettre son exécution en arrière-plan
+}
+ 
+#ifndef CLIENTCLASS_HPP
+#define CLIENTCLASS_HPP
+#include <SFML/Network.hpp>
+#include <functional>
+#include <chrono>
+#include "../../system/headers/LoggerManager.hpp"
+#include "../../database/headers/DatabaseManager.hpp"
+#include "PacketClass.hpp"
+
+struct ClientIdentity {
+    sf::IpAddress ip;
+    unsigned short port;
+
+    bool operator==(const ClientIdentity& other) const;
+};
+
+namespace std {
+    template<>
+    struct hash<ClientIdentity> {
+        size_t operator()(const ClientIdentity& identity) const noexcept;
+    };
+}
+
+class ClientClass {
+public:
+    ClientIdentity identity;
+
+    ClientClass(const sf::IpAddress& ip, unsigned short port, sf::UdpSocket& socketRef);
+    void addPacket(const sf::Packet& packet);
+    bool getPacket(sf::Packet& packet);
+    bool isPacketStackEmpty() const;
+    bool isClientInactive() const;
+    size_t getPacketStackSize() const;
+    void setLastPacketTime();
+    void setGameServerSocket(sf::UdpSocket& gameServerSocket);
+    bool tryLogin(sf::Packet& packet, DatabaseManager* databaseManager);
+    sf::UdpSocket& getGameServerSocket() const;
+    sf::UdpSocket& socket;
+
+private:
+    std::unique_ptr<LoggerManager> loggerManager;
+    PacketClass packetStack;
+    std::chrono::steady_clock::time_point lastPacketTime;
+    sf::UdpSocket* gameServerSocket;
+};
+#endif // CLIENTCLASS_HPP 
+#ifndef GAMESERVERCLASS_HPP
+#define GAMESERVERCLASS_HPP
+
+#include <SFML/Network.hpp>
+#include <memory>
+#include <vector>
+#include <thread>
+#include <atomic>
+
+#include "ClientClass.hpp"
+
+class LoggerManager;
+
+struct ThreadState {
+    std::unique_ptr<sf::UdpSocket> socket;
+    std::thread thread;
+    std::atomic<int> clientCount;
+    std::vector<ClientClass*> clients;
+
+    ThreadState() : clientCount(0) {}
+    // Supprimer le constructeur de copie et l'opérateur d'affectation pour atomic
+    ThreadState(const ThreadState&) = delete;
+    ThreadState& operator=(const ThreadState&) = delete;
+    // Supporter le déplacement
+    ThreadState(ThreadState&&) noexcept = default;
+    ThreadState& operator=(ThreadState&&) noexcept = default;
+};
+
+class GameServerClass {
+private:
+    std::unique_ptr<LoggerManager> loggerManager;
+    std::vector<std::unique_ptr<ThreadState>> threadStates;
+    int maxClientsPerThread;
+    std::atomic<bool> alive;
+
+    bool initRecvSockets();
+    ThreadState* findAvailableThreadState();
+
+    int currentClientCount;
+    std::mutex mutex;
+    std::condition_variable condition;
+    
+public:
+    GameServerClass();
+    ~GameServerClass();
+    bool init(int maxClients);
+    void run();
+    void stop();
+    void addLoggedClient(ClientClass* client);
+    void receiveData(ThreadState* state);
+    int getCurrentClientCount() const;
+};
+
+#endif // GAMESERVERCLASS_HPP
+ 
+// NetworkManager.hpp
+#ifndef NETWORKMANAGER_HPP
+#define NETWORKMANAGER_HPP
+
+#include <SFML/Network.hpp>
+#include <unordered_map>
+#include <memory>
+#include "ClientClass.hpp"
+#include <thread>
+#include "../../system/headers/LoggerManager.hpp"
+#include "../../system/headers/InputManager.hpp"
+#include "../../database/headers/DatabaseManager.hpp"
+
+#include "GameServerClass.hpp"
+
+class NetworkManager {
+public:
+    explicit NetworkManager(unsigned short port);
+    ~NetworkManager();
+
+    bool init();
+    void run();
+    sf::UdpSocket* assignSocketToNewClient();
+
+private:
+    struct SocketInfo {
+        sf::UdpSocket socket;
+        unsigned short port;
+        int clientCount = 0;
+
+        SocketInfo();
+    };
+
+    unsigned short port;
+    bool alive;
+    sf::UdpSocket mainSocket;
+    std::thread mainThread;
+    
+    std::unique_ptr<LoggerManager> loggerManager;
+    std::unique_ptr<InputManager> inputManager;
+    std::unique_ptr<DatabaseManager> databaseManager;
+
+    std::vector<std::unique_ptr<GameServerClass>> gameServers;
+
+    std::vector<std::unique_ptr<SocketInfo>> loginSockets;
+    std::unordered_map<ClientIdentity, std::unique_ptr<ClientClass>, std::hash<ClientIdentity>, std::equal_to<>, std::allocator<std::pair<const ClientIdentity, std::unique_ptr<ClientClass>>>> clients;
+
+    void startLoginServer();
+    bool broadcast(const std::string& data);
+    void checkAdminCommands();
+    void cleanupClients();
+    void removeInactiveClients();
+    void startGameServers();
+    void stopGameServers();
+    bool addClientToGameServer(ClientClass* client);
+    void shutdown();
+
+    std::vector<std::unique_ptr<SocketInfo>> initializeSockets(int count);
+    sf::UdpSocket* getAvailableSocket();
+    std::vector<std::thread> threadPool;
+    const int CLIENTS_BY_GAMESERVER = 100;
+    const int MAX_CLIENTS = 1000;
+    unsigned int nextThreadId = 1;
+};
+
+#endif // NETWORKMANAGER_HPP 
+#ifndef PACKETCLASS_HPP
+#define PACKETCLASS_HPP
+
+#include <SFML/Network.hpp>
+#include <stack>
+#include <mutex>
+#include <queue>
+#include <iostream>
+#include <string>
+#include <thread>
+
+class PacketClass {
+    std::stack<sf::Packet> stack;
+    mutable std::mutex mutex;
+    mutable std::mutex logMutex;
+
+    void log(const std::string& type, const std::string& message);
+
+public:
+    void add(const sf::Packet& packet);
+    bool get(sf::Packet& packet);
+    bool empty() const;
+    size_t size() const;
+
+    //set queue variable    
+    std::queue<sf::Packet> queue;
+    
+};
+
+#endif // PACKETCLASS_HPP 
+#include "headers/InputManager.hpp"
+#include <iostream>
+#include <chrono>
+
+// Pour Windows
+#ifdef _WIN32
+#include <conio.h>
+#else
+// Pour Linux/Unix
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+// Vérifie si une touche a été pressée sans bloquer
+int _kbhit(void) {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if(ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+
+    return 0;
+}
+#endif
+
+InputManager::InputManager() : listening(false) {}
+
+InputManager::~InputManager() {
+    stopListening();
+}
+
+void InputManager::startListening() {
+    listening = true;
+    inputThread = std::thread(&InputManager::processInput, this);
+}
+
+void InputManager::stopListening() {
+    listening = false;
+    if (inputThread.joinable()) {
+        inputThread.join();
+    }
+}
+
+void InputManager::processInput() {
+    std::cout << "[ Press Q to exit, R for restart, S for saving, B for backup ]" << std::endl; // Affiche le message une fois
+
+    while (listening) {
+        if (_kbhit()) {
+            char c = getchar(); // Utilise getchar() qui est standard en C/C++
+            switch (c) {
+                case 'q':
+                    this->key = c;
+                    break;
+                // Ajoutez d'autres cas au besoin
+                default:
+                    std::cout << "Unknown key" << std::endl;
+                    break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+} 
+#include "headers/LoggerManager.hpp"
+
+LoggerManager::LoggerManager() : keepRunning(true) {
+    saveThread = std::thread(&LoggerManager::saveLogsToFile, this);
+}
+
+LoggerManager::~LoggerManager() {
+    keepRunning = false;
+    cv.notify_one();
+    if (saveThread.joinable()) {
+        saveThread.join();
+    }
+}
+
+void LoggerManager::log(const std::string& type, const std::string& module, const std::string& message) {
+    std::lock_guard<std::mutex> guard(logMutex);
+    std::string color = (type == "ERROR" ? RED : (type == "WARNING" ? YELLOW : GREEN));
+    // Ajout de la balise du module dans le message de log
+    std::string logMessage = color + "[" + type + "] " + "[" + module + "] " + RESET + message;
+    std::cout << logMessage << std::endl;
+    logStack.push_back(logMessage);
+}
+
+void LoggerManager::error(const std::string& module, const std::string& message) {
+    log("ERROR", module, message);
+}
+
+void LoggerManager::warning(const std::string& module, const std::string& message) {
+    log("WARNING", module, message);
+}
+
+void LoggerManager::info(const std::string& module, const std::string& message) {
+    log("INFO", module, message);
+}
+
+void LoggerManager::saveLogsToFile() {
+    std::unique_lock<std::mutex> lk(cv_m);
+    while (keepRunning) {
+        if (cv.wait_for(lk, std::chrono::minutes(5), [this] { return !keepRunning; })) {
+            // Réveillé parce que keepRunning est devenu false
+            break;
+        }
+
+        // Sauvegarde des logs ici (identique à ce qui était déjà présent)
+        std::lock_guard<std::mutex> guard(logMutex);
+        std::ofstream logFile("server.log", std::ios::app);
+        if (logFile.is_open()) {
+            for (const auto& log : logStack) {
+                std::string cleanLog = removeAnsiColors(log);
+                logFile << cleanLog << std::endl;
+            }
+            logStack.clear();
+        }
+        logFile.close();
+    }
+} 
+#ifndef INPUTMANAGER_HPP
+#define INPUTMANAGER_HPP
+
+#include <atomic>
+#include <thread>
+#include <string>
+
+class InputManager {
+public:
+    InputManager();
+    ~InputManager();
+
+    // Démarrer l'écoute des entrées clavier
+    void startListening();
+
+    // Arrêter l'écoute des entrées clavier
+    void stopListening();
+
+    std::string key; // Dernière touche pressée
+
+private:
+    std::atomic<bool> listening; // Contrôle l'écoute des entrées clavier
+    std::thread inputThread; // Thread pour l'écoute des entrées clavier
+
+    // Fonction exécutée dans le thread pour gérer les entrées clavier
+    void processInput();
+};
+
+#endif // INPUTMANAGER_HPP
+ 
+#ifndef LOGGERMANAGER_HPP
+#define LOGGERMANAGER_HPP
+
+#include <string>
+#include <mutex>
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <thread>
+#include <chrono>
+#include <condition_variable>
+#include <regex>
+
+class LoggerManager {
+public:
+    LoggerManager();
+    ~LoggerManager();
+
+    // Log avec type, module, et message
+    void log(const std::string& type, const std::string& module, const std::string& message);
+
+    // Méthodes spécialisées pour les différents niveaux de log
+    void error(const std::string& module, const std::string& message);
+    void warning(const std::string& module, const std::string& message);
+    void info(const std::string& module, const std::string& message);
+
+    // Méthode pour sauvegarder les logs dans un fichier
+    void saveLogsToFile();
+
+private:
+    // Pile pour stocker les logs
+    std::vector<std::string> logStack;
+    // Mutex pour sécuriser l'accès à la pile de logs
+    std::mutex logMutex;
+    // Thread pour la sauvegarde périodique des logs
+    std::thread saveThread;
+    // Variable conditionnelle pour gérer l'attente
+    std::condition_variable cv;
+    // Mutex pour la variable conditionnelle
+    std::mutex cv_m;
+    // Contrôle de la boucle de sauvegarde
+    bool keepRunning;
+
+    // Séquences d'échappement ANSI pour les couleurs
+    const std::string RED = "\033[31m";
+    const std::string YELLOW = "\033[33m";
+    const std::string GREEN = "\033[32m";
+    const std::string RESET = "\033[0m";
+
+    std::string removeAnsiColors(const std::string& text) {
+        std::regex ansi_pattern("\033\\[[0-9;]*m");
+        return std::regex_replace(text, ansi_pattern, "");
+    }
+};
+
+#endif // LOGGERMANAGER_HPP
+ 

@@ -37,6 +37,8 @@ private:
     ThreadState* findAvailableThreadState();
 
     int currentClientCount;
+    std::mutex mutex;
+    std::condition_variable condition;
     
 public:
     GameServerClass();

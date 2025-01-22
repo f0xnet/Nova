@@ -1,51 +1,24 @@
-#ifndef SCENEMANAGER_HPP
-#define SCENEMANAGER_HPP
+#ifndef SCENE_MANAGER_HPP
+#define SCENE_MANAGER_HPP
 
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
+#include <string>
 #include <vector>
+#include <map>
 #include <nlohmann/json.hpp>
+#include <vector>
+#include <string>
+#include "Scene.hpp"
 
-struct Condition {
-    std::unordered_map<std::string, std::string> conditions;
-};
-
-struct Effect {
-    std::unordered_map<std::string, std::string> effects;
-};
-
-struct Dialogue {
-    std::string text;
-    Condition condition;
-};
-
-struct Response {
-    std::string text;
-    Condition conditions;
-    Effect effect;
-    std::string nextScene;
-};
-
-struct SceneData {
-    std::string character;
-    std::vector<Dialogue> dialogues;
-    std::unordered_map<std::string, std::vector<Response>> responses;
-};
+using json = nlohmann::json;
 
 class SceneManager {
 public:
-    bool LoadScenes(const std::string& filename);
-
-    SceneData GetScene(const std::string& sceneID) const {
-        return scenes_.at(sceneID);
-    }
+    void load_from_file(const std::string& filename);
+    void print_scene_details() const;
+    std::string select_dialogue(const std::string& scene_id, int love_value) const;
 
 private:
-    std::unordered_map<std::string, SceneData> scenes_;
-
-    Condition ParseCondition(const nlohmann::json& conditionData);
-    Effect ParseEffect(const nlohmann::json& effectData);
+    std::vector<Scene> scenes;
 };
 
 #endif // SCENE_MANAGER_HPP

@@ -1,62 +1,97 @@
 #include "headers/SceneManager.hpp"
+#include <fstream>
+#include <iostream>
 
-bool SceneManager::LoadScenes(const std::string& filename) {
+void SceneManager::load_from_file(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Unable to open JSON file!" << std::endl;
-        return false;
+        std::cerr << "Error opening file: " + filename << std::endl;
+        return;
     }
+    json j;
+    file >> j;
 
-    nlohmann::json jsonData;
-    file >> jsonData;
-    file.close();
+    for (const auto& obj : j["scenes"]) {
+        Scene scene;
+        scene.from_json(obj);
+        scenes.push_back(scene);
+    }
+    
+}
 
-    for (const auto& scene : jsonData["scenes"]) {
-        std::string sceneID = scene["id"];
-        std::string character = scene["character"];
-        std::vector<Dialogue> dialogues;
-        std::unordered_map<std::string, std::vector<Response>> responses;
+void SceneManager::print_scene_details() const {
+    for (const auto& scene : scenes) {
+        std::cout << "Scene ID: " << scene.id << std::endl;
+        std::cout << "Character: " << scene.character << std::endl;
 
-        for (const auto& dialogue : scene["dialogues"]) {
-            std::string text = dialogue["text"];
-            Condition condition = ParseCondition(dialogue["condition"]);
-            dialogues.push_back({text, condition});
+        // Parcours de tous les dialogues de la scène
+        for (const auto& dialogue : scene.dialogues) {
+            std::cout << "Dialogue: " << dialogue.text << std::endl;
+            std::cout << "Condition Attribute: " << dialogue.condition.attribute << std::endl;
+            std::cout << "Condition Operator: " << dialogue.condition.operator_ << std::endl;
+            std::cout << "Condition Value: " << dialogue.condition.value << std::endl;
         }
 
-        for (const auto& response : scene["responses"].items()) {
-            std::vector<Response> responseList;
-            for (const auto& option : response.value()) {
-                std::string text = option["text"];
-                Condition condition = ParseCondition(option["conditions"]);
-                Effect effect = ParseEffect(option["effects"]);
-                std::string nextScene = option.value("nextScene", "");
-                responseList.push_back({text, condition, effect, nextScene});
+        // Parcours de toutes les catégories de réponses de la scène
+        for (const auto& [category, responseCategory] : scene.responseCategories) {
+            std::cout << "Response Category: " << category << std::endl;
+            
+            // Parcours de toutes les réponses de la catégorie
+            for (const auto& response : responseCategory.responses) {
+                std::cout << "Response Text: " << response.text << std::endl;
+
+                // Parcours de toutes les conditions de la réponse
+                for (const auto& condition : response.conditions) {
+                    std::cout << "Condition Attribute: " << condition.attribute << std::endl;
+                    std::cout << "Condition Operator: " << condition.operator_ << std::endl;
+                    std::cout << "Condition Value: " << condition.value << std::endl;
+                }
+
+                // Parcours de tous les effets de la réponse
+                for (const auto& effect : response.effects) {
+                    std::cout << "Effect Attribute: " << effect.attribute << std::endl;
+                    std::cout << "Effect Change: " << effect.change << std::endl;
+                }
             }
-            responses[response.key()] = responseList;
         }
-
-        scenes_[sceneID] = SceneData{character, dialogues, responses};
     }
-
-    return true;
 }
 
-Condition SceneManager::ParseCondition(const nlohmann::json& conditionData) {
-    Condition condition;
-    for (const auto& item : conditionData.items()) {
-        std::string key = item.key();
-        std::string value = item.value();
-        condition.conditions[key] = value;
-    }
-    return condition;
-}
+std::string SceneManager::select_dialogue(const std::string& scene_id, int love_value) const {
+    for (const auto& scene : scenes) {
+        if (scene.id == scene_id) {
+            for (const auto& dialogue : scene.dialogues) {
+                bool conditions_met = false; // On initialise à false, puisqu'on va évaluer chaque condition
+                if (dialogue.condition.attribute == "love") {
+                    if (dialogue.condition.operator_ == ">") {
+                        conditions_met = love_value >= dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "<") {
+                        conditions_met = love_value <= dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "=") {
+                        conditions_met = love_value == dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "!=") {
+                        conditions_met = love_value != dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == ">=") {
+                        conditions_met = love_value >= dialogue.condition.value;
+                    }
+                    if (dialogue.condition.operator_ == "<=") {
+                        conditions_met = love_value <= dialogue.condition.value;
+                    }
+                }
+                // Ajoutez d'autres conditions selon vos besoins
 
-Effect SceneManager::ParseEffect(const nlohmann::json& effectData) {
-    Effect effect;
-    for (const auto& item : effectData.items()) {
-        std::string key = item.key();
-        std::string value = item.value();
-        effect.effects[key] = value;
+                // Si toutes les conditions sont satisfaites, sélectionnez le dialogue
+                if (conditions_met) {
+                    return dialogue.text;
+                }
+            }
+        }
     }
-    return effect;
+    // Si aucune condition n'est satisfaite pour aucun dialogue, retournez une chaîne vide
+    return "";
 }
+//

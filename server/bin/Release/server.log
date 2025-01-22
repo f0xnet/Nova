@@ -1913,3 +1913,71 @@ lled
 [INFO] [NetworkManager] Assigned socket to client: Port 49271, Client count: 6
 [INFO] [NetworkManager] New client connected: 127.0.0.1:52191
 [INFO] [NetworkManager] Client is inactive: 127.0.0.1:52191
+[INFO] [GameServerClass] Game server port sent to client: 50555
+[INFO] [NetworkManager] Assigned socket to client: Port 49271, Client count: 7
+[INFO] [NetworkManager] New client connected: 127.0.0.1:62844
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:62844
+[INFO] [GameServerClass] Game server port sent to client: 50555
+[INFO] [NetworkManager] Assigned socket to client: Port 49271, Client count: 8
+[INFO] [NetworkManager] New client connected: 127.0.0.1:57209
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:57209
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  100
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 62640, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:54812
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:54812
+[INFO] [GameServerClass] Game server port sent to client: 63651
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[INFO] [GameServerClass] Packet received from 127.0.0.1
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Gameservers started with success >  10
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager run loop stopped
+[INFO] [NetworkManager] Shutting down NetworkManager
+[WARNING] [Database] Database loaded with success !
+lled
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Initialized GameServer with id: 0
+[INFO] [NetworkManager] Initialized GameServer with id: 1
+[INFO] [NetworkManager] Initialized GameServer with id: 2
+[INFO] [NetworkManager] Initialized GameServer with id: 3
+[INFO] [NetworkManager] Initialized GameServer with id: 4
+[INFO] [NetworkManager] Initialized GameServer with id: 5
+[INFO] [NetworkManager] Initialized GameServer with id: 6
+[INFO] [NetworkManager] Initialized GameServer with id: 7
+[INFO] [NetworkManager] Initialized GameServer with id: 8
+[INFO] [NetworkManager] Initialized GameServer with id: 9
+[INFO] [NetworkManager] GameServers started successfully: 10
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] NetworkManager run loop stopped
+[INFO] [NetworkManager] Shutting down NetworkManager
+[INFO] [GameServerClass] Stopping GameServerClass and joining threads
+[INFO] [NetworkManager] NetworkManager constructor called
+[INFO] [NetworkManager] Initializing NetworkManager
+[INFO] [NetworkManager] Starting game servers
+[INFO] [NetworkManager] Initialized GameServer with id: 0
+[INFO] [NetworkManager] Initialized GameServer with id: 1
+[INFO] [NetworkManager] Initialized GameServer with id: 2
+[INFO] [NetworkManager] Initialized GameServer with id: 3
+[INFO] [NetworkManager] Initialized GameServer with id: 4
+[INFO] [NetworkManager] Initialized GameServer with id: 5
+[INFO] [NetworkManager] Initialized GameServer with id: 6
+[INFO] [NetworkManager] Initialized GameServer with id: 7
+[INFO] [NetworkManager] Initialized GameServer with id: 8
+[INFO] [NetworkManager] Initialized GameServer with id: 9
+[INFO] [NetworkManager] GameServers started successfully: 10
+[INFO] [NetworkManager] Starting NetworkManager run loop
+[INFO] [NetworkManager] Assigned socket to client: Port 60886, Client count: 1
+[INFO] [NetworkManager] New client connected: 127.0.0.1:61987
+[INFO] [NetworkManager] Client is inactive: 127.0.0.1:61987
+[INFO] [GameServerClass] Game server port sent to client: 61887

@@ -50,3 +50,4 @@ bool UIManager::setGroupID(const std::string& UUIID, const std::string& groupID)
 UIManager::~UIManager() {
     std::cout << "UI destroyed!" << std::endl;
 }
+//

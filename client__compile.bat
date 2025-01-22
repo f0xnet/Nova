@@ -20,7 +20,7 @@ xcopy /E /I /Y "%source_dir%\assets\" "%bin_dir%\data\"
 windres "%source_dir%\icon\appicon.rc" -O coff -o "%source_dir%\icon\appicon.res"
 
 :: Liste des fichiers source
-set "files=main.cpp api\nova\RenderClass.cpp api\nova\NovaClass.cpp api\draw\DrawClass.cpp api\nova\SystemClass.cpp api\ui\UIManager.cpp api\ui\UIClass.cpp api\ui\UIGraphic.cpp api\ui\UIString.cpp api\ui\UIbutton.cpp api\network\NetworkManager.cpp api/event/EventHandler.cpp api/event/ButtonEvent.cpp api/nova/SceneManager.cpp"
+set "files=main.cpp api\nova\RenderClass.cpp api\nova\NovaClass.cpp api\draw\DrawClass.cpp api\nova\SystemClass.cpp api\ui\UIManager.cpp api\ui\UIClass.cpp api\ui\UIGraphic.cpp api\ui\UIString.cpp api\ui\UIbutton.cpp api\network\NetworkManager.cpp api/event/EventHandler.cpp api/event/ButtonEvent.cpp api/nova/SceneManager.cpp api/nova/Scene.cpp api\animation\AnimationManager.cpp api\animation\Animation.cpp"
 
 :: Compilation
 for %%f in (%files%) do (
@@ -64,3 +64,4 @@ exit /b
 g++ -o "!object_path!" -O0 -DNDEBUG -I "%sdk_dir%" -c "!source_path!" -Wall -DSFML_STATIC
 echo Compiled !source_file! at !source_time!
 exit /b
+pause

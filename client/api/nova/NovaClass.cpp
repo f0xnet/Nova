@@ -1,6 +1,7 @@
 #include "headers/NovaClass.hpp"
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Audio.hpp>
+#include "../animation/headers/AnimationManager.hpp"
 
 
 sf::RenderWindow* renderWindow = nullptr;
@@ -21,8 +22,9 @@ Nova::Nova() {
     this->eventHandler = std::make_unique<EventHandler>();
 }
 
-bool Nova::Init() { //We initialize all the classes Nova contains and check if they are initialized correctly
-
+//We initialize all the classes Nova contains and check if they are initialized correctly
+bool Nova::Init() 
+{
     std::string ipAddress = "127.0.0.1"; // Remplacez par l'adresse IP souhaitée
     unsigned short port = 53000; 
 
@@ -46,27 +48,22 @@ bool Nova::Init() { //We initialize all the classes Nova contains and check if t
 
 void Nova::Game() {
     // Charger les shaders
-     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+    sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
 
-     std::cout << desktop.width << " " << desktop.height << std::endl;
-     
+    std::cout << desktop.width << " " << desktop.height << std::endl;
+    
     sf::Music music;
     
     SceneManager sceneManager;
-    sceneManager.LoadScenes("data/dialogs/rin/rin_care_01.json");
+    sceneManager.load_from_file("data/dialogs/rin/rin_care_01.json");
+    sceneManager.print_scene_details();
+    std::string selected_dialogue = sceneManager.select_dialogue("scene1", 10);
 
-    SceneData scene1Data = sceneManager.GetScene("scene1");
-    if (scene1Data.character.empty()) {
-        std::cerr << "Error loading scene data" << std::endl;
-        return;
-    }
-    else {
-            // Utiliser les données de la scène
-    std::cout << "Character: " << scene1Data.character << std::endl;
-    std::cout << "Dialogues:" << std::endl;
-    for (const auto& dialogue : scene1Data.dialogues) {
-        std::cout << "- " << dialogue.text << std::endl;
-    }
+    // Affichez le dialogue sélectionné (ou un message approprié si aucun dialogue n'est sélectionné)
+    if (!selected_dialogue.empty()) {
+        std::cout << "Selected Dialogue: " << selected_dialogue << std::endl;
+    } else {
+        std::cout << "No dialogue selected." << std::endl;
     }
 
     // Chargez votre musique ici
@@ -83,7 +80,16 @@ void Nova::Game() {
         return;
     }
 
-if (this->render->newWindow(3840, 2160, "Nova", false, false, false)) {
+    AnimationManager animationManager;
+    if (!animationManager.addEntityAnimationsFromJson("entity1", "data/characters/animation.json")) {
+        std::cerr << "Failed to load animations for entity1." << std::endl;
+        printf("Failed to load animations for entity1.\n");
+    }
+    animationManager.pushAnimation("entity1", "walk");
+    sf::Sprite animatedSprite;
+    sf::Clock clock;
+
+if (this->render->newWindow(3840, 2160, "Nova", true, false, false)) {
     renderWindow->setFramerateLimit(60);
     this->uimanager->newUI("loginmenu");
 
@@ -111,14 +117,27 @@ if (this->render->newWindow(3840, 2160, "Nova", false, false, false)) {
         texture.update(*renderWindow);
         sprite.setTexture(texture);
 
+        // Mise à jour de l'animation
+        float deltaTime = clock.restart().asSeconds();
+        animationManager.update(deltaTime);
+
+        // Obtenir la texture de la frame actuelle
+        const sf::Texture& currentFrame = animationManager.getCurrentFrame();
+        animatedSprite.setTexture(currentFrame);
+
+        // Positionner le sprite (optionnel)
+        sprite.setPosition(animationManager.getAnimationPosition());
+        
+
         // Appliquer le shader lors du rendu du sprite
         renderWindow->draw(sprite, &shader);
+        renderWindow->draw(animatedSprite);
 
         renderWindow->display();  
     }
 } else {
     std::cout << "Render is not initialized!" << std::endl;
-}
+    }
 }
 
 Nova::~Nova() {
@@ -138,3 +157,5 @@ Nova::~Nova() {
                     clock.restart();
                 }
             }*/
+
+//

@@ -33,3 +33,4 @@ class Draw {
 
     ~Draw(); // Déclaration du destructeur
 };
+//

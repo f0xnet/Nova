@@ -53,3 +53,4 @@ std::array<int, 4> System::getFocusedWindowX() {
 System::~System() {
     std::cout << "System destroyed!" << std::endl;
 }
+// 
