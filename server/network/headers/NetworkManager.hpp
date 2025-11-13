@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <memory>
 #include "ClientClass.hpp"
+#include <thread>
 #include "../../system/headers/LoggerManager.hpp"
 #include "../../system/headers/InputManager.hpp"
 #include "../../database/headers/DatabaseManager.hpp"
@@ -33,6 +34,7 @@ private:
     unsigned short port;
     bool alive;
     sf::UdpSocket mainSocket;
+    std::thread mainThread;
     
     std::unique_ptr<LoggerManager> loggerManager;
     std::unique_ptr<InputManager> inputManager;
@@ -51,11 +53,12 @@ private:
     void startGameServers();
     void stopGameServers();
     bool addClientToGameServer(ClientClass* client);
+    void shutdown();
 
     std::vector<std::unique_ptr<SocketInfo>> initializeSockets(int count);
     sf::UdpSocket* getAvailableSocket();
     std::vector<std::thread> threadPool;
-    const int CLIENTS_BY_GAMESERVER = 10;
+    const int CLIENTS_BY_GAMESERVER = 100;
     const int MAX_CLIENTS = 1000;
     unsigned int nextThreadId = 1;
 };

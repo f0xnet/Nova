@@ -1,9 +1,9 @@
 uniform sampler2D texture; // Texture d'entrée
-uniform float exposure = 1.0; // Exposition
-uniform float gamma = 2.2; // Correction gamma
-uniform float saturationStrength = 0.1; // Force de saturation
-uniform float auraStrength = 0.2; // Force de l'aura
-uniform float auraBoost = 0.5; // Augmentation de l'aura pour les zones claires
+uniform float exposure;    // Exposition
+uniform float gamma;       // Correction gamma
+uniform float saturationStrength; // Force de saturation
+uniform float auraStrength;       // Force de l'aura
+uniform float auraBoost;          // Augmentation de l'aura pour les zones claires
 
 void main() {
     vec3 hdrColor = texture2D(texture, gl_TexCoord[0].xy).rgb; // Couleur HDR de la texture
@@ -31,15 +31,3 @@ void main() {
 
     gl_FragColor = vec4(mappedColor, 1.0);
 }
-
-
-/* Fragment shader pour HDR avec tonemapping
-
-        shader.setUniform("texture", sf::Shader::CurrentTexture);
-        shader.setUniform("exposure", 6.0f); // Modifier si nécessaire
-        shader.setUniform("gamma", 0.30f); // Modifier si nécessaire
-        shader.setUniform("saturationStrength", 1.4f); // Modifier si nécessaire
-        shader.setUniform("auraStrength", 0.5f); // Modifier si nécessair
-        shader.setUniform("auraBoost", 0.1f); // Modifier si nécessaire
-
-*/

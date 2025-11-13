@@ -7,7 +7,7 @@ GameServerClass::GameServerClass() : maxClientsPerThread(10), alive(false) {
 }
 
 GameServerClass::~GameServerClass() {
-    stop(); // S'assure que `alive` est mis à `false` et que les threads sont arrêtés proprement
+    stop();
     for (auto& state : threadStates) {
         if (state->thread.joinable()) {
             state->thread.join();
@@ -39,7 +39,47 @@ void GameServerClass::run() {
 }
 
 void GameServerClass::stop() {
-    alive = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        alive = false;
+    }
+    condition.notify_all();
+
+    for (auto& state : threadStates) {
+        state->socket->unbind();
+    }
+    for (auto& state : threadStates) {
+        if (state->thread.joinable()) {
+            state->thread.join();
+        }
+    }
+}
+
+void GameServerClass::receiveData(ThreadState* state) {
+    sf::Packet packet;
+    sf::IpAddress sender;
+    unsigned short port;
+
+    while (true) {
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            if (!alive) break;
+        }
+
+        sf::Socket::Status status = state->socket->receive(packet, sender, port);
+
+        if (status == sf::Socket::Done) {
+            loggerManager->info("GameServerClass", "Packet received from " + sender.toString());
+            packet.clear();
+        } else if (status == sf::Socket::NotReady) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        } else if (status == sf::Socket::Disconnected || status == sf::Socket::Error) {
+            if (state->socket->getLocalPort() == 0) {
+                break;
+            }
+            loggerManager->error("GameServerClass", "Error receiving packet from " + sender.toString());
+        }
+    }
 }
 
 void GameServerClass::addLoggedClient(ClientClass* client) {
@@ -51,7 +91,7 @@ void GameServerClass::addLoggedClient(ClientClass* client) {
         this->currentClientCount++;
 
         sf::Packet packet;
-        unsigned short gameServerPort = availableState->socket->getLocalPort(); // Récupère le port local du socket du serveur
+        unsigned short gameServerPort = availableState->socket->getLocalPort();
         std::string jsonStr = "{\"pid\": \"swgm\", \"gmp\": " + std::to_string(gameServerPort) + "}";
         packet << jsonStr;
 
@@ -65,34 +105,15 @@ void GameServerClass::addLoggedClient(ClientClass* client) {
     }
 }
 
-void GameServerClass::receiveData(ThreadState* state) {
-    sf::Packet packet;
-    sf::IpAddress sender;
-    unsigned short port;
-
-    while (alive) {
-        sf::Socket::Status status = state->socket->receive(packet, sender, port);
-
-        if (status == sf::Socket::Done) {
-            loggerManager->info("GameServerClass", "Packet received from " + sender.toString());
-            packet.clear();
-        } else if (status == sf::Socket::NotReady) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Pour éviter une utilisation excessive du CPU
-        } else {
-            loggerManager->error("GameServerClass", "Failed to receive packet from " + sender.toString());
-        }
-    }
-}
-
 int GameServerClass::getCurrentClientCount() const {
-    return this->currentClientCount; // Supposons que currentClientCount est un membre qui suit le nombre de clients
+    return this->currentClientCount;
 }
 
 ThreadState* GameServerClass::findAvailableThreadState() {
     for (auto& state : threadStates) {
         if (state->clientCount < 10) {
-            return state.get(); // Retourne un pointeur vers le ThreadState disponible
+            return state.get();
         }
     }
-    return nullptr; // Aucun ThreadState disponible trouvé
+    return nullptr;
 }
