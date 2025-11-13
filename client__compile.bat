@@ -148,7 +148,7 @@ if not exist "%SOURCE_DIR%\icon\appicon.res" (
 :: Source files list
 set "SOURCE_FILES=main.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\game.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\Backend\BackendManager.cpp src\Backend\Core\BackendTypes.cpp src\Backend\SFML\SFMLAudioBackend.cpp src\Backend\SFML\SFMLFontBackend.cpp src\Backend\SFML\SFMLGraphicsBackend.cpp src\Backend\SFML\SFMLInputBackend.cpp src\Backend\SFML\SFMLResourceBackend.cpp src\Backend\SFML\SFMLViewportBackend.cpp src\Backend\SFML\SFMLWindowBackend.cpp
+set "SOURCE_FILES=%SOURCE_FILES% src\Backend\BackendManager.cpp src\Backend\Core\BackendTypes.cpp src\Backend\SFML\SFMLAudioBackend.cpp src\Backend\SFML\SFMLFontBackend.cpp src\Backend\SFML\SFMLGraphicsBackend.cpp src\Backend\SFML\SFMLInputBackend.cpp src\Backend\SFML\SFMLResourceBackend.cpp src\Backend\SFML\SFMLViewportBackend.cpp src\Backend\SFML\SFMLWindowBackend.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\UI\UIManager.cpp src\UI\UIComponent.cpp src\UI\UILoader.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\UI\Components\Button.cpp src\UI\Components\Image.cpp src\UI\Components\Text.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\UI\Components\Panel.cpp src\UI\Components\Animation.cpp"
@@ -161,7 +161,6 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Events\EventDispatcher.cpp src\Events\Event
 :: Compile each source file
 set COMPILED=0
 set SKIPPED=0
-set FAILED=0
 
 for %%f in (%SOURCE_FILES%) do (
     set "SOURCE_PATH=%SOURCE_DIR%\%%f"
@@ -185,10 +184,9 @@ for %%f in (%SOURCE_FILES%) do (
         
         if !ERRORLEVEL! NEQ 0 (
             echo    [ERROR] Compilation failed for %%f
-            set /a FAILED+=1
-        ) else (
-            set /a COMPILED+=1
+            goto :build_failed
         )
+        set /a COMPILED+=1
     ) else (
         set /a SKIPPED+=1
     )
@@ -197,10 +195,6 @@ for %%f in (%SOURCE_FILES%) do (
 echo.
 echo    Compiled: %COMPILED% file(s)
 echo    Skipped:  %SKIPPED% file(s) (up-to-date)
-if %FAILED% GTR 0 (
-    echo    Failed:   %FAILED% file(s)
-    goto :build_failed
-)
 
 :: ============================================
 :: STEP 4: LINKING
