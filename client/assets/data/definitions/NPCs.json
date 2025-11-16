@@ -4,58 +4,83 @@
       "id": "merchant_bob",
       "name": "Bob le Marchand",
       "sprite": "npc_merchant",
-      "homeScene": "residential_area",
+      "homeScene": "maison_bob",
       "homePosition": [200, 300],
       "walkSpeed": 100.0,
       "dailySchedule": [
         {
           "startTime": 6.0,
           "activity": "wake_up",
-          "targetScene": "residential_area",
+          "targetScene": "maison_bob",
           "targetPosition": [200, 300],
-          "description": "Wake up at home"
+          "description": "Se réveiller à la maison"
         },
         {
           "startTime": 7.0,
           "activity": "travel",
-          "targetScene": "market",
-          "targetPosition": [400, 500],
-          "description": "Walk to market"
+          "targetScene": "magasin",
+          "targetPosition": [300, 250],
+          "description": "Aller au magasin (traverse la ville)"
         },
         {
           "startTime": 8.0,
+          "endTime": 12.0,
           "activity": "work",
-          "targetScene": "market",
-          "targetPosition": [400, 500],
-          "description": "Open shop at market"
+          "targetScene": "magasin",
+          "targetPosition": [300, 250],
+          "description": "Ouvrir et gérer le magasin"
         },
         {
           "startTime": 12.0,
+          "activity": "travel",
+          "targetScene": "taverne",
+          "targetPosition": [250, 400],
+          "description": "Aller déjeuner à la taverne"
+        },
+        {
+          "startTime": 13.0,
+          "endTime": 14.0,
           "activity": "lunch",
-          "targetScene": "tavern",
-          "targetPosition": [300, 200],
-          "description": "Go to tavern for lunch"
+          "targetScene": "taverne",
+          "targetPosition": [250, 400],
+          "description": "Déjeuner et discuter"
         },
         {
           "startTime": 14.0,
+          "activity": "travel",
+          "targetScene": "magasin",
+          "targetPosition": [300, 250],
+          "description": "Retourner au magasin"
+        },
+        {
+          "startTime": 14.5,
+          "endTime": 18.0,
           "activity": "work",
-          "targetScene": "market",
-          "targetPosition": [400, 500],
-          "description": "Return to shop"
+          "targetScene": "magasin",
+          "targetPosition": [300, 250],
+          "description": "Travailler l'après-midi"
         },
         {
           "startTime": 18.0,
           "activity": "travel",
-          "targetScene": "residential_area",
+          "targetScene": "maison_bob",
           "targetPosition": [200, 300],
-          "description": "Go home"
+          "description": "Rentrer chez soi"
         },
         {
-          "startTime": 20.0,
-          "activity": "sleep",
-          "targetScene": "residential_area",
+          "startTime": 19.0,
+          "endTime": 22.0,
+          "activity": "relax",
+          "targetScene": "maison_bob",
           "targetPosition": [200, 300],
-          "description": "Sleep"
+          "description": "Se détendre à la maison"
+        },
+        {
+          "startTime": 22.0,
+          "activity": "sleep",
+          "targetScene": "maison_bob",
+          "targetPosition": [200, 300],
+          "description": "Dormir"
         }
       ]
     },
@@ -63,44 +88,157 @@
       "id": "guard_alice",
       "name": "Alice la Garde",
       "sprite": "npc_guard",
-      "homeScene": "village_center",
-      "homePosition": [400, 300],
+      "homeScene": "caserne",
+      "homePosition": [150, 200],
       "walkSpeed": 80.0,
       "dailySchedule": [
         {
-          "startTime": 8.0,
-          "activity": "patrol",
-          "targetScene": "village_north",
-          "targetPosition": [400, 300],
-          "description": "Patrol north district"
+          "startTime": 6.0,
+          "activity": "wake_up",
+          "targetScene": "caserne",
+          "targetPosition": [150, 200],
+          "description": "Se réveiller à la caserne"
         },
         {
-          "startTime": 10.0,
+          "startTime": 7.0,
+          "activity": "travel",
+          "targetScene": "ville",
+          "targetPosition": [500, 500],
+          "description": "Sortir patrouiller"
+        },
+        {
+          "startTime": 7.5,
+          "endTime": 12.0,
           "activity": "patrol",
-          "targetScene": "village_center",
-          "targetPosition": [400, 300],
-          "description": "Patrol center"
+          "targetScene": "ville",
+          "patrolPoints": [
+            [500, 500],
+            [800, 300],
+            [1200, 600],
+            [250, 450],
+            [600, 200]
+          ],
+          "description": "Patrouiller la ville (matin)"
         },
         {
           "startTime": 12.0,
-          "activity": "patrol",
-          "targetScene": "village_south",
-          "targetPosition": [400, 300],
-          "description": "Patrol south district"
+          "activity": "travel",
+          "targetScene": "taverne",
+          "targetPosition": [500, 300],
+          "description": "Pause déjeuner"
+        },
+        {
+          "startTime": 12.5,
+          "endTime": 13.5,
+          "activity": "lunch",
+          "targetScene": "taverne",
+          "targetPosition": [500, 300],
+          "description": "Déjeuner"
+        },
+        {
+          "startTime": 13.5,
+          "activity": "travel",
+          "targetScene": "ville",
+          "targetPosition": [950, 500],
+          "description": "Reprendre la patrouille"
         },
         {
           "startTime": 14.0,
+          "endTime": 18.0,
           "activity": "patrol",
-          "targetScene": "village_center",
-          "targetPosition": [400, 300],
-          "description": "Return to center"
+          "targetScene": "ville",
+          "patrolPoints": [
+            [950, 500],
+            [700, 450],
+            [350, 550],
+            [800, 300]
+          ],
+          "description": "Patrouiller la ville (après-midi)"
         },
         {
           "startTime": 18.0,
+          "activity": "travel",
+          "targetScene": "caserne",
+          "targetPosition": [150, 200],
+          "description": "Retourner à la caserne"
+        },
+        {
+          "startTime": 19.0,
+          "endTime": 22.0,
           "activity": "rest",
-          "targetScene": "tavern",
-          "targetPosition": [500, 300],
-          "description": "Rest at tavern"
+          "targetScene": "caserne",
+          "targetPosition": [150, 200],
+          "description": "Se reposer"
+        },
+        {
+          "startTime": 22.0,
+          "activity": "sleep",
+          "targetScene": "caserne",
+          "targetPosition": [150, 200],
+          "description": "Dormir"
+        }
+      ]
+    },
+    {
+      "id": "priest_marcus",
+      "name": "Marcus le Prêtre",
+      "sprite": "npc_priest",
+      "homeScene": "temple",
+      "homePosition": [400, 200],
+      "walkSpeed": 60.0,
+      "dailySchedule": [
+        {
+          "startTime": 5.0,
+          "endTime": 6.0,
+          "activity": "prayer",
+          "targetScene": "temple",
+          "targetPosition": [400, 200],
+          "description": "Prière du matin"
+        },
+        {
+          "startTime": 6.0,
+          "endTime": 12.0,
+          "activity": "work",
+          "targetScene": "temple",
+          "targetPosition": [400, 200],
+          "description": "Accueillir les fidèles"
+        },
+        {
+          "startTime": 12.0,
+          "activity": "travel",
+          "targetScene": "ville",
+          "targetPosition": [600, 400],
+          "description": "Promenade en ville"
+        },
+        {
+          "startTime": 12.5,
+          "endTime": 14.0,
+          "activity": "walk",
+          "targetScene": "ville",
+          "targetPosition": [600, 400],
+          "description": "Se promener et parler aux gens"
+        },
+        {
+          "startTime": 14.0,
+          "activity": "travel",
+          "targetScene": "temple",
+          "targetPosition": [400, 200],
+          "description": "Retourner au temple"
+        },
+        {
+          "startTime": 14.5,
+          "endTime": 20.0,
+          "activity": "work",
+          "targetScene": "temple",
+          "targetPosition": [400, 200],
+          "description": "Service de l'après-midi"
+        },
+        {
+          "startTime": 20.0,
+          "activity": "sleep",
+          "targetScene": "temple",
+          "targetPosition": [400, 200],
+          "description": "Dormir"
         }
       ]
     }

@@ -1,59 +1,67 @@
 {
   "connections": [
     {
-      "from": "village_north",
-      "to": "village_center",
-      "exitPortal": [400, 580],
-      "entryPortal": [400, 20],
-      "travelTime": 5.0,
+      "from": "ville",
+      "to": "maison_bob",
+      "exitPortal": [250, 450],
+      "entryPortal": [400, 580],
+      "travelTime": 1.0,
       "bidirectional": true
     },
     {
-      "from": "village_center",
-      "to": "village_south",
-      "exitPortal": [400, 580],
-      "entryPortal": [400, 20],
-      "travelTime": 5.0,
+      "from": "ville",
+      "to": "maison_alice",
+      "exitPortal": [450, 350],
+      "entryPortal": [400, 580],
+      "travelTime": 1.0,
       "bidirectional": true
     },
     {
-      "from": "village_center",
-      "to": "tavern",
-      "exitPortal": [100, 300],
-      "entryPortal": [700, 300],
-      "travelTime": 2.0,
+      "from": "ville",
+      "to": "taverne",
+      "exitPortal": [800, 300],
+      "entryPortal": [400, 580],
+      "travelTime": 1.0,
       "bidirectional": true
     },
     {
-      "from": "village_center",
-      "to": "market",
-      "exitPortal": [700, 300],
-      "entryPortal": [100, 300],
-      "travelTime": 3.0,
+      "from": "ville",
+      "to": "magasin",
+      "exitPortal": [600, 200],
+      "entryPortal": [400, 580],
+      "travelTime": 1.0,
       "bidirectional": true
     },
     {
-      "from": "village_south",
-      "to": "forest_entrance",
-      "exitPortal": [600, 580],
-      "entryPortal": [600, 20],
-      "travelTime": 10.0,
+      "from": "ville",
+      "to": "temple",
+      "exitPortal": [1200, 600],
+      "entryPortal": [400, 300],
+      "travelTime": 1.0,
       "bidirectional": true
     },
     {
-      "from": "forest_entrance",
-      "to": "forest_deep",
-      "exitPortal": [400, 580],
-      "entryPortal": [400, 20],
-      "travelTime": 15.0,
+      "from": "ville",
+      "to": "caserne",
+      "exitPortal": [950, 500],
+      "entryPortal": [400, 580],
+      "travelTime": 1.0,
       "bidirectional": true
     },
     {
-      "from": "village_north",
-      "to": "residential_area",
-      "exitPortal": [100, 300],
-      "entryPortal": [700, 300],
-      "travelTime": 4.0,
+      "from": "ville",
+      "to": "forgeron",
+      "exitPortal": [350, 550],
+      "entryPortal": [400, 580],
+      "travelTime": 1.0,
+      "bidirectional": true
+    },
+    {
+      "from": "ville",
+      "to": "auberge",
+      "exitPortal": [700, 450],
+      "entryPortal": [400, 580],
+      "travelTime": 1.0,
       "bidirectional": true
     }
   ]

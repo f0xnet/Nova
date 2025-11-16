@@ -1,0 +1,143 @@
+{
+  "name": "Ville",
+  "type": "exterior",
+  "backgroundColor": [120, 150, 180, 255],
+  "entities": [
+    {
+      "type": "sprite",
+      "spriteID": "ground_tile",
+      "position": [0, 0],
+      "scale": [20, 15],
+      "zOrder": -10
+    },
+    {
+      "type": "sprite",
+      "spriteID": "maison_bob_exterior",
+      "position": [250, 450],
+      "zOrder": 5,
+      "comment": "Porte de la maison de Bob - exitPortal dans scenegraph"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "maison_alice_exterior",
+      "position": [450, 350],
+      "zOrder": 5,
+      "comment": "Porte de la maison d'Alice"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "taverne_exterior",
+      "position": [800, 300],
+      "zOrder": 5,
+      "comment": "Porte de la taverne"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "magasin_exterior",
+      "position": [600, 200],
+      "zOrder": 5,
+      "comment": "Porte du magasin"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "temple_exterior",
+      "position": [1200, 600],
+      "zOrder": 5,
+      "comment": "Porte du temple"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "caserne_exterior",
+      "position": [950, 500],
+      "zOrder": 5,
+      "comment": "Porte de la caserne"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "forgeron_exterior",
+      "position": [350, 550],
+      "zOrder": 5,
+      "comment": "Porte du forgeron"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "auberge_exterior",
+      "position": [700, 450],
+      "zOrder": 5,
+      "comment": "Porte de l'auberge"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "fountain",
+      "position": [640, 360],
+      "zOrder": 3,
+      "comment": "Fontaine centrale"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [250, 450],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans maison_bob"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [450, 350],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans maison_alice"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [800, 300],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans taverne"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [600, 200],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans magasin"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [1200, 600],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans temple"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [950, 500],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans caserne"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [350, 550],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans forgeron"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [700, 450],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans auberge"
+    },
+    {
+      "type": "light",
+      "lightID": "torch",
+      "position": [640, 360],
+      "comment": "Lumière de la fontaine centrale"
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [250, 450],
+      "comment": "Lumière devant maison_bob"
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [800, 300],
+      "comment": "Lumière devant taverne"
+    }
+  ]
+}
