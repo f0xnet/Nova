@@ -424,4 +424,62 @@ public:
     }
 };
 
+// ============================================================================
+// JourneyComponent - Multi-scene travel management
+// ============================================================================
+
+/**
+ * @brief Journey component - manages multi-scene travel for NPCs
+ *
+ * This component tracks an entity's journey through multiple scenes.
+ * The entity will PHYSICALLY traverse all intermediate scenes instead
+ * of teleporting, ensuring the player can see NPCs passing through.
+ */
+class JourneyComponent : public Component {
+public:
+    std::vector<std::string> scenePath;    // Full path of scenes to traverse
+    int currentSceneIndex = 0;             // Current index in scenePath
+
+    Vec2f currentDestination;              // Destination in current scene
+    bool reachedCurrentDestination = false;
+
+    bool isOnJourney = false;              // Journey in progress?
+    std::string finalDestinationScene;     // Final destination scene
+    Vec2f finalDestinationPos;             // Final destination position
+
+    COMPONENT_TYPE_ID(JourneyComponent)
+
+    void serialize(nlohmann::json& json) const override {
+        json["scenePath"] = scenePath;
+        json["currentSceneIndex"] = currentSceneIndex;
+        json["currentDestination"] = {currentDestination.x, currentDestination.y};
+        json["reachedCurrentDestination"] = reachedCurrentDestination;
+        json["isOnJourney"] = isOnJourney;
+        json["finalDestinationScene"] = finalDestinationScene;
+        json["finalDestinationPos"] = {finalDestinationPos.x, finalDestinationPos.y};
+    }
+
+    void deserialize(const nlohmann::json& json) override {
+        if (json.contains("scenePath")) {
+            scenePath = json["scenePath"].get<std::vector<std::string>>();
+        }
+        if (json.contains("currentSceneIndex")) currentSceneIndex = json["currentSceneIndex"];
+        if (json.contains("currentDestination")) {
+            auto& dest = json["currentDestination"];
+            currentDestination = Vec2f{dest[0], dest[1]};
+        }
+        if (json.contains("reachedCurrentDestination")) {
+            reachedCurrentDestination = json["reachedCurrentDestination"];
+        }
+        if (json.contains("isOnJourney")) isOnJourney = json["isOnJourney"];
+        if (json.contains("finalDestinationScene")) {
+            finalDestinationScene = json["finalDestinationScene"];
+        }
+        if (json.contains("finalDestinationPos")) {
+            auto& pos = json["finalDestinationPos"];
+            finalDestinationPos = Vec2f{pos[0], pos[1]};
+        }
+    }
+};
+
 } // namespace NovaEngine

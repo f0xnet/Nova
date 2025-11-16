@@ -1,0 +1,108 @@
+{
+  "npcs": [
+    {
+      "id": "merchant_bob",
+      "name": "Bob le Marchand",
+      "sprite": "npc_merchant",
+      "homeScene": "residential_area",
+      "homePosition": [200, 300],
+      "walkSpeed": 100.0,
+      "dailySchedule": [
+        {
+          "startTime": 6.0,
+          "activity": "wake_up",
+          "targetScene": "residential_area",
+          "targetPosition": [200, 300],
+          "description": "Wake up at home"
+        },
+        {
+          "startTime": 7.0,
+          "activity": "travel",
+          "targetScene": "market",
+          "targetPosition": [400, 500],
+          "description": "Walk to market"
+        },
+        {
+          "startTime": 8.0,
+          "activity": "work",
+          "targetScene": "market",
+          "targetPosition": [400, 500],
+          "description": "Open shop at market"
+        },
+        {
+          "startTime": 12.0,
+          "activity": "lunch",
+          "targetScene": "tavern",
+          "targetPosition": [300, 200],
+          "description": "Go to tavern for lunch"
+        },
+        {
+          "startTime": 14.0,
+          "activity": "work",
+          "targetScene": "market",
+          "targetPosition": [400, 500],
+          "description": "Return to shop"
+        },
+        {
+          "startTime": 18.0,
+          "activity": "travel",
+          "targetScene": "residential_area",
+          "targetPosition": [200, 300],
+          "description": "Go home"
+        },
+        {
+          "startTime": 20.0,
+          "activity": "sleep",
+          "targetScene": "residential_area",
+          "targetPosition": [200, 300],
+          "description": "Sleep"
+        }
+      ]
+    },
+    {
+      "id": "guard_alice",
+      "name": "Alice la Garde",
+      "sprite": "npc_guard",
+      "homeScene": "village_center",
+      "homePosition": [400, 300],
+      "walkSpeed": 80.0,
+      "dailySchedule": [
+        {
+          "startTime": 8.0,
+          "activity": "patrol",
+          "targetScene": "village_north",
+          "targetPosition": [400, 300],
+          "description": "Patrol north district"
+        },
+        {
+          "startTime": 10.0,
+          "activity": "patrol",
+          "targetScene": "village_center",
+          "targetPosition": [400, 300],
+          "description": "Patrol center"
+        },
+        {
+          "startTime": 12.0,
+          "activity": "patrol",
+          "targetScene": "village_south",
+          "targetPosition": [400, 300],
+          "description": "Patrol south district"
+        },
+        {
+          "startTime": 14.0,
+          "activity": "patrol",
+          "targetScene": "village_center",
+          "targetPosition": [400, 300],
+          "description": "Return to center"
+        },
+        {
+          "startTime": 18.0,
+          "activity": "rest",
+          "targetScene": "tavern",
+          "targetPosition": [500, 300],
+          "description": "Rest at tavern"
+        }
+      ]
+    }
+  ]
+}

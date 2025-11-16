@@ -428,4 +428,222 @@ private:
     }
 };
 
+// ============================================================================
+// JourneySystem - Multi-scene NPC travel management
+// ============================================================================
+
+/**
+ * @brief Journey system - manages multi-scene NPC travel
+ *
+ * This system ensures NPCs physically traverse all intermediate scenes
+ * instead of teleporting. If the player is in an intermediate scene,
+ * they will SEE the NPC passing through.
+ *
+ * Requires a SceneGraph to be provided for pathfinding.
+ */
+class JourneySystem : public System {
+private:
+    class SceneGraph* m_sceneGraph;
+
+    struct PendingTransfer {
+        u64 entityID;
+        std::string fromScene;
+        std::string toScene;
+        Vec2f targetPosition;
+        int nextSceneIndex;
+        std::vector<std::string> remainingPath;
+        Vec2f finalDestination;
+        std::string finalScene;
+    };
+
+    std::vector<PendingTransfer> m_pendingTransfers;
+
+public:
+    explicit JourneySystem(class SceneGraph* sceneGraph)
+        : m_sceneGraph(sceneGraph) {}
+
+    void update(float deltaTime, EntityRegistry& registry) override {
+        auto travelers = registry.getEntitiesWith({
+            "TransformComponent",
+            "SceneTransitionComponent",
+            "JourneyComponent"
+        });
+
+        for (Entity* entity : travelers) {
+            auto* transform = entity->getComponent<TransformComponent>();
+            auto* transition = entity->getComponent<SceneTransitionComponent>();
+            auto* journey = entity->getComponent<JourneyComponent>();
+
+            if (!journey->isOnJourney) continue;
+
+            // Vérifier si on a atteint la destination dans cette scène
+            Vec2f toDestination = journey->currentDestination - transform->position;
+            f32 distanceSquared = toDestination.x * toDestination.x + toDestination.y * toDestination.y;
+
+            if (distanceSquared < 25.0f) {  // Moins de 5 pixels
+                // Atteint le portail/destination!
+                journey->reachedCurrentDestination = true;
+
+                // Y a-t-il une prochaine scène?
+                if (journey->currentSceneIndex + 1 < static_cast<int>(journey->scenePath.size())) {
+                    // OUI - Préparer la transition vers la scène suivante
+                    std::string currentScene = journey->scenePath[journey->currentSceneIndex];
+                    std::string nextScene = journey->scenePath[journey->currentSceneIndex + 1];
+
+                    if (m_sceneGraph) {
+                        const auto* connection = m_sceneGraph->getConnection(currentScene, nextScene);
+
+                        if (connection) {
+                            LOG_INFO("NPC {} transitioning from '{}' to '{}' (journey step {}/{})",
+                                    entity->getID(), currentScene, nextScene,
+                                    journey->currentSceneIndex + 1, journey->scenePath.size() - 1);
+
+                            // Enregistrer la transition pendante
+                            PendingTransfer transfer;
+                            transfer.entityID = entity->getID();
+                            transfer.fromScene = currentScene;
+                            transfer.toScene = nextScene;
+                            transfer.targetPosition = connection->entryPortalPos;
+                            transfer.nextSceneIndex = journey->currentSceneIndex + 1;
+                            transfer.remainingPath = journey->scenePath;
+                            transfer.finalDestination = journey->finalDestinationPos;
+                            transfer.finalScene = journey->finalDestinationScene;
+                            m_pendingTransfers.push_back(transfer);
+
+                            // Marquer pour transition
+                            transition->targetScene = nextScene;
+                            transition->targetPosition = connection->entryPortalPos;
+                            transition->isTransitioning = true;
+                        }
+                    }
+                } else {
+                    // FIN du voyage!
+                    LOG_INFO("NPC {} completed journey to '{}'",
+                            entity->getID(), journey->finalDestinationScene);
+                    journey->isOnJourney = false;
+                    journey->scenePath.clear();
+                }
+            }
+        }
+    }
+
+    std::vector<ComponentTypeID> getRequiredComponents() const override {
+        return {"TransformComponent", "SceneTransitionComponent", "JourneyComponent"};
+    }
+
+    /**
+     * @brief Process pending transfers after scene transitions
+     *
+     * This should be called by SceneManager after entities have been transferred
+     */
+    void updateTransferredEntities(EntityRegistry& registry) {
+        for (const auto& transfer : m_pendingTransfers) {
+            Entity* entity = registry.getEntity(transfer.entityID);
+            if (!entity) continue;
+
+            auto* journey = entity->getComponent<JourneyComponent>();
+            if (!journey) continue;
+
+            // Mettre à jour le voyage
+            journey->currentSceneIndex = transfer.nextSceneIndex;
+            journey->reachedCurrentDestination = false;
+
+            // Définir la prochaine destination
+            if (journey->currentSceneIndex == static_cast<int>(journey->scenePath.size()) - 1) {
+                // Dernière scène - aller à la destination finale
+                journey->currentDestination = transfer.finalDestination;
+            } else {
+                // Scène intermédiaire - aller au prochain portail
+                std::string currentScene = journey->scenePath[journey->currentSceneIndex];
+                std::string nextScene = journey->scenePath[journey->currentSceneIndex + 1];
+
+                if (m_sceneGraph) {
+                    const auto* connection = m_sceneGraph->getConnection(currentScene, nextScene);
+                    if (connection) {
+                        journey->currentDestination = connection->exitPortalPos;
+                    }
+                }
+            }
+        }
+
+        m_pendingTransfers.clear();
+    }
+
+    /**
+     * @brief Start a journey for an NPC
+     * @param entity The entity to send on a journey
+     * @param currentScene Current scene name
+     * @param targetScene Destination scene name
+     * @param targetPosition Final position in destination scene
+     * @return true if journey started successfully
+     */
+    bool startJourney(Entity* entity,
+                     const std::string& currentScene,
+                     const std::string& targetScene,
+                     const Vec2f& targetPosition) {
+        auto* journey = entity->getComponent<JourneyComponent>();
+        auto* transition = entity->getComponent<SceneTransitionComponent>();
+
+        if (!journey || !transition) {
+            LOG_ERROR("Entity {} missing Journey or Transition component", entity->getID());
+            return false;
+        }
+
+        if (!m_sceneGraph) {
+            LOG_ERROR("No SceneGraph available for pathfinding");
+            return false;
+        }
+
+        // Trouver le chemin
+        journey->scenePath = m_sceneGraph->findPath(currentScene, targetScene);
+
+        if (journey->scenePath.empty()) {
+            LOG_ERROR("No path found from '{}' to '{}'", currentScene, targetScene);
+            return false;
+        }
+
+        LOG_INFO("NPC {} starting journey: {} -> {} ({} scenes to traverse)",
+                entity->getID(), currentScene, targetScene, journey->scenePath.size());
+
+        journey->currentSceneIndex = 0;
+        journey->isOnJourney = true;
+        journey->finalDestinationScene = targetScene;
+        journey->finalDestinationPos = targetPosition;
+        journey->reachedCurrentDestination = false;
+
+        // Définir la première destination
+        if (journey->scenePath.size() > 1) {
+            // Aller au portail de sortie vers la prochaine scène
+            const auto* connection = m_sceneGraph->getConnection(
+                journey->scenePath[0],
+                journey->scenePath[1]
+            );
+            if (connection) {
+                journey->currentDestination = connection->exitPortalPos;
+                LOG_DEBUG("  First destination: portal to '{}' at ({}, {})",
+                         journey->scenePath[1],
+                         connection->exitPortalPos.x,
+                         connection->exitPortalPos.y);
+            }
+        } else {
+            // Déjà dans la bonne scène
+            journey->currentDestination = targetPosition;
+        }
+
+        return true;
+    }
+
+    /**
+     * @brief Cancel an ongoing journey
+     */
+    void cancelJourney(Entity* entity) {
+        auto* journey = entity->getComponent<JourneyComponent>();
+        if (journey) {
+            journey->isOnJourney = false;
+            journey->scenePath.clear();
+            LOG_INFO("NPC {} journey cancelled", entity->getID());
+        }
+    }
+};
+
 } // namespace NovaEngine

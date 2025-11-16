@@ -2,10 +2,12 @@
 
 #include "Scene.hpp"
 #include "DefinitionManager.hpp"
+#include "SceneGraph.hpp"
 #include "../Backend/Core/BackendTypes.hpp"
 #include "../Core/Logger.hpp"
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <fstream>
 
@@ -23,8 +25,10 @@ namespace NovaEngine {
 class SceneManager {
 private:
     DefinitionManager m_definitionManager;
+    SceneGraph m_sceneGraph;
     std::unordered_map<std::string, std::unique_ptr<Scene>> m_scenes;
     Scene* m_activeScene = nullptr;
+    std::unordered_set<std::string> m_activeScenesForUpdate;  // Scènes à mettre à jour
 
 public:
     /**
@@ -36,13 +40,19 @@ public:
      * @param definitionsPath Path to definitions folder (default: "assets/data/definitions/")
      * @return true if successful
      */
-    bool initialize(const std::string& definitionsPath = "assets/data/definitions/") {
+    bool initialize(const std::string& definitionsPath = "assets/data/definitions/",
+                   const std::string& sceneGraphPath = "assets/data/scenegraph.json") {
         LOG_INFO("Initializing SceneManager...");
 
         // Load all entity definitions into memory
         if (!m_definitionManager.loadDefinitions(definitionsPath)) {
             LOG_ERROR("Failed to load entity definitions");
             return false;
+        }
+
+        // Load scene graph for multi-scene pathfinding
+        if (!m_sceneGraph.loadFromJSON(sceneGraphPath)) {
+            LOG_WARN("Failed to load scene graph - multi-scene travel will be limited");
         }
 
         LOG_INFO("SceneManager initialized successfully");
@@ -185,15 +195,52 @@ public:
     }
 
     /**
-     * @brief Update the active scene
+     * @brief Update all active scenes
      *
-     * Call this every frame to update all systems in the active scene.
+     * Call this every frame to update all systems in active scenes.
+     * Active scenes include the rendered scene AND any scenes with NPCs traveling through.
      *
      * @param deltaTime Time since last frame in seconds
      */
     void update(float deltaTime) {
-        if (m_activeScene) {
-            m_activeScene->update(deltaTime);
+        // Collecter toutes les scènes sur les parcours actifs
+        std::unordered_set<std::string> scenesOnActivePaths;
+
+        // Parcourir toutes les scènes pour trouver les voyageurs
+        for (auto& [sceneName, scene] : m_scenes) {
+            if (!scene) continue;
+
+            // Trouver tous les PNJ en voyage dans cette scène
+            auto travelers = scene->getEntityRegistry().getEntitiesWith({"JourneyComponent"});
+
+            for (Entity* entity : travelers) {
+                auto* journey = entity->getComponent<JourneyComponent>();
+                if (journey && journey->isOnJourney) {
+                    // Activer TOUTES les scènes sur le parcours
+                    for (const auto& sceneOnPath : journey->scenePath) {
+                        scenesOnActivePaths.insert(sceneOnPath);
+                    }
+                }
+            }
+        }
+
+        // Update les scènes actives
+        for (auto& [name, scene] : m_scenes) {
+            if (!scene) continue;
+
+            bool isRenderedScene = (m_activeScene == scene.get());
+            bool isOnActivePath = (scenesOnActivePaths.find(name) != scenesOnActivePaths.end());
+
+            if (isRenderedScene) {
+                // Scène du joueur: Full update
+                scene->update(deltaTime);
+            }
+            else if (isOnActivePath) {
+                // Scène sur un parcours actif: Update aussi (pour que les NPCs traversent)
+                scene->update(deltaTime);
+                LOG_DEBUG("Scene '{}' updated (NPC traveling through)", name);
+            }
+            // Sinon: scène dormante, pas d'update
         }
     }
 
@@ -215,6 +262,19 @@ public:
      */
     const DefinitionManager& getDefinitionManager() const {
         return m_definitionManager;
+    }
+
+    /**
+     * @brief Get the scene graph
+     *
+     * This allows external code to query scene connections.
+     */
+    SceneGraph& getSceneGraph() {
+        return m_sceneGraph;
+    }
+
+    const SceneGraph& getSceneGraph() const {
+        return m_sceneGraph;
     }
 
     /**
