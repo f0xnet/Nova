@@ -1,0 +1,10 @@
+{
+  "connections": [
+    {
+      "from": "village",
+      "to": "taverne",
+      "exitPortal": [800, 300],
+      "entryPortal": [640, 500]
+    }
+  ]
+}

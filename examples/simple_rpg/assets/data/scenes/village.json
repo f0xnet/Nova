@@ -1,0 +1,28 @@
+{
+  "name": "Village",
+  "type": "exterior",
+  "backgroundColor": [50, 100, 50, 255],
+
+  "entities": [
+    {
+      "id": 100,
+      "components": {
+        "Transform": {
+          "position": [400, 300]
+        },
+        "Sprite": {
+          "definitionID": "npc_merchant"
+        },
+        "Dialogue": {
+          "npcName": "Marcus the Merchant",
+          "dialogueLines": [
+            "Greetings, traveler! Welcome to our humble village.",
+            "I sell the finest goods in all the land!",
+            "Come back when you have more coin.",
+            "The tavern is to the east if you need rest."
+          ]
+        }
+      }
+    }
+  ]
+}

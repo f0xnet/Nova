@@ -1,0 +1,29 @@
+{
+  "name": "Taverne",
+  "type": "interior",
+  "backgroundColor": [40, 30, 20, 255],
+
+  "entities": [
+    {
+      "id": 200,
+      "components": {
+        "Transform": {
+          "position": [640, 360]
+        },
+        "Sprite": {
+          "definitionID": "npc_innkeeper"
+        },
+        "Dialogue": {
+          "npcName": "Old Ben the Innkeeper",
+          "dialogueLines": [
+            "Ah, a new face! Welcome to the Rusty Mug Tavern.",
+            "We have the best ale this side of the mountains.",
+            "Room and board is 5 gold pieces a night.",
+            "Many adventurers have passed through these doors...",
+            "Some never returned from the old ruins to the north."
+          ]
+        }
+      }
+    }
+  ]
+}

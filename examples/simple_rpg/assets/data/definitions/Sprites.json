@@ -1,0 +1,16 @@
+{
+  "sprites": [
+    {
+      "id": "npc_merchant",
+      "texture": "data/npc_merchant.png",
+      "size": [64, 64],
+      "origin": [32, 32]
+    },
+    {
+      "id": "npc_innkeeper",
+      "texture": "data/npc_innkeeper.png",
+      "size": [64, 64],
+      "origin": [32, 32]
+    }
+  ]
+}
