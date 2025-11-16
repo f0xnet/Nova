@@ -9,9 +9,12 @@
  */
 
 #include <NovaEngine/Core/Application.hpp>
+#include <NovaEngine/Core/Types.hpp>
 #include <NovaEngine/ECS/SceneManager.hpp>
 #include <NovaEngine/ECS/Components.hpp>
+#include <NovaEngine/Events/Event.hpp>
 #include <memory>
+#include <cmath>
 
 using namespace NovaEngine;
 
@@ -110,11 +113,11 @@ public:
         auto* sprite = player->addComponent(std::make_unique<SpriteComponent>());
         sprite->textureHandle = RESOURCES().loadTexture("data/player.png");
         sprite->size = Vec2f(64, 64);
-        sprite->color = Color(100, 200, 255); // Bleu clair pour le joueur
+        sprite->tint = Color(100, 200, 255); // Bleu clair pour le joueur
 
         // Tag
         auto* tag = player->addComponent(std::make_unique<TagComponent>());
-        tag->tags.push_back("player");
+        tag->tag = "player";
 
         // ========================================
         // CRÉER NPC 1 - MERCHANT (VILLAGE)
@@ -127,7 +130,7 @@ public:
         auto* merchantSprite = merchant->addComponent(std::make_unique<SpriteComponent>());
         merchantSprite->textureHandle = RESOURCES().loadTexture("data/npc_merchant.png");
         merchantSprite->size = Vec2f(64, 64);
-        merchantSprite->color = Color(50, 200, 100); // Vert pour le marchand
+        merchantSprite->tint = Color(50, 200, 100); // Vert pour le marchand
 
         auto* merchantDialogue = merchant->addComponent(std::make_unique<DialogueComponent>());
         merchantDialogue->npcName = "Marcus the Merchant";
@@ -150,7 +153,7 @@ public:
         auto* innkeeperSprite = innkeeper->addComponent(std::make_unique<SpriteComponent>());
         innkeeperSprite->textureHandle = RESOURCES().loadTexture("data/npc_innkeeper.png");
         innkeeperSprite->size = Vec2f(64, 64);
-        innkeeperSprite->color = Color(255, 150, 50); // Orange pour le tavernier
+        innkeeperSprite->tint = Color(255, 150, 50); // Orange pour le tavernier
 
         auto* innkeeperDialogue = innkeeper->addComponent(std::make_unique<DialogueComponent>());
         innkeeperDialogue->npcName = "Old Ben the Innkeeper";
@@ -209,7 +212,7 @@ public:
     }
 
     void onEvent(const Event& event) override {
-        if (event.type != Event::Type::Input) return;
+        if (event.type != EventType::Input) return;
 
         const InputEvent& inputEvent = event.inputEvent;
 
@@ -272,7 +275,7 @@ private:
         Entity* nearest = nullptr;
         float nearestDist = maxDistance;
 
-        for (auto* entity : scene->getEntityRegistry().getEntities()) {
+        for (auto* entity : scene->getEntityRegistry().getAllEntities()) {
             // Skip le joueur lui-même
             if (entity->getID() == m_playerID) continue;
 
