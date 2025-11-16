@@ -66,7 +66,9 @@ void DialogueSystem::reset() {
     m_currentDialogueLine = 0;
 
     // Hide dialogue UI
-    hideDialogueGroup();
+    if (m_uiManager) {
+        hideDialogueGroup();
+    }
 }
 
 void DialogueSystem::showNPCIndicator(bool show) {

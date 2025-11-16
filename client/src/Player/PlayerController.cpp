@@ -5,6 +5,20 @@
 
 namespace NovaEngine {
 
+namespace {
+    // Helper function to normalize a 2D vector
+    inline Vec2f normalize(const Vec2f& vec) {
+        float length = std::sqrt(vec.x * vec.x + vec.y * vec.y);
+        return (length > 0.0f) ? Vec2f{vec.x / length, vec.y / length} : Vec2f{0, 0};
+    }
+
+    // Helper function to calculate distance between two points
+    inline float distance(const Vec2f& a, const Vec2f& b) {
+        Vec2f diff = b - a;
+        return std::sqrt(diff.x * diff.x + diff.y * diff.y);
+    }
+}
+
 void PlayerController::updateMovement(Scene* scene, float deltaTime, bool allowMovement) {
     if (!scene || !allowMovement) return;
 
@@ -30,13 +44,9 @@ void PlayerController::updateMovement(Scene* scene, float deltaTime, bool allowM
         movement.x += 1;
     }
 
-    // Normalize diagonal movement
+    // Normalize diagonal movement and apply
     if (movement.x != 0 || movement.y != 0) {
-        float length = std::sqrt(movement.x * movement.x + movement.y * movement.y);
-        movement.x /= length;
-        movement.y /= length;
-
-        // Apply movement
+        movement = normalize(movement);
         transform->position.x += movement.x * m_moveSpeed * deltaTime;
         transform->position.y += movement.y * m_moveSpeed * deltaTime;
     }
@@ -67,9 +77,8 @@ void PlayerController::updateNPCDetection(Scene* scene) {
         auto* npcTransform = entity->getComponent<TransformComponent>();
         if (!npcTransform) continue;
 
-        // Calculate distance
-        Vec2f diff = npcTransform->position - playerTransform->position;
-        float dist = std::sqrt(diff.x * diff.x + diff.y * diff.y);
+        // Calculate distance using helper function
+        float dist = distance(playerTransform->position, npcTransform->position);
 
         if (dist < nearestDist) {
             nearestDist = dist;
