@@ -81,7 +81,8 @@ public:
         }
 
         // Initialiser le SceneManager avec les définitions
-        if (!m_sceneMgr.initialize("data/definitions/", "data/scenegraph.json")) {
+        // Note: Le scene graph n'est pas nécessaire pour cet exemple simple
+        if (!m_sceneMgr.initialize("data/definitions/")) {
             LOG_ERROR("Failed to initialize SceneManager");
             return false;
         }
@@ -114,10 +115,6 @@ public:
         sprite->textureHandle = RESOURCES().loadTexture("data/player.png");
         sprite->size = Vec2f(64, 64);
         sprite->tint = Color(100, 200, 255); // Bleu clair pour le joueur
-
-        // Tag
-        auto* tag = player->addComponent(std::make_unique<TagComponent>());
-        tag->tag = "player";
 
         // ========================================
         // CRÉER NPC 1 - MERCHANT (VILLAGE)
