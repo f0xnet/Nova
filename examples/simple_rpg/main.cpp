@@ -235,7 +235,27 @@ public:
     }
 
     void onRender() override {
-        // Les systems dessinent automatiquement les sprites
+        // Dessiner tous les sprites de la scène active
+        Scene* scene = m_sceneMgr.getActiveScene();
+        if (scene) {
+            for (auto* entity : scene->getEntityRegistry().getAllEntities()) {
+                auto* transform = entity->getComponent<TransformComponent>();
+                auto* sprite = entity->getComponent<SpriteComponent>();
+
+                if (transform && sprite && sprite->visible && sprite->textureHandle != INVALID_HANDLE) {
+                    SpriteData spriteData;
+                    spriteData.textureHandle = sprite->textureHandle;
+                    spriteData.position = transform->position;
+                    spriteData.size = sprite->size;
+                    spriteData.rotation = transform->rotation;
+                    spriteData.origin = transform->origin;
+                    spriteData.color = sprite->tint;
+                    spriteData.textureRect = sprite->textureRect;
+
+                    GRAPHICS().drawSprite(spriteData);
+                }
+            }
+        }
 
         // Dessiner l'indicateur "E" au-dessus du NPC proche
         if (!m_dialogueActive && m_nearestNPC) {
