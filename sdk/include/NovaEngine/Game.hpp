@@ -23,6 +23,7 @@ private:
     // Game modules
     std::unique_ptr<NovaEngine::DialogueSystem> m_dialogueSystem;
     std::unique_ptr<NovaEngine::PlayerController> m_playerController;
+    NovaEngine::FontHandle m_font;
 
 public:
     Game();
@@ -36,15 +37,10 @@ protected:
     void onShutdown() override;
 
 private:
-    static Config createConfig();
     void handleUIAction(const std::string& action,
                        const std::string& value,
                        const NovaEngine::ID& componentID);
     void toggleConnectionState();
-
-    // Game methods
-    void renderScene();
-    void renderNPCIndicator();
 
 public:
     bool isConnected() const;

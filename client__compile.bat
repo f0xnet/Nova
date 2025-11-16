@@ -148,6 +148,7 @@ if not exist "%SOURCE_DIR%\icon\appicon.res" (
 :: Source files list
 set "SOURCE_FILES=main.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Game.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Game\GameConfigLoader.cpp src\Game\GameInitializer.cpp src\Game\GameUpdater.cpp src\Game\GameRenderer.cpp src\Game\GameEventHandler.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Dialogue\DialogueSystem.cpp src\Player\PlayerController.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Backend\BackendManager.cpp src\Backend\Core\BackendTypes.cpp src\Backend\SFML\SFMLAudioBackend.cpp src\Backend\SFML\SFMLFontBackend.cpp src\Backend\SFML\SFMLGraphicsBackend.cpp src\Backend\SFML\SFMLInputBackend.cpp src\Backend\SFML\SFMLResourceBackend.cpp src\Backend\SFML\SFMLViewportBackend.cpp src\Backend\SFML\SFMLWindowBackend.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\UI\UIManager.cpp src\UI\UIComponent.cpp src\UI\UILoader.cpp"
