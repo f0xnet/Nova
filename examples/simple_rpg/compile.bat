@@ -62,18 +62,18 @@ echo.
 echo [STEP 3/4] Compiling main.cpp...
 echo.
 
-:: Liste des fichiers sources du SDK à compiler
+:: Liste des fichiers sources du SDK à compiler (dans client/src/)
 set "SDK_SOURCES="
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\BackendManager.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\Core\BackendTypes.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\SFML\SFMLWindowBackend.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\SFML\SFMLGraphicsBackend.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\SFML\SFMLInputBackend.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\SFML\SFMLResourceBackend.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\SFML\SFMLAudioBackend.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\SFML\SFMLFontBackend.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Backend\SFML\SFMLViewportBackend.cpp"
-set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\sdk\src\Core\Logger.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\BackendManager.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\Core\BackendTypes.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\SFML\SFMLWindowBackend.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\SFML\SFMLGraphicsBackend.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\SFML\SFMLInputBackend.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\SFML\SFMLResourceBackend.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\SFML\SFMLAudioBackend.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\SFML\SFMLFontBackend.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Backend\SFML\SFMLViewportBackend.cpp"
+set "SDK_SOURCES=%SDK_SOURCES% %PROJECT_ROOT%\client\src\Core\Logger.cpp"
 
 :: Compiler les fichiers SDK si nécessaire
 for %%f in (%SDK_SOURCES%) do (
