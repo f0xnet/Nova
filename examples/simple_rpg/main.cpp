@@ -244,7 +244,7 @@ public:
 
                 if (transform && sprite && sprite->visible && sprite->textureHandle != INVALID_HANDLE) {
                     SpriteData spriteData;
-                    spriteData.textureHandle = sprite->textureHandle;
+                    spriteData.texture = sprite->textureHandle;
                     spriteData.position = transform->position;
                     spriteData.size = sprite->size;
                     spriteData.rotation = transform->rotation;
