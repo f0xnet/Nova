@@ -3,6 +3,7 @@
 #include "System.hpp"
 #include "Components.hpp"
 #include "EntityRegistry.hpp"
+#include "SceneGraph.hpp"
 #include "../Backend/BackendManager.hpp"
 #include "../Core/Logger.hpp"
 #include <algorithm>
@@ -476,13 +477,42 @@ public:
 
             if (!journey->isOnJourney) continue;
 
-            // Vérifier si on a atteint la destination dans cette scène
-            Vec2f toDestination = journey->currentDestination - transform->position;
-            f32 distanceSquared = toDestination.x * toDestination.x + toDestination.y * toDestination.y;
+            // Suivre le chemin de waypoints locaux si disponible
+            if (!journey->localWaypointPath.empty() &&
+                journey->currentLocalWaypointIndex < static_cast<int>(journey->localWaypointPath.size())) {
 
-            if (distanceSquared < 25.0f) {  // Moins de 5 pixels
-                // Atteint le portail/destination!
-                journey->reachedCurrentDestination = true;
+                // Vérifier si on a atteint le waypoint actuel
+                Vec2f currentWaypoint = journey->localWaypointPath[journey->currentLocalWaypointIndex];
+                Vec2f toWaypoint = currentWaypoint - transform->position;
+                f32 distanceSquared = toWaypoint.x * toWaypoint.x + toWaypoint.y * toWaypoint.y;
+
+                if (distanceSquared < 25.0f) {  // Moins de 5 pixels
+                    // Waypoint atteint, passer au suivant
+                    journey->currentLocalWaypointIndex++;
+
+                    if (journey->currentLocalWaypointIndex >= static_cast<int>(journey->localWaypointPath.size())) {
+                        // Tous les waypoints atteints = destination finale atteinte
+                        journey->reachedCurrentDestination = true;
+                        LOG_DEBUG("NPC {} reached final destination via waypoints", entity->getID());
+                    } else {
+                        LOG_DEBUG("NPC {} reached waypoint {}/{}", entity->getID(),
+                                 journey->currentLocalWaypointIndex,
+                                 journey->localWaypointPath.size());
+                    }
+                }
+            } else {
+                // Pas de waypoints, aller directement à currentDestination (ancien comportement)
+                Vec2f toDestination = journey->currentDestination - transform->position;
+                f32 distanceSquared = toDestination.x * toDestination.x + toDestination.y * toDestination.y;
+
+                if (distanceSquared < 25.0f) {  // Moins de 5 pixels
+                    // Atteint le portail/destination!
+                    journey->reachedCurrentDestination = true;
+                }
+            }
+
+            // Si destination atteinte, gérer la transition de scène
+            if (journey->reachedCurrentDestination) {
 
                 // Y a-t-il une prochaine scène?
                 if (journey->currentSceneIndex + 1 < static_cast<int>(journey->scenePath.size())) {
@@ -634,6 +664,22 @@ public:
     }
 
     /**
+     * @brief Calculate local waypoint path for current scene
+     * @param entity Entity to calculate path for
+     * @param currentScene Current scene (for waypoint graph access)
+     *
+     * This should be called when:
+     * - Journey starts
+     * - Entity enters a new scene
+     * - Destination changes
+     *
+     * Uses the entity's preferredPathTags for personality-based pathfinding.
+     *
+     * Implementation is in Scene.hpp after Scene class is defined to avoid circular dependency.
+     */
+    void calculateLocalWaypointPath(Entity* entity, class Scene* currentScene);
+
+    /**
      * @brief Cancel an ongoing journey
      */
     void cancelJourney(Entity* entity) {
@@ -641,6 +687,7 @@ public:
         if (journey) {
             journey->isOnJourney = false;
             journey->scenePath.clear();
+            journey->localWaypointPath.clear();
             LOG_INFO("NPC {} journey cancelled", entity->getID());
         }
     }

@@ -3,6 +3,7 @@
 #include "EntityRegistry.hpp"
 #include "Systems.hpp"
 #include "DefinitionManager.hpp"
+#include "WaypointGraph.hpp"
 #include "../Backend/Core/BackendTypes.hpp"
 #include "../Backend/BackendManager.hpp"
 #include "../Core/Logger.hpp"
@@ -27,6 +28,7 @@ private:
 
     EntityRegistry m_entityRegistry;
     std::vector<std::unique_ptr<System>> m_systems;
+    WaypointGraph m_waypointGraph;  // Waypoint-based pathfinding for NPCs
 
 public:
     /**
@@ -88,6 +90,14 @@ public:
                 };
             }
 
+            // Load waypoint graph for pathfinding
+            if (sceneData.contains("pathfinding")) {
+                if (m_waypointGraph.loadFromJSON(sceneData["pathfinding"])) {
+                    LOG_INFO("Scene '{}': Waypoint graph loaded ({} waypoints)",
+                            m_name, m_waypointGraph.getWaypoints().size());
+                }
+            }
+
             // Load entities
             if (sceneData.contains("entities") && sceneData["entities"].is_array()) {
                 for (const auto& entityData : sceneData["entities"]) {
@@ -132,6 +142,28 @@ public:
      * @brief Get the entity registry (const)
      */
     const EntityRegistry& getEntityRegistry() const { return m_entityRegistry; }
+
+    /**
+     * @brief Get the waypoint graph
+     */
+    WaypointGraph& getWaypointGraph() { return m_waypointGraph; }
+
+    /**
+     * @brief Get the waypoint graph (const)
+     */
+    const WaypointGraph& getWaypointGraph() const { return m_waypointGraph; }
+
+    /**
+     * @brief Find a path between two positions in this scene using waypoints
+     * @param startPos Starting position
+     * @param endPos Ending position
+     * @param preferredTags Preferred path tags for personality (optional)
+     * @return Vector of waypoint positions forming the path
+     */
+    std::vector<Vec2f> findPath(const Vec2f& startPos, const Vec2f& endPos,
+                               const std::vector<std::string>& preferredTags = {}) {
+        return m_waypointGraph.findPath(startPos, endPos, preferredTags);
+    }
 
 private:
     /**
@@ -499,5 +531,55 @@ private:
         LOG_DEBUG("Created player entity (ID: {})", entity->getID());
     }
 };
+
+// ============================================================================
+// JourneySystem::calculateLocalWaypointPath implementation
+// ============================================================================
+
+inline void JourneySystem::calculateLocalWaypointPath(Entity* entity, Scene* currentScene) {
+    if (!entity || !currentScene) return;
+
+    auto* journey = entity->getComponent<JourneyComponent>();
+    auto* transform = entity->getComponent<TransformComponent>();
+
+    if (!journey || !transform) return;
+    if (!journey->isOnJourney) return;
+
+    // Obtenir le waypoint graph de la scène
+    auto& waypointGraph = currentScene->getWaypointGraph();
+
+    if (waypointGraph.isEmpty()) {
+        // Pas de waypoints dans cette scène, utiliser navigation directe
+        journey->localWaypointPath.clear();
+        journey->currentLocalWaypointIndex = 0;
+        LOG_DEBUG("NPC {}: No waypoint graph in scene, using direct navigation", entity->getID());
+        return;
+    }
+
+    // Calculer le chemin de waypoints
+    journey->localWaypointPath = waypointGraph.findPath(
+        transform->position,
+        journey->currentDestination,
+        journey->preferredPathTags
+    );
+
+    journey->currentLocalWaypointIndex = 0;
+
+    if (!journey->localWaypointPath.empty()) {
+        LOG_INFO("NPC {}: Calculated waypoint path with {} waypoints (tags: {})",
+                entity->getID(),
+                journey->localWaypointPath.size(),
+                journey->preferredPathTags.empty() ? "none" : journey->preferredPathTags[0]);
+
+        // Log le chemin pour debug
+        for (size_t i = 0; i < journey->localWaypointPath.size(); ++i) {
+            LOG_DEBUG("  Waypoint {}: ({:.1f}, {:.1f})",
+                     i, journey->localWaypointPath[i].x, journey->localWaypointPath[i].y);
+        }
+    } else {
+        LOG_WARN("NPC {}: Could not find waypoint path, using direct navigation",
+                entity->getID());
+    }
+}
 
 } // namespace NovaEngine

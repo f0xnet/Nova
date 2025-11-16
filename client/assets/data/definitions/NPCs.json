@@ -7,6 +7,8 @@
       "homeScene": "maison_bob",
       "homePosition": [200, 300],
       "walkSpeed": 100.0,
+      "preferredPathTags": ["shortcut"],
+      "personality": "Pressé et efficace, Bob prend toujours les raccourcis",
       "dailySchedule": [
         {
           "startTime": 6.0,
@@ -91,6 +93,8 @@
       "homeScene": "caserne",
       "homePosition": [150, 200],
       "walkSpeed": 80.0,
+      "preferredPathTags": ["main_road"],
+      "personality": "Disciplinée et vigilante, Alice patrouille les routes principales",
       "dailySchedule": [
         {
           "startTime": 6.0,
@@ -186,6 +190,8 @@
       "homeScene": "temple",
       "homePosition": [400, 200],
       "walkSpeed": 60.0,
+      "preferredPathTags": ["scenic"],
+      "personality": "Contemplatif et paisible, Marcus préfère les chemins pittoresques",
       "dailySchedule": [
         {
           "startTime": 5.0,

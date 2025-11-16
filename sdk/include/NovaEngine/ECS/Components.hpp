@@ -425,6 +425,45 @@ public:
 };
 
 // ============================================================================
+// SceneTransitionComponent - Scene transition state
+// ============================================================================
+
+/**
+ * @brief Scene transition component - manages entity transitions between scenes
+ *
+ * This component is used to mark entities that need to be transferred from
+ * one scene to another. SceneManager monitors this component and handles
+ * the actual transfer.
+ */
+class SceneTransitionComponent : public Component {
+public:
+    std::string targetScene;     // Scene to transition to
+    Vec2f targetPosition;        // Position in target scene
+    bool isTransitioning = false; // Currently transitioning?
+
+    COMPONENT_TYPE_ID(SceneTransitionComponent)
+
+    void serialize(nlohmann::json& json) const override {
+        json["targetScene"] = targetScene;
+        json["targetPosition"] = {targetPosition.x, targetPosition.y};
+        json["isTransitioning"] = isTransitioning;
+    }
+
+    void deserialize(const nlohmann::json& json) override {
+        if (json.contains("targetScene")) {
+            targetScene = json["targetScene"].get<std::string>();
+        }
+        if (json.contains("targetPosition")) {
+            auto& pos = json["targetPosition"];
+            targetPosition = Vec2f{pos[0], pos[1]};
+        }
+        if (json.contains("isTransitioning")) {
+            isTransitioning = json["isTransitioning"];
+        }
+    }
+};
+
+// ============================================================================
 // JourneyComponent - Multi-scene travel management
 // ============================================================================
 
@@ -434,14 +473,24 @@ public:
  * This component tracks an entity's journey through multiple scenes.
  * The entity will PHYSICALLY traverse all intermediate scenes instead
  * of teleporting, ensuring the player can see NPCs passing through.
+ *
+ * Now includes waypoint-based pathfinding within scenes for realistic movement.
  */
 class JourneyComponent : public Component {
 public:
+    // Multi-scene journey data
     std::vector<std::string> scenePath;    // Full path of scenes to traverse
     int currentSceneIndex = 0;             // Current index in scenePath
 
-    Vec2f currentDestination;              // Destination in current scene
+    Vec2f currentDestination;              // Final destination in current scene
     bool reachedCurrentDestination = false;
+
+    // Waypoint path within current scene
+    std::vector<Vec2f> localWaypointPath;  // Path of waypoints to follow in current scene
+    int currentLocalWaypointIndex = 0;     // Current waypoint being approached
+
+    // Personality: preferred path tags for waypoint selection
+    std::vector<std::string> preferredPathTags; // Ex: ["main_road"], ["shortcut"], ["scenic"]
 
     bool isOnJourney = false;              // Journey in progress?
     std::string finalDestinationScene;     // Final destination scene
@@ -454,6 +503,16 @@ public:
         json["currentSceneIndex"] = currentSceneIndex;
         json["currentDestination"] = {currentDestination.x, currentDestination.y};
         json["reachedCurrentDestination"] = reachedCurrentDestination;
+
+        // Serialize local waypoint path
+        nlohmann::json waypointsArray = nlohmann::json::array();
+        for (const auto& wp : localWaypointPath) {
+            waypointsArray.push_back({wp.x, wp.y});
+        }
+        json["localWaypointPath"] = waypointsArray;
+        json["currentLocalWaypointIndex"] = currentLocalWaypointIndex;
+
+        json["preferredPathTags"] = preferredPathTags;
         json["isOnJourney"] = isOnJourney;
         json["finalDestinationScene"] = finalDestinationScene;
         json["finalDestinationPos"] = {finalDestinationPos.x, finalDestinationPos.y};
@@ -470,6 +529,23 @@ public:
         }
         if (json.contains("reachedCurrentDestination")) {
             reachedCurrentDestination = json["reachedCurrentDestination"];
+        }
+
+        // Deserialize local waypoint path
+        if (json.contains("localWaypointPath") && json["localWaypointPath"].is_array()) {
+            localWaypointPath.clear();
+            for (const auto& wpData : json["localWaypointPath"]) {
+                if (wpData.is_array() && wpData.size() >= 2) {
+                    localWaypointPath.push_back(Vec2f{wpData[0], wpData[1]});
+                }
+            }
+        }
+        if (json.contains("currentLocalWaypointIndex")) {
+            currentLocalWaypointIndex = json["currentLocalWaypointIndex"];
+        }
+
+        if (json.contains("preferredPathTags")) {
+            preferredPathTags = json["preferredPathTags"].get<std::vector<std::string>>();
         }
         if (json.contains("isOnJourney")) isOnJourney = json["isOnJourney"];
         if (json.contains("finalDestinationScene")) {
