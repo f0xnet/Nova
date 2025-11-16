@@ -47,7 +47,7 @@ bool Game::onInitialize() {
     });
 
     // Load dialogue UI
-    if (!m_uiLoader.loadFromFile("ui/json/dialogue.json", m_uiManager)) {
+    if (!m_uiLoader.loadFromFile("data/ui/json/dialogue.json", m_uiManager)) {
         LOG_WARN("Failed to load dialogue UI");
     }
 
@@ -176,6 +176,9 @@ void Game::createPlayer() {
     // Add Sprite
     auto* sprite = player->addComponent(std::make_unique<SpriteComponent>());
     sprite->textureHandle = RESOURCES().loadTexture("data/sprites/player.png");
+    if (sprite->textureHandle == INVALID_HANDLE) {
+        LOG_WARN("Player sprite texture not found: data/sprites/player.png");
+    }
     sprite->size = Vec2f(64, 64);
     sprite->tint = Color(100, 200, 255);
 
