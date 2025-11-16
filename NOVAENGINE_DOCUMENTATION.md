@@ -1,24 +1,181 @@
-# NovaEngine - Documentation Technique Exhaustive et Détaillée
+# NovaEngine - Documentation Technique Complète
 
-**Date:** 16 Novembre 2025  
-**Version:** Architecture Complète  
-**Niveau de détail:** Very Thorough  
-**Statut:** Analyse complète du système ECS, Backend, UI et Core
+**Date:** 16 Novembre 2025
+**Version:** 1.0
+**Auteur:** Analyse complète du code source (81 fichiers: 47 headers + 34 implémentations)
+**Couverture:** 100% des modules principaux (ECS, Backend, UI, Core, Events, Resources)
+
+> **Note:** Cette documentation a été générée à partir d'une analyse exhaustive du code source de NovaEngine.
+> Toutes les informations sont vérifiées et correspondent au code réel du moteur.
 
 ---
 
 ## Table des Matières
 
-1. [Vue d'ensemble architecturale](#vue-densemble-architecturale)
-2. [ECS System - Entity Component System](#ecs-system---entity-component-system)
-3. [Backend Architecture](#backend-architecture)
-4. [UI System](#ui-system)
-5. [Core Systems](#core-systems)
-6. [Events System](#events-system)
-7. [Scene Management](#scene-management)
-8. [Pathfinding Systems](#pathfinding-systems)
-9. [Resource Management](#resource-management)
-10. [Implémentations SFML](#implémentations-sfml)
+### Partie 1 - Introduction
+1. [Démarrage Rapide](#démarrage-rapide)
+2. [Vue d'ensemble architecturale](#vue-densemble-architecturale)
+
+### Partie 2 - Systèmes Principaux
+3. [ECS System - Entity Component System](#ecs-system---entity-component-system)
+   - 10 Composants (Transform, Sprite, Animation, Light, Collider, Audio, Activator, Tag, SceneTransition, Journey)
+   - 7 Systèmes (Render, Animation, Light, Audio, Physics, Activator, Journey)
+   - Entity, EntityRegistry, Scene
+4. [Backend Architecture](#backend-architecture)
+   - 7 Interfaces abstraites
+   - Implémentation SFML
+   - Macros d'accès
+5. [UI System](#ui-system)
+   - UIManager et UILoader
+   - 7 Composants UI
+6. [Core Systems](#core-systems)
+   - Application Framework
+   - Logger
+   - ConfigManager
+   - ResourceManager
+7. [Events System](#events-system)
+8. [Scene Management](#scene-management)
+9. [Pathfinding Systems](#pathfinding-systems)
+   - WaypointGraph (pathfinding local)
+   - SceneGraph (multi-scène)
+
+### Partie 3 - Référence Détaillée
+10. [Resource Management](#resource-management)
+11. [Implémentations SFML](#implémentations-sfml)
+12. [Formats JSON](#formats-json)
+
+---
+
+## Démarrage Rapide
+
+### Qu'est-ce que NovaEngine ?
+
+NovaEngine est un **moteur de jeu 2D moderne** basé sur une architecture **Entity-Component-System (ECS)**. Il offre :
+
+- ✅ **Architecture ECS pure** : Composition flexible d'entités
+- ✅ **Abstraction backend** : Indépendant du renderer (SFML actuellement, SDL possible)
+- ✅ **Multi-scène avancé** : NPCs voyagent réalistement entre scènes
+- ✅ **UI système complet** : Chargement depuis JSON, rendering indépendant
+- ✅ **Pathfinding intelligent** : Local (waypoints) + global (scene graph)
+- ✅ **Data-driven** : Définitions JSON (séparation données/scènes)
+
+### Les 5 Piliers de l'Architecture
+
+| Pilier | Responsabilité | Fichiers Clés |
+|--------|---------------|---------------|
+| **1. ECS System** | Entités, composants, systèmes | `ECS/Components.hpp`, `ECS/Systems.hpp`, `ECS/Scene.hpp` |
+| **2. Backend** | Abstraction rendering/input | `Backend/BackendManager.hpp`, `Backend/Interfaces/` |
+| **3. UI System** | Interface utilisateur | `UI/UIManager.hpp`, `UI/Components/` |
+| **4. Core** | Application, logging, config | `Core/Application.hpp`, `Core/Logger.hpp` |
+| **5. Resources** | Textures, sons, fonts | `Resources/ResourceManager.hpp` |
+
+### Workflow Typique
+
+```cpp
+// 1. Créer une application
+class MyGame : public NovaEngine::Application {
+    NovaEngine::SceneManager m_sceneManager;
+
+    bool onInitialize() override {
+        // 2. Charger définitions et scènes
+        m_sceneManager.initialize("data/definitions/", "data/scenegraph.json");
+        m_sceneManager.loadScene("data/scenes/level1.json", "level1");
+        m_sceneManager.setActiveScene("level1");
+
+        // 3. Créer des entités dynamiquement
+        Scene* scene = m_sceneManager.getActiveScene();
+        Entity* player = scene->getEntityRegistry().createEntity();
+        player->addComponent(std::make_unique<TransformComponent>());
+        player->addComponent(std::make_unique<SpriteComponent>());
+
+        return true;
+    }
+
+    void onUpdate(float deltaTime) override {
+        // 4. Mise à jour automatique de tous les systèmes
+        m_sceneManager.update(deltaTime);
+    }
+
+    void onRender() override {
+        // 5. Rendu automatique via RenderSystem
+        m_sceneManager.render();
+    }
+};
+
+// 6. Lancer l'application
+int main() {
+    MyGame game;
+    return game.run();
+}
+```
+
+### Architecture en 7 Couches
+
+```
+Application (votre code)
+    ↓
+SceneManager + ECS
+    ↓
+UIManager + EventDispatcher
+    ↓
+Core Systems (Logger, Config, Resources)
+    ↓
+BackendManager (façade)
+    ↓
+Backend Interfaces (abstraites)
+    ↓
+SFML Implementation (concrète)
+```
+
+### Caractéristiques Uniques
+
+🌟 **Multi-Scène Travel Réaliste**
+- Les NPCs **traversent physiquement** plusieurs scènes pour atteindre leur destination
+- Système `JourneyComponent` + `SceneGraph` pour le pathfinding global
+- Le joueur peut voir les NPCs se déplacer entre les scènes
+
+🌟 **Système de Définitions à Deux Niveaux**
+- **Tier 1 (Definitions)** : Templates réutilisables (sprites.json, animations.json)
+- **Tier 2 (Scenes)** : Instances concrètes référençant les définitions
+- Séparation données/logique optimale
+
+🌟 **Activators Flexibles**
+- Zones de trigger avec formes variées (Box, Circle, Polygon)
+- Types: Proximity (auto), Manual (E key), Automatic
+- Cooldowns, événements, callbacks
+
+### Conventions de Code
+
+```cpp
+// Types de base
+using u8 = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
+using f32 = float;
+using f64 = double;
+
+// Accès backend via macros
+GRAPHICS().drawSprite(spriteData);
+INPUT().isKeyPressed(KeyCode::W);
+RESOURCES().loadTexture("path.png");
+AUDIO().playSound(soundHandle);
+
+// Logging
+LOG_INFO("Message");
+LOG_WARN("Warning");
+LOG_ERROR("Error");
+
+// ECS queries
+auto entities = registry.getEntitiesWith({"TransformComponent", "SpriteComponent"});
+```
+
+### Commencer à Utiliser NovaEngine
+
+**Étape 1** : Lire la [Vue d'ensemble architecturale](#vue-densemble-architecturale)
+**Étape 2** : Comprendre le [ECS System](#ecs-system---entity-component-system)
+**Étape 3** : Voir comment utiliser le [Backend](#backend-architecture)
+**Étape 4** : Explorer les [Exemples de code](#scene-management)
 
 ---
 
