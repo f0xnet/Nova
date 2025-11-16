@@ -38,6 +38,7 @@ public:
         // Order matters: Animation updates before Render, Light renders before Render
         m_systems.push_back(std::make_unique<AnimationSystem>());
         m_systems.push_back(std::make_unique<PhysicsSystem>());
+        m_systems.push_back(std::make_unique<ActivatorSystem>());  // Activator system
         m_systems.push_back(std::make_unique<AudioSystem>());
         m_systems.push_back(std::make_unique<LightSystem>());
         m_systems.push_back(std::make_unique<RenderSystem>());  // Render last
@@ -178,6 +179,12 @@ private:
         }
         else if (type == "audio") {
             createAudioEntity(entity, entityData, defManager);
+        }
+        else if (type == "activator") {
+            createActivatorEntity(entity, entityData, defManager);
+        }
+        else if (type == "player") {
+            createPlayerEntity(entity, entityData, defManager);
         }
         else {
             LOG_WARN("Unknown entity type: {}", type);
@@ -396,6 +403,100 @@ private:
 
         entity->addComponent(std::move(audio));
         LOG_DEBUG("Created audio entity (ID: {}, audio: {})", entity->getID(), audioID);
+    }
+
+    /**
+     * @brief Create an activator entity
+     */
+    void createActivatorEntity(Entity* entity, const nlohmann::json& entityData,
+                               const DefinitionManager& defManager) {
+        if (!entityData.contains("activatorID")) {
+            LOG_ERROR("Activator entity missing 'activatorID'");
+            return;
+        }
+
+        ID activatorID = entityData["activatorID"];
+        const nlohmann::json* activatorDef = defManager.getActivatorDefinition(activatorID);
+
+        if (!activatorDef) {
+            LOG_ERROR("Activator definition not found: {}", activatorID);
+            return;
+        }
+
+        // Create activator component from definition
+        auto activator = std::make_unique<ActivatorComponent>();
+        activator->actionID = activatorID;
+
+        // Load type
+        if (activatorDef->contains("type")) {
+            std::string typeStr = (*activatorDef)["type"];
+            if (typeStr == "proximity") activator->type = ActivatorComponent::ActivatorType::Proximity;
+            else if (typeStr == "manual") activator->type = ActivatorComponent::ActivatorType::Manual;
+            else if (typeStr == "automatic") activator->type = ActivatorComponent::ActivatorType::Automatic;
+        }
+
+        // Load shape
+        if (activatorDef->contains("shape")) {
+            std::string shapeStr = (*activatorDef)["shape"];
+            activator->shape = (shapeStr == "box") ?
+                ActivatorComponent::ActivatorShape::Box :
+                ActivatorComponent::ActivatorShape::Circle;
+        }
+
+        // Load size/radius
+        if (activatorDef->contains("size")) {
+            auto& size = (*activatorDef)["size"];
+            activator->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+        }
+        if (activatorDef->contains("radius")) {
+            activator->radius = (*activatorDef)["radius"].get<f32>();
+        }
+
+        // Load properties
+        if (activatorDef->contains("canReactivate")) {
+            activator->canReactivate = (*activatorDef)["canReactivate"].get<bool>();
+        }
+        if (activatorDef->contains("cooldownTime")) {
+            activator->cooldownTime = (*activatorDef)["cooldownTime"].get<f32>();
+        }
+        if (activatorDef->contains("targetTag")) {
+            activator->targetTag = (*activatorDef)["targetTag"];
+        }
+        if (activatorDef->contains("showDebugZone")) {
+            activator->showDebugZone = (*activatorDef)["showDebugZone"].get<bool>();
+        }
+        if (activatorDef->contains("onActivateEvent")) {
+            activator->onActivateEvent = (*activatorDef)["onActivateEvent"];
+        }
+        if (activatorDef->contains("onDeactivateEvent")) {
+            activator->onDeactivateEvent = (*activatorDef)["onDeactivateEvent"];
+        }
+
+        // Allow scene overrides
+        if (entityData.contains("targetTag")) {
+            activator->targetTag = entityData["targetTag"];
+        }
+
+        entity->addComponent(std::move(activator));
+        LOG_DEBUG("Created activator entity (ID: {}, activator: {})", entity->getID(), activatorID);
+    }
+
+    /**
+     * @brief Create a player entity
+     */
+    void createPlayerEntity(Entity* entity, const nlohmann::json& entityData,
+                            const DefinitionManager& defManager) {
+        // Add player tag
+        auto tag = std::make_unique<TagComponent>();
+        tag->tag = "player";
+        entity->addComponent(std::move(tag));
+
+        // If player also has a sprite, load it
+        if (entityData.contains("spriteID")) {
+            createSpriteEntity(entity, entityData, defManager);
+        }
+
+        LOG_DEBUG("Created player entity (ID: {})", entity->getID());
     }
 };
 

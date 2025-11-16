@@ -25,6 +25,7 @@ private:
     std::unordered_map<ID, nlohmann::json> m_lightDefinitions;
     std::unordered_map<ID, nlohmann::json> m_animationDefinitions;
     std::unordered_map<ID, nlohmann::json> m_audioDefinitions;
+    std::unordered_map<ID, nlohmann::json> m_activatorDefinitions;
 
 public:
     /**
@@ -40,6 +41,7 @@ public:
         success &= loadLightDefinitions(definitionsPath + "Lights.json");
         success &= loadAnimationDefinitions(definitionsPath + "Animations.json");
         success &= loadAudioDefinitions(definitionsPath + "Audio.json");
+        success &= loadActivatorDefinitions(definitionsPath + "Activators.json");
 
         if (success) {
             LOG_INFO("All entity definitions loaded successfully");
@@ -47,6 +49,7 @@ public:
             LOG_INFO("  - Lights: {}", m_lightDefinitions.size());
             LOG_INFO("  - Animations: {}", m_animationDefinitions.size());
             LOG_INFO("  - Audio: {}", m_audioDefinitions.size());
+            LOG_INFO("  - Activators: {}", m_activatorDefinitions.size());
         } else {
             LOG_ERROR("Failed to load some entity definitions");
         }
@@ -136,6 +139,27 @@ public:
      */
     bool hasAudioDefinition(const ID& id) const {
         return m_audioDefinitions.find(id) != m_audioDefinitions.end();
+    }
+
+    /**
+     * @brief Get an activator definition by ID
+     * @param id The activator ID
+     * @return Pointer to the JSON definition, or nullptr if not found
+     */
+    const nlohmann::json* getActivatorDefinition(const ID& id) const {
+        auto it = m_activatorDefinitions.find(id);
+        if (it != m_activatorDefinitions.end()) {
+            return &it->second;
+        }
+        LOG_WARN("Activator definition not found: {}", id);
+        return nullptr;
+    }
+
+    /**
+     * @brief Check if an activator definition exists
+     */
+    bool hasActivatorDefinition(const ID& id) const {
+        return m_activatorDefinitions.find(id) != m_activatorDefinitions.end();
     }
 
 private:
@@ -263,6 +287,38 @@ private:
             return true;
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to parse audio definitions: {}", e.what());
+            return false;
+        }
+    }
+
+    /**
+     * @brief Load activator definitions from JSON file
+     */
+    bool loadActivatorDefinitions(const std::string& path) {
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            LOG_WARN("Activator definitions file not found: {} (skipping)", path);
+            return true;
+        }
+
+        try {
+            nlohmann::json data;
+            file >> data;
+
+            if (data.contains("activators") && data["activators"].is_array()) {
+                for (const auto& activator : data["activators"]) {
+                    if (activator.contains("id")) {
+                        ID id = activator["id"];
+                        m_activatorDefinitions[id] = activator;
+                        LOG_DEBUG("Loaded activator definition: {}", id);
+                    }
+                }
+            }
+
+            LOG_INFO("Loaded {} activator definitions from {}", m_activatorDefinitions.size(), path);
+            return true;
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse activator definitions: {}", e.what());
             return false;
         }
     }

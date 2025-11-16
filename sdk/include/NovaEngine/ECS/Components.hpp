@@ -295,4 +295,133 @@ public:
     }
 };
 
+// ============================================================================
+// ActivatorComponent - Trigger zone activation
+// ============================================================================
+
+/**
+ * @brief Activator component - trigger zone that activates on entry
+ *
+ * This component creates a zone that can be activated when another entity
+ * (typically the player) enters its area. Common uses: switches, doors,
+ * pressure plates, trigger zones, interactive objects.
+ */
+class ActivatorComponent : public Component {
+public:
+    enum class ActivatorType {
+        Proximity,      // Activates when entity enters zone
+        Manual,         // Requires manual activation (key press)
+        Automatic       // Activates continuously while entity is in zone
+    };
+
+    enum class ActivatorShape {
+        Box,            // Rectangular activation zone
+        Circle          // Circular activation zone
+    };
+
+    ActivatorType type = ActivatorType::Proximity;
+    ActivatorShape shape = ActivatorShape::Box;
+
+    Vec2f size = {100.0f, 100.0f};     // For Box shape
+    f32 radius = 50.0f;                // For Circle shape
+    Vec2f offset = {0.0f, 0.0f};       // Offset from entity position
+
+    bool isActive = false;             // Current activation state
+    bool canReactivate = true;         // Can be activated multiple times
+    f32 cooldownTime = 0.0f;           // Time before can reactivate (seconds)
+    f32 currentCooldown = 0.0f;        // Current cooldown timer
+
+    std::string targetTag = "player";  // Which entity tag can activate this
+    std::string actionID;              // ID of action to trigger (for game logic)
+
+    // Visual feedback
+    bool showDebugZone = false;        // Draw activation zone for debugging
+    Color debugColor = Color{0, 255, 0, 100};  // Debug visualization color
+
+    // Callback data (for custom logic)
+    std::string onActivateEvent;       // Event name to fire on activation
+    std::string onDeactivateEvent;     // Event name to fire on deactivation
+
+    COMPONENT_TYPE_ID(ActivatorComponent)
+
+    void serialize(nlohmann::json& json) const override {
+        std::string typeStr;
+        switch (type) {
+            case ActivatorType::Proximity: typeStr = "proximity"; break;
+            case ActivatorType::Manual: typeStr = "manual"; break;
+            case ActivatorType::Automatic: typeStr = "automatic"; break;
+        }
+
+        std::string shapeStr = (shape == ActivatorShape::Box) ? "box" : "circle";
+
+        json["type"] = typeStr;
+        json["shape"] = shapeStr;
+        json["size"] = {size.x, size.y};
+        json["radius"] = radius;
+        json["offset"] = {offset.x, offset.y};
+        json["isActive"] = isActive;
+        json["canReactivate"] = canReactivate;
+        json["cooldownTime"] = cooldownTime;
+        json["targetTag"] = targetTag;
+        json["actionID"] = actionID;
+        json["showDebugZone"] = showDebugZone;
+        json["onActivateEvent"] = onActivateEvent;
+        json["onDeactivateEvent"] = onDeactivateEvent;
+    }
+
+    void deserialize(const nlohmann::json& json) override {
+        if (json.contains("type")) {
+            std::string typeStr = json["type"];
+            if (typeStr == "proximity") type = ActivatorType::Proximity;
+            else if (typeStr == "manual") type = ActivatorType::Manual;
+            else if (typeStr == "automatic") type = ActivatorType::Automatic;
+        }
+
+        if (json.contains("shape")) {
+            shape = (json["shape"] == "box") ? ActivatorShape::Box : ActivatorShape::Circle;
+        }
+
+        if (json.contains("size")) {
+            size = Vec2f{json["size"][0], json["size"][1]};
+        }
+        if (json.contains("radius")) radius = json["radius"];
+        if (json.contains("offset")) {
+            offset = Vec2f{json["offset"][0], json["offset"][1]};
+        }
+        if (json.contains("isActive")) isActive = json["isActive"];
+        if (json.contains("canReactivate")) canReactivate = json["canReactivate"];
+        if (json.contains("cooldownTime")) cooldownTime = json["cooldownTime"];
+        if (json.contains("targetTag")) targetTag = json["targetTag"];
+        if (json.contains("actionID")) actionID = json["actionID"];
+        if (json.contains("showDebugZone")) showDebugZone = json["showDebugZone"];
+        if (json.contains("onActivateEvent")) onActivateEvent = json["onActivateEvent"];
+        if (json.contains("onDeactivateEvent")) onDeactivateEvent = json["onDeactivateEvent"];
+    }
+};
+
+// ============================================================================
+// TagComponent - Simple tag for entity identification
+// ============================================================================
+
+/**
+ * @brief Tag component - identifies entity type/role
+ *
+ * Used to identify entities (e.g., "player", "enemy", "npc")
+ * for triggering activators and other game logic.
+ */
+class TagComponent : public Component {
+public:
+    std::string tag = "default";
+
+    COMPONENT_TYPE_ID(TagComponent)
+
+    void serialize(nlohmann::json& json) const override {
+        json["tag"] = tag;
+    }
+
+    void deserialize(const nlohmann::json& json) override {
+        if (json.contains("tag")) tag = json["tag"];
+    }
+};
+
 } // namespace NovaEngine

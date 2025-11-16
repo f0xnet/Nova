@@ -243,4 +243,189 @@ public:
     }
 };
 
+// ============================================================================
+// ActivatorSystem - Handles trigger zone activation
+// ============================================================================
+
+/**
+ * @brief Activator system - detects entities in trigger zones and activates them
+ *
+ * This system checks all activators and detects when tagged entities
+ * enter their activation zones. It handles cooldowns, reactivation,
+ * and fires events when activation occurs.
+ */
+class ActivatorSystem : public System {
+public:
+    void update(float deltaTime, EntityRegistry& registry) override {
+        auto activators = registry.getEntitiesWith({"TransformComponent", "ActivatorComponent"});
+        auto potentialTriggers = registry.getEntitiesWith({"TransformComponent", "TagComponent"});
+
+        // Update cooldowns
+        for (Entity* activatorEntity : activators) {
+            auto* activator = activatorEntity->getComponent<ActivatorComponent>();
+
+            if (activator->currentCooldown > 0.0f) {
+                activator->currentCooldown -= deltaTime;
+                if (activator->currentCooldown <= 0.0f) {
+                    activator->currentCooldown = 0.0f;
+                }
+            }
+        }
+
+        // Check for activations
+        for (Entity* activatorEntity : activators) {
+            auto* activatorTransform = activatorEntity->getComponent<TransformComponent>();
+            auto* activator = activatorEntity->getComponent<ActivatorComponent>();
+
+            // Skip if on cooldown
+            if (activator->currentCooldown > 0.0f) continue;
+
+            // Calculate activation zone
+            Vec2f activatorPos = activatorTransform->position + activator->offset;
+            bool wasActive = activator->isActive;
+            bool entityInZone = false;
+
+            // Check all tagged entities
+            for (Entity* triggerEntity : potentialTriggers) {
+                auto* tag = triggerEntity->getComponent<TagComponent>();
+
+                // Skip if not the target tag
+                if (tag->tag != activator->targetTag) continue;
+
+                auto* triggerTransform = triggerEntity->getComponent<TransformComponent>();
+                Vec2f triggerPos = triggerTransform->position;
+
+                // Check if entity is in activation zone
+                bool inZone = false;
+
+                if (activator->shape == ActivatorComponent::ActivatorShape::Box) {
+                    // Box collision check
+                    Rect activatorRect{
+                        activatorPos.x - activator->size.x * 0.5f,
+                        activatorPos.y - activator->size.y * 0.5f,
+                        activator->size.x,
+                        activator->size.y
+                    };
+                    inZone = activatorRect.contains(triggerPos);
+                }
+                else if (activator->shape == ActivatorComponent::ActivatorShape::Circle) {
+                    // Circle collision check
+                    f32 dx = triggerPos.x - activatorPos.x;
+                    f32 dy = triggerPos.y - activatorPos.y;
+                    f32 distSquared = dx * dx + dy * dy;
+                    inZone = distSquared <= (activator->radius * activator->radius);
+                }
+
+                if (inZone) {
+                    entityInZone = true;
+                    break;
+                }
+            }
+
+            // Handle activation logic
+            if (activator->type == ActivatorComponent::ActivatorType::Proximity) {
+                // Proximity: activate once on entry
+                if (entityInZone && !wasActive) {
+                    activateActivator(activatorEntity, activator);
+                }
+                else if (!entityInZone && wasActive) {
+                    deactivateActivator(activatorEntity, activator);
+                }
+            }
+            else if (activator->type == ActivatorComponent::ActivatorType::Automatic) {
+                // Automatic: activate continuously while in zone
+                if (entityInZone) {
+                    if (!wasActive) {
+                        activateActivator(activatorEntity, activator);
+                    }
+                    // Still active, you can add continuous logic here
+                }
+                else if (wasActive) {
+                    deactivateActivator(activatorEntity, activator);
+                }
+            }
+            else if (activator->type == ActivatorComponent::ActivatorType::Manual) {
+                // Manual: requires explicit activation (e.g., key press)
+                // This would be handled by input system or custom logic
+                // For now, just update state based on zone
+                if (entityInZone && !wasActive) {
+                    // You would check for input here in a real implementation
+                    // For demo purposes, we'll just log that manual activation is possible
+                    LOG_DEBUG("Entity {} can be manually activated (press E)",
+                             activatorEntity->getID());
+                }
+            }
+
+            // Draw debug visualization
+            if (activator->showDebugZone) {
+                if (activator->shape == ActivatorComponent::ActivatorShape::Box) {
+                    RectData debugRect;
+                    debugRect.position = Vec2f{
+                        activatorPos.x - activator->size.x * 0.5f,
+                        activatorPos.y - activator->size.y * 0.5f
+                    };
+                    debugRect.size = activator->size;
+                    debugRect.fillColor = Color{0, 0, 0, 0};  // Transparent fill
+                    debugRect.outlineColor = activator->isActive ?
+                        Color{255, 0, 0, 200} : activator->debugColor;
+                    debugRect.outlineThickness = 2.0f;
+                    GRAPHICS().drawRect(debugRect);
+                }
+                else if (activator->shape == ActivatorComponent::ActivatorShape::Circle) {
+                    // Draw circle as rect for simplicity (you could make a circle draw function)
+                    RectData debugCircle;
+                    debugCircle.position = Vec2f{
+                        activatorPos.x - activator->radius,
+                        activatorPos.y - activator->radius
+                    };
+                    debugCircle.size = Vec2f{activator->radius * 2.0f, activator->radius * 2.0f};
+                    debugCircle.fillColor = Color{0, 0, 0, 0};
+                    debugCircle.outlineColor = activator->isActive ?
+                        Color{255, 0, 0, 200} : activator->debugColor;
+                    debugCircle.outlineThickness = 2.0f;
+                    GRAPHICS().drawRect(debugCircle);
+                }
+            }
+        }
+    }
+
+    std::vector<ComponentTypeID> getRequiredComponents() const override {
+        return {"TransformComponent", "ActivatorComponent"};
+    }
+
+private:
+    void activateActivator(Entity* entity, ActivatorComponent* activator) {
+        activator->isActive = true;
+
+        LOG_INFO("Activator {} activated! Action: '{}'",
+                entity->getID(), activator->actionID);
+
+        // Fire activation event
+        if (!activator->onActivateEvent.empty()) {
+            LOG_DEBUG("Firing event: {}", activator->onActivateEvent);
+            // Here you would fire the event through an event system
+            // For now we just log it
+        }
+
+        // Start cooldown if can't reactivate
+        if (!activator->canReactivate) {
+            activator->currentCooldown = -1.0f;  // Permanently disable
+        }
+        else if (activator->cooldownTime > 0.0f) {
+            activator->currentCooldown = activator->cooldownTime;
+        }
+    }
+
+    void deactivateActivator(Entity* entity, ActivatorComponent* activator) {
+        activator->isActive = false;
+
+        LOG_DEBUG("Activator {} deactivated", entity->getID());
+
+        // Fire deactivation event
+        if (!activator->onDeactivateEvent.empty()) {
+            LOG_DEBUG("Firing event: {}", activator->onDeactivateEvent);
+        }
+    }
+};
+
 } // namespace NovaEngine
