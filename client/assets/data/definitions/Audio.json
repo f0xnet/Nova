@@ -1,0 +1,22 @@
+{
+  "sounds": [
+    {
+      "id": "footstep",
+      "loop": false,
+      "volume": 80.0,
+      "playOnStart": false
+    },
+    {
+      "id": "ambient_wind",
+      "loop": true,
+      "volume": 40.0,
+      "playOnStart": true
+    },
+    {
+      "id": "door_open",
+      "loop": false,
+      "volume": 100.0,
+      "playOnStart": false
+    }
+  ]
+}

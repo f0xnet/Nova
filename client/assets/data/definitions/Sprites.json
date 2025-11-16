@@ -1,0 +1,36 @@
+{
+  "sprites": [
+    {
+      "id": "player",
+      "texture": "character_sheet",
+      "textureRect": [0, 0, 32, 32],
+      "origin": [16, 16],
+      "size": [32, 32],
+      "zOrder": 10
+    },
+    {
+      "id": "test_box",
+      "texture": "test_texture",
+      "textureRect": [0, 0, 64, 64],
+      "origin": [32, 32],
+      "size": [64, 64],
+      "zOrder": 0
+    },
+    {
+      "id": "wall_brick",
+      "texture": "tileset_walls",
+      "textureRect": [32, 0, 32, 32],
+      "origin": [0, 0],
+      "size": [32, 32],
+      "zOrder": 0
+    },
+    {
+      "id": "floor_wood",
+      "texture": "tileset_floors",
+      "textureRect": [0, 0, 32, 32],
+      "origin": [0, 0],
+      "size": [32, 32],
+      "zOrder": -10
+    }
+  ]
+}

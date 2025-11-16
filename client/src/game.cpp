@@ -16,8 +16,24 @@ Game::~Game() {
 bool Game::onInitialize() {
     LOG_INFO("Initializing Game");
 
-    m_uiManager.setActionCallback([this](const std::string& action, 
-                                         const std::string& value, 
+    // Initialize ECS Scene Manager
+    if (!m_sceneManager.initialize("assets/data/definitions/")) {
+        LOG_ERROR("Failed to initialize SceneManager");
+        return false;
+    }
+
+    // Load scenes (if they exist)
+    // Note: These files are optional for now, system will work without them
+    if (m_sceneManager.loadScene("assets/data/scenes/test_scene.json", "test")) {
+        m_sceneManager.setActiveScene("test");
+        LOG_INFO("Test scene loaded and activated");
+    } else {
+        LOG_INFO("No test scene found, continuing without ECS scene");
+    }
+
+    // Initialize UI
+    m_uiManager.setActionCallback([this](const std::string& action,
+                                         const std::string& value,
                                          const NovaEngine::ID& componentID) {
         handleUIAction(action, value, componentID);
     });
@@ -28,21 +44,29 @@ bool Game::onInitialize() {
     }
 
     m_uiManager.switchToGroup("app_main_menu", "login_menu_not_connected");
-    
+
     LOG_INFO("Game initialized successfully");
     LOG_INFO("=== Controls ===");
     LOG_INFO("- Click buttons to trigger actions");
     LOG_INFO("- Press SPACE to toggle between connected/not connected states");
     LOG_INFO("- Press ESC to exit");
-    
+
     return true;
 }
 
 void Game::onUpdate(float deltaTime) {
+    // Update ECS scene
+    m_sceneManager.update(deltaTime);
+
+    // Update UI
     m_uiManager.update(deltaTime);
 }
 
 void Game::onRender() {
+    // Render ECS scene (background layer)
+    m_sceneManager.render();
+
+    // Render UI on top
     m_uiManager.render();
 }
 
@@ -60,6 +84,7 @@ void Game::onEvent(const NovaEngine::Event& event) {
 
 void Game::onShutdown() {
     LOG_INFO("Game shutting down");
+    m_sceneManager.shutdown();
 }
 
 Game::Config Game::createConfig() {

@@ -1,0 +1,28 @@
+{
+  "name": "Test Scene",
+  "type": "interior",
+  "backgroundColor": [30, 30, 40, 255],
+  "entities": [
+    {
+      "type": "light",
+      "lightID": "torch",
+      "position": [400, 300],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [800, 400],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "light",
+      "lightID": "lamp",
+      "position": [600, 200],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    }
+  ]
+}

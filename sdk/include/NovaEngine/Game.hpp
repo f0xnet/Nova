@@ -5,11 +5,13 @@
 #include "NovaEngine/UI/UIManager.hpp"
 #include "NovaEngine/UI/UILoader.hpp"
 #include "NovaEngine/Events/Event.hpp"
+#include "NovaEngine/ECS/ECS.hpp"
 
 class Game : public NovaEngine::Application {
 private:
     NovaEngine::UIManager m_uiManager;
     NovaEngine::UILoader m_uiLoader;
+    NovaEngine::SceneManager m_sceneManager;
     bool m_isConnected;
 
 public:

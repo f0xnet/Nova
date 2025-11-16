@@ -1,0 +1,36 @@
+{
+  "lights": [
+    {
+      "id": "torch",
+      "type": "point",
+      "color": [255, 200, 100, 255],
+      "radius": 150.0,
+      "intensity": 1.0,
+      "castShadows": false
+    },
+    {
+      "id": "candle",
+      "type": "point",
+      "color": [255, 220, 150, 255],
+      "radius": 80.0,
+      "intensity": 0.7,
+      "castShadows": false
+    },
+    {
+      "id": "sunlight",
+      "type": "directional",
+      "color": [255, 255, 200, 255],
+      "direction": [0.5, 0.5],
+      "intensity": 0.8,
+      "castShadows": true
+    },
+    {
+      "id": "lamp",
+      "type": "point",
+      "color": [255, 255, 200, 255],
+      "radius": 200.0,
+      "intensity": 1.2,
+      "castShadows": false
+    }
+  ]
+}
