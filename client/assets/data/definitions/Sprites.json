@@ -2,12 +2,26 @@
   "sprites": [
     {
       "id": "player",
-      "texture": "character_sheet",
-      "textureRect": [0, 0, 32, 32],
-      "origin": [16, 16],
-      "size": [64, 64],
-      "scale": [1.0, 1.0],
+      "texture": "data/sprites/player.png",
+      "width": 114,
+      "height": 225,
+      "scale": 2.0,
       "zOrder": 10
+    },
+    {
+      "id": "floor",
+      "texture": "data/sprites/sol.png",
+      "width": 242,
+      "height": 190,
+      "scale": 5.0,
+      "zOrder": 0
+    },
+    {
+      "id": "wall_brick",
+      "texture": "data/sprites/wall.png",
+      "width": 32,
+      "height": 32,
+      "zOrder": 0
     },
     {
       "id": "test_box",
@@ -15,15 +29,6 @@
       "textureRect": [0, 0, 64, 64],
       "origin": [32, 32],
       "size": [64, 64],
-      "scale": [1.0, 1.0],
-      "zOrder": 0
-    },
-    {
-      "id": "wall_brick",
-      "texture": "tileset_walls",
-      "textureRect": [32, 0, 32, 32],
-      "origin": [0, 0],
-      "size": [32, 32],
       "scale": [1.0, 1.0],
       "zOrder": 0
     },
