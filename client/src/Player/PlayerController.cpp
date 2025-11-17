@@ -1,6 +1,7 @@
 #include "PlayerController.hpp"
 #include "../Dialogue/DialogueComponent.hpp"
 #include <NovaEngine/Backend/BackendManager.hpp>
+#include <NovaEngine/Core/Logger.hpp>
 #include <cmath>
 
 namespace NovaEngine {
@@ -23,7 +24,10 @@ void PlayerController::updateMovement(Scene* scene, float deltaTime, bool allowM
     if (!scene || !allowMovement) return;
 
     Entity* player = scene->getEntityRegistry().getEntity(m_playerID);
-    if (!player) return;
+    if (!player) {
+        LOG_WARN("PlayerController: Cannot find player entity with ID {}", m_playerID);
+        return;
+    }
 
     auto* transform = player->getComponent<TransformComponent>();
     if (!transform) return;
@@ -49,6 +53,7 @@ void PlayerController::updateMovement(Scene* scene, float deltaTime, bool allowM
         movement = normalize(movement);
         transform->position.x += movement.x * m_moveSpeed * deltaTime;
         transform->position.y += movement.y * m_moveSpeed * deltaTime;
+        LOG_DEBUG("Player moved to ({}, {})", transform->position.x, transform->position.y);
     }
 }
 
