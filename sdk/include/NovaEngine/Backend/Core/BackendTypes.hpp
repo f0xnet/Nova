@@ -10,7 +10,7 @@ namespace NovaEngine {
     using String = std::string;
     
     using TextureHandle = u64; using FontHandle = u64; using SoundHandle = u64;
-    using MusicHandle = u64; using ShaderHandle = u64;
+    using MusicHandle = u64; using ShaderHandle = u64; using RenderTextureHandle = u64;
     constexpr u64 INVALID_HANDLE = 0;
     
     enum class BackendType { SFML, SDL, Custom };

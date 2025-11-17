@@ -2,19 +2,21 @@
 #include "NovaEngine/Backend/SFML/SFMLWindowBackend.hpp"
 
 namespace NovaEngine {
-SFMLGraphicsBackend::SFMLGraphicsBackend() : m_window(nullptr) {}
+SFMLGraphicsBackend::SFMLGraphicsBackend() : m_window(nullptr), m_activeRenderTarget(nullptr) {}
 SFMLGraphicsBackend::~SFMLGraphicsBackend() { shutdown(); }
 
 bool SFMLGraphicsBackend::initialize(void* windowHandle) {
     auto* windowBackend = static_cast<SFMLWindowBackend*>(windowHandle);
     if(!windowBackend) return false;
     m_window = windowBackend->getSFMLWindow();
+    m_activeRenderTarget = m_window;
     return m_window != nullptr;
 }
 
 void SFMLGraphicsBackend::shutdown() {
     m_textures.clear();
     m_shaders.clear();
+    m_renderTextures.clear();
     m_fonts.clear();
 }
 
@@ -75,14 +77,14 @@ void SFMLGraphicsBackend::unloadTexture(TextureHandle handle) {
 }
 
 void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
-    if(sprite.texture == INVALID_HANDLE || !m_window) return;
+    if(sprite.texture == INVALID_HANDLE || !m_activeRenderTarget) return;
     auto it = m_textures.find(sprite.texture);
     if(it == m_textures.end() || !it->second) return;
-    
+
     sf::Sprite sfSprite(*it->second);
     sfSprite.setPosition(SFMLConv::toSFML(sprite.position));
     sfSprite.setRotation(sprite.rotation);
-    
+
     // ✅ AJOUT: Appliquer sprite.size si spécifié
     if(sprite.size.x > 0 && sprite.size.y > 0) {
         sf::Vector2u texSize = it->second->getSize();
@@ -94,14 +96,14 @@ void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
     } else {
         sfSprite.setScale(SFMLConv::toSFML(sprite.scale));
     }
-    
+
     sfSprite.setOrigin(SFMLConv::toSFML(sprite.origin));
     sfSprite.setColor(SFMLConv::toSFML(sprite.color));
-    
+
     if(sprite.textureRect.width > 0 && sprite.textureRect.height > 0) {
         sfSprite.setTextureRect(SFMLConv::toSFML(sprite.textureRect));
     }
-    
+
     sf::RenderStates states;
     states.blendMode = SFMLConv::toSFML(sprite.blendMode);
     if(m_boundShader != INVALID_HANDLE) {
@@ -110,12 +112,12 @@ void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
             states.shader = sit->second.get();
         }
     }
-    m_window->draw(sfSprite, states);
+    m_activeRenderTarget->draw(sfSprite, states);
 }
 
 void SFMLGraphicsBackend::drawRect(const RectData& rect) {
-    if(!m_window) return;
-    
+    if(!m_activeRenderTarget) return;
+
     sf::RectangleShape shape(SFMLConv::toSFML(rect.size));
     shape.setPosition(SFMLConv::toSFML(rect.position));
     shape.setRotation(rect.rotation);
@@ -123,7 +125,7 @@ void SFMLGraphicsBackend::drawRect(const RectData& rect) {
     shape.setFillColor(SFMLConv::toSFML(rect.fillColor));
     shape.setOutlineColor(SFMLConv::toSFML(rect.outlineColor));
     shape.setOutlineThickness(rect.outlineThickness);
-    
+
     sf::RenderStates states;
     if(m_boundShader != INVALID_HANDLE) {
         auto sit = m_shaders.find(m_boundShader);
@@ -131,14 +133,14 @@ void SFMLGraphicsBackend::drawRect(const RectData& rect) {
             states.shader = sit->second.get();
         }
     }
-    m_window->draw(shape, states);
+    m_activeRenderTarget->draw(shape, states);
 }
 
 void SFMLGraphicsBackend::drawText(const TextData& text) {
-    if(text.font == INVALID_HANDLE || !m_window) return;
+    if(text.font == INVALID_HANDLE || !m_activeRenderTarget) return;
     auto fit = m_fonts.find(text.font);
     if(fit == m_fonts.end() || !fit->second) return;
-    
+
     sf::Text sfText;
     sfText.setFont(*fit->second);
     sfText.setString(text.text);
@@ -151,7 +153,7 @@ void SFMLGraphicsBackend::drawText(const TextData& text) {
     sfText.setRotation(text.rotation);
     sfText.setScale(SFMLConv::toSFML(text.scale));
     sfText.setOrigin(SFMLConv::toSFML(text.origin));
-    
+
     sf::RenderStates states;
     states.blendMode = SFMLConv::toSFML(text.blendMode);
     if(m_boundShader != INVALID_HANDLE) {
@@ -160,7 +162,7 @@ void SFMLGraphicsBackend::drawText(const TextData& text) {
             states.shader = sit->second.get();
         }
     }
-    m_window->draw(sfText, states);
+    m_activeRenderTarget->draw(sfText, states);
 }
 
 ShaderHandle SFMLGraphicsBackend::loadShader(const String& vertexPath, const String& fragmentPath) {
@@ -172,14 +174,89 @@ ShaderHandle SFMLGraphicsBackend::loadShader(const String& vertexPath, const Str
     return handle;
 }
 
-void SFMLGraphicsBackend::bindShader(ShaderHandle handle) { 
-    m_boundShader = handle; 
+void SFMLGraphicsBackend::bindShader(ShaderHandle handle) {
+    m_boundShader = handle;
 }
 
-void SFMLGraphicsBackend::unloadShader(ShaderHandle handle) { 
+void SFMLGraphicsBackend::unbindShader() {
+    m_boundShader = INVALID_HANDLE;
+}
+
+void SFMLGraphicsBackend::setShaderParameter(ShaderHandle handle, const String& name, f32 value) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_shaders.find(handle);
+    if(it != m_shaders.end() && it->second) {
+        it->second->setUniform(name, value);
+    }
+}
+
+void SFMLGraphicsBackend::setShaderParameter(ShaderHandle handle, const String& name, const Vec2f& value) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_shaders.find(handle);
+    if(it != m_shaders.end() && it->second) {
+        it->second->setUniform(name, sf::Vector2f(value.x, value.y));
+    }
+}
+
+void SFMLGraphicsBackend::unloadShader(ShaderHandle handle) {
     if(handle == INVALID_HANDLE) return;
     if(m_boundShader == handle) m_boundShader = INVALID_HANDLE;
-    m_shaders.erase(handle); 
+    m_shaders.erase(handle);
+}
+
+RenderTextureHandle SFMLGraphicsBackend::createRenderTexture(u32 width, u32 height) {
+    if(width == 0 || height == 0) return INVALID_HANDLE;
+    auto renderTexture = std::make_unique<sf::RenderTexture>();
+    if(!renderTexture->create(width, height)) return INVALID_HANDLE;
+    RenderTextureHandle handle = m_nextRenderTextureHandle++;
+    m_renderTextures[handle] = std::move(renderTexture);
+    return handle;
+}
+
+void SFMLGraphicsBackend::bindRenderTexture(RenderTextureHandle handle) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_renderTextures.find(handle);
+    if(it != m_renderTextures.end() && it->second) {
+        m_activeRenderTarget = it->second.get();
+    }
+}
+
+void SFMLGraphicsBackend::unbindRenderTexture() {
+    m_activeRenderTarget = m_window;
+}
+
+void SFMLGraphicsBackend::clearRenderTexture(RenderTextureHandle handle, const Color& color) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_renderTextures.find(handle);
+    if(it != m_renderTextures.end() && it->second) {
+        it->second->clear(SFMLConv::toSFML(color));
+    }
+}
+
+void SFMLGraphicsBackend::displayRenderTexture(RenderTextureHandle handle) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_renderTextures.find(handle);
+    if(it != m_renderTextures.end() && it->second) {
+        it->second->display();
+    }
+}
+
+TextureHandle SFMLGraphicsBackend::getRenderTextureAsTexture(RenderTextureHandle handle) {
+    if(handle == INVALID_HANDLE) return INVALID_HANDLE;
+    auto it = m_renderTextures.find(handle);
+    if(it != m_renderTextures.end() && it->second) {
+        // Créer une texture wrapper pour la render texture
+        auto tex = std::make_unique<sf::Texture>(it->second->getTexture());
+        TextureHandle texHandle = m_nextTextureHandle++;
+        m_textures[texHandle] = std::move(tex);
+        return texHandle;
+    }
+    return INVALID_HANDLE;
+}
+
+void SFMLGraphicsBackend::unloadRenderTexture(RenderTextureHandle handle) {
+    if(handle == INVALID_HANDLE) return;
+    m_renderTextures.erase(handle);
 }
 
 sf::Texture* SFMLGraphicsBackend::getSFMLTexture(TextureHandle handle) const {

@@ -9,6 +9,7 @@ Game::Game()
     , m_isConnected(false)
     , m_dialogueSystem(std::make_unique<NovaEngine::DialogueSystem>())
     , m_playerController(std::make_unique<NovaEngine::PlayerController>())
+    , m_postProcessManager(nullptr)
 {
     LOG_TRACE("Game constructed");
 }
@@ -105,6 +106,17 @@ bool Game::onInitialize() {
     // Initialize dialogue system with UI manager
     m_dialogueSystem->initialize(&m_uiManager);
 
+    // Initialize post-processing with CRT shader
+    m_postProcessManager = std::make_unique<NovaEngine::PostProcessManager>(&GRAPHICS());
+    if (!m_postProcessManager->initialize(
+        static_cast<NovaEngine::u32>(logicalWidth),
+        static_cast<NovaEngine::u32>(logicalHeight))) {
+        LOG_WARN("Failed to initialize PostProcessManager - CRT shader disabled");
+        m_postProcessManager.reset();
+    } else {
+        LOG_INFO("CRT post-processing shader initialized successfully");
+    }
+
     LOG_INFO("Game initialized successfully");
     LOG_INFO("=== Controls ===");
     LOG_INFO("  WASD / Arrow Keys - Move");
@@ -142,11 +154,21 @@ void Game::onUpdate(float deltaTime) {
 }
 
 void Game::onRender() {
+    // Begin post-processing (render to texture if enabled)
+    if (m_postProcessManager) {
+        m_postProcessManager->beginFrame();
+    }
+
     // Render ECS scene
     m_sceneManager.render();
 
     // Render UI (includes dialogue)
     m_uiManager.render();
+
+    // End post-processing (apply CRT shader)
+    if (m_postProcessManager) {
+        m_postProcessManager->endFrame();
+    }
 }
 
 void Game::onEvent(const NovaEngine::Event& event) {
@@ -178,6 +200,10 @@ void Game::onEvent(const NovaEngine::Event& event) {
 
 void Game::onShutdown() {
     LOG_INFO("Game shutting down");
+    if (m_postProcessManager) {
+        m_postProcessManager->shutdown();
+        m_postProcessManager.reset();
+    }
     m_sceneManager.shutdown();
 }
 

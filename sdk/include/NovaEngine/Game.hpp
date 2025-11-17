@@ -6,6 +6,7 @@
 #include "NovaEngine/UI/UILoader.hpp"
 #include "NovaEngine/Events/Event.hpp"
 #include "NovaEngine/ECS/ECS.hpp"
+#include "NovaEngine/Rendering/PostProcessManager.hpp"
 
 // Forward declarations for game modules
 namespace NovaEngine {
@@ -23,6 +24,7 @@ private:
     // Game modules
     std::unique_ptr<NovaEngine::DialogueSystem> m_dialogueSystem;
     std::unique_ptr<NovaEngine::PlayerController> m_playerController;
+    std::unique_ptr<NovaEngine::PostProcessManager> m_postProcessManager;
     NovaEngine::FontHandle m_font;
 
 public:
