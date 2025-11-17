@@ -272,6 +272,12 @@ private:
             sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
         }
 
+        if (spriteDef->contains("scale")) {
+            auto& scale = (*spriteDef)["scale"];
+            auto* transform = entity->getComponent<TransformComponent>();
+            transform->scale = Vec2f{scale[0].get<f32>(), scale[1].get<f32>()};
+        }
+
         if (spriteDef->contains("origin")) {
             auto& origin = (*spriteDef)["origin"];
             auto* transform = entity->getComponent<TransformComponent>();
@@ -285,6 +291,15 @@ private:
         // Allow scene-specific overrides
         if (entityData.contains("zOrder")) {
             sprite->zOrder = entityData["zOrder"].get<i32>();
+        }
+        if (entityData.contains("size")) {
+            auto& size = entityData["size"];
+            sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+        }
+        if (entityData.contains("scale")) {
+            auto& scale = entityData["scale"];
+            auto* transform = entity->getComponent<TransformComponent>();
+            transform->scale = Vec2f{scale[0].get<f32>(), scale[1].get<f32>()};
         }
 
         entity->addComponent(std::move(sprite));

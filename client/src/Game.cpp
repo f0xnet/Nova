@@ -20,6 +20,17 @@ Game::~Game() {
 bool Game::onInitialize() {
     LOG_INFO("Initializing Game");
 
+    // Configure viewport with logical resolution (independent of window size)
+    // This works like the UI system's native resolution scaling
+    const auto& displayConfig = NovaEngine::ConfigManager::getInstance().getDisplayConfig();
+    float logicalWidth = static_cast<float>(displayConfig.nativeWidth);
+    float logicalHeight = static_cast<float>(displayConfig.nativeHeight);
+
+    VIEWPORT().setViewSize(NovaEngine::Vec2f(logicalWidth, logicalHeight));
+    VIEWPORT().setViewCenter(NovaEngine::Vec2f(logicalWidth / 2.0f, logicalHeight / 2.0f));
+
+    LOG_INFO("Viewport configured: logical size {}x{}", logicalWidth, logicalHeight);
+
     // Initialize ECS Scene Manager
     if (!m_sceneManager.initialize("data/definitions/", "data/scenegraph.json")) {
         LOG_ERROR("Failed to initialize SceneManager");
@@ -74,18 +85,9 @@ void Game::onUpdate(float deltaTime) {
         // Update NPC detection
         m_playerController->updateNPCDetection(scene);
 
-        // Get player position for debugging
+        // Update camera to follow player
         Vec2f playerPos = m_playerController->getPlayerPosition(scene);
-
-        // Camera following disabled for testing - player should move freely on screen
-        // TODO: Implement proper camera system with smooth following or deadzones
-        // VIEWPORT().setViewCenter(playerPos);
-
-        // Debug: log player position every 60 frames
-        static int frameCount = 0;
-        if (++frameCount % 60 == 0) {
-            LOG_INFO("Player pos: ({}, {})", playerPos.x, playerPos.y);
-        }
+        VIEWPORT().setViewCenter(playerPos);
 
         // Show/hide NPC indicator
         Entity* nearestNPC = m_playerController->getNearestNPC();
@@ -189,22 +191,13 @@ void Game::createPlayer() {
         LOG_WARN("Player sprite texture not found: data/sprites/player.png");
     } else {
         LOG_INFO("Player sprite loaded successfully (handle: {})", sprite->textureHandle);
-
-        // Get original texture size to preserve aspect ratio
-        Vec2u texSize = GRAPHICS().getTextureSize(sprite->textureHandle);
-        if (texSize.x > 0 && texSize.y > 0) {
-            // Scale to desired height while preserving aspect ratio
-            float desiredHeight = 225.0f;  // Adjust this value as needed
-            float aspectRatio = static_cast<float>(texSize.x) / static_cast<float>(texSize.y);
-            sprite->size = Vec2f(desiredHeight * aspectRatio, desiredHeight);
-            LOG_INFO("Player sprite size: {}x{} (original: {}x{})",
-                     sprite->size.x, sprite->size.y, texSize.x, texSize.y);
-        } else {
-            sprite->size = Vec2f(114, 225);  // Fallback to manual size
-        }
     }
+
+    // Set sprite size in logical coordinates (matches viewport resolution)
+    // The viewport scaling system will automatically scale this to screen resolution
+    sprite->size = Vec2f(114, 225);  // Size in logical pixels
     sprite->visible = true;
-    sprite->zOrder = 100;  // Ensure it's rendered on top
+    sprite->zOrder = 100;
 
     // Register with player controller
     m_playerController->setPlayerID(player->getID());
