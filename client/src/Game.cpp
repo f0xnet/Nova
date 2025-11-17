@@ -21,15 +21,42 @@ bool Game::onInitialize() {
     LOG_INFO("Initializing Game");
 
     // Configure viewport with logical resolution (independent of window size)
-    // This works like the UI system's native resolution scaling
+    // Uses letterboxing/pillarboxing to preserve aspect ratio across all screens
     const auto& displayConfig = NovaEngine::ConfigManager::getInstance().getDisplayConfig();
     float logicalWidth = static_cast<float>(displayConfig.nativeWidth);
     float logicalHeight = static_cast<float>(displayConfig.nativeHeight);
+    float logicalAspectRatio = logicalWidth / logicalHeight;
 
-    VIEWPORT().setViewSize(NovaEngine::Vec2f(logicalWidth, logicalHeight));
-    VIEWPORT().setViewCenter(NovaEngine::Vec2f(logicalWidth / 2.0f, logicalHeight / 2.0f));
+    // Get actual window size
+    u32 windowWidth = WINDOW().getWidth();
+    u32 windowHeight = WINDOW().getHeight();
+    float windowAspectRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
 
-    LOG_INFO("Viewport configured: logical size {}x{}", logicalWidth, logicalHeight);
+    // Calculate viewport rectangle with letterboxing to preserve aspect ratio
+    NovaEngine::Rect viewportRect;
+    if (windowAspectRatio > logicalAspectRatio) {
+        // Window is wider than logical (pillarbox - vertical bars on sides)
+        float viewportWidth = logicalAspectRatio / windowAspectRatio;
+        float offsetX = (1.0f - viewportWidth) / 2.0f;
+        viewportRect = NovaEngine::Rect(offsetX, 0.0f, viewportWidth, 1.0f);
+    } else {
+        // Window is taller than logical (letterbox - horizontal bars top/bottom)
+        float viewportHeight = windowAspectRatio / logicalAspectRatio;
+        float offsetY = (1.0f - viewportHeight) / 2.0f;
+        viewportRect = NovaEngine::Rect(0.0f, offsetY, 1.0f, viewportHeight);
+    }
+
+    // Configure viewport
+    NovaEngine::ViewportData viewData;
+    viewData.size = NovaEngine::Vec2f(logicalWidth, logicalHeight);
+    viewData.center = NovaEngine::Vec2f(logicalWidth / 2.0f, logicalHeight / 2.0f);
+    viewData.viewport = viewportRect;
+    viewData.rotation = 0.0f;
+    VIEWPORT().setView(viewData);
+
+    LOG_INFO("Viewport configured: logical {}x{} (aspect {:.2f}), window {}x{} (aspect {:.2f})",
+             logicalWidth, logicalHeight, logicalAspectRatio,
+             windowWidth, windowHeight, windowAspectRatio);
 
     // Initialize ECS Scene Manager
     if (!m_sceneManager.initialize("data/definitions/", "data/scenegraph.json")) {
