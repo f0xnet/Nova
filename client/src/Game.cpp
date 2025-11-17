@@ -27,8 +27,8 @@ bool Game::onInitialize() {
     float logicalAspectRatio = logicalWidth / logicalHeight;
 
     // Get actual window size
-    u32 windowWidth = WINDOW().getWidth();
-    u32 windowHeight = WINDOW().getHeight();
+    NovaEngine::u32 windowWidth = WINDOW().getWidth();
+    NovaEngine::u32 windowHeight = WINDOW().getHeight();
     float windowAspectRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
 
     // Calculate viewport with letterboxing/pillarboxing
