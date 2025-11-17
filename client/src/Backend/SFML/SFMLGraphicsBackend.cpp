@@ -252,6 +252,13 @@ void SFMLGraphicsBackend::drawRenderTextureToScreen(RenderTextureHandle handle, 
     sf::Sprite sprite(texture);
     sprite.setPosition(0, 0);
 
+    // IMPORTANT: Les render textures SFML sont inversées verticalement
+    // On doit appliquer une échelle négative sur Y pour les afficher correctement
+    sf::Vector2u texSize = texture.getSize();
+    sprite.setOrigin(0, static_cast<float>(texSize.y));
+    sprite.setScale(1.0f, -1.0f);
+    sprite.setPosition(0, static_cast<float>(texSize.y));
+
     // Préparer les render states avec le shader si fourni
     sf::RenderStates states;
     if(shader != INVALID_HANDLE) {
