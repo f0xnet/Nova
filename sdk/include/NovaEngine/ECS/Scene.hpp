@@ -116,12 +116,13 @@ public:
     }
 
     /**
-     * @brief Update all systems
+     * @brief Update all systems except rendering
      * @param deltaTime Time since last frame
      */
     void update(float deltaTime) {
-        for (auto& system : m_systems) {
-            system->update(deltaTime, m_entityRegistry);
+        // Update logic systems only (not RenderSystem)
+        for (size_t i = 0; i < m_systems.size() - 1; ++i) {  // -1 to skip RenderSystem (last)
+            m_systems[i]->update(deltaTime, m_entityRegistry);
         }
     }
 
@@ -130,7 +131,10 @@ public:
      */
     void render() {
         WINDOW().clear(m_backgroundColor);
-        // Systems (especially RenderSystem) handle the actual drawing
+        // Call RenderSystem (last system in the list)
+        if (!m_systems.empty()) {
+            m_systems.back()->update(0.0f, m_entityRegistry);  // RenderSystem is last
+        }
     }
 
     /**
