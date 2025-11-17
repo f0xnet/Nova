@@ -158,7 +158,8 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Core\NovaEngine.cpp src\Core\ConfigManager.
 set "SOURCE_FILES=%SOURCE_FILES% src\Resources\ResourceTypes.cpp src\Resources\ResourceManager.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Audio\SoundPlayer.cpp src\Audio\MusicPlayer.cpp src\Audio\AudioManager.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Events\EventDispatcher.cpp src\Events\Event.cpp src\Events\EventHandler.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\PostProcessManager.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\PostProcessManager.cpp src\Rendering\PostProcessPipeline.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp"
 
 :: Compile each source file
 set COMPILED=0
