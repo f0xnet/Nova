@@ -71,13 +71,14 @@ bool Game::onInitialize() {
 
     // Player is now defined in the scene JSON (test.json)
     // Find the player entity in the loaded scene
-    Scene* scene = m_sceneManager.getActiveScene();
+    NovaEngine::Scene* scene = m_sceneManager.getActiveScene();
     if (scene) {
+        using namespace NovaEngine;
         // Find the first entity with a SpriteComponent (should be the player)
         auto& entities = scene->getEntityRegistry().getEntities();
         for (auto& entity : entities) {
             // Check if this entity has sprite component (basic player detection)
-            if (entity->getComponent<NovaEngine::SpriteComponent>()) {
+            if (entity->getComponent<SpriteComponent>()) {
                 m_playerController->setPlayerID(entity->getID());
                 LOG_INFO("Found player entity with ID: {}", entity->getID());
                 break;
