@@ -189,9 +189,20 @@ void Game::createPlayer() {
         LOG_WARN("Player sprite texture not found: data/sprites/player.png");
     } else {
         LOG_INFO("Player sprite loaded successfully (handle: {})", sprite->textureHandle);
+
+        // Get original texture size to preserve aspect ratio
+        Vec2u texSize = GRAPHICS().getTextureSize(sprite->textureHandle);
+        if (texSize.x > 0 && texSize.y > 0) {
+            // Scale to desired height while preserving aspect ratio
+            float desiredHeight = 225.0f;  // Adjust this value as needed
+            float aspectRatio = static_cast<float>(texSize.x) / static_cast<float>(texSize.y);
+            sprite->size = Vec2f(desiredHeight * aspectRatio, desiredHeight);
+            LOG_INFO("Player sprite size: {}x{} (original: {}x{})",
+                     sprite->size.x, sprite->size.y, texSize.x, texSize.y);
+        } else {
+            sprite->size = Vec2f(114, 225);  // Fallback to manual size
+        }
     }
-    sprite->size = Vec2f(256, 256);  // Increased size for 4K display (was 64x64)
-    sprite->tint = Color(255, 0, 0);  // Bright red for easy visibility
     sprite->visible = true;
     sprite->zOrder = 100;  // Ensure it's rendered on top
 
