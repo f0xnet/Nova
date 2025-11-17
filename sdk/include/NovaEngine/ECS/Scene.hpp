@@ -186,21 +186,37 @@ private:
 
         // Always add Transform component (required for all entities)
         auto transform = std::make_unique<TransformComponent>();
+
+        // Position: support both "position": [x, y] and "x", "y"
         if (entityData.contains("position")) {
             transform->position = Vec2f{
                 entityData["position"][0].get<f32>(),
                 entityData["position"][1].get<f32>()
             };
+        } else if (entityData.contains("x") && entityData.contains("y")) {
+            transform->position = Vec2f{
+                entityData["x"].get<f32>(),
+                entityData["y"].get<f32>()
+            };
         }
+
         if (entityData.contains("rotation")) {
             transform->rotation = entityData["rotation"].get<f32>();
         }
+
+        // Scale: support both "scale": [x, y] and "scale": value (uniform)
         if (entityData.contains("scale")) {
-            transform->scale = Vec2f{
-                entityData["scale"][0].get<f32>(),
-                entityData["scale"][1].get<f32>()
-            };
+            if (entityData["scale"].is_array()) {
+                transform->scale = Vec2f{
+                    entityData["scale"][0].get<f32>(),
+                    entityData["scale"][1].get<f32>()
+                };
+            } else {
+                f32 uniformScale = entityData["scale"].get<f32>();
+                transform->scale = Vec2f{uniformScale, uniformScale};
+            }
         }
+
         entity->addComponent(std::move(transform));
 
         // Create type-specific components
@@ -247,18 +263,25 @@ private:
 
         // Create sprite component from definition
         auto sprite = std::make_unique<SpriteComponent>();
-        sprite->textureID = (*spriteDef)["texture"];
+        auto* transform = entity->getComponent<TransformComponent>();
 
-        // Load texture and get handle
-        // Note: The texture path should be specified in the definition
-        if (spriteDef->contains("texturePath")) {
-            std::string texturePath = (*spriteDef)["texturePath"];
+        // Load texture - support both "texture" as path or "texturePath"
+        std::string texturePath;
+        if (spriteDef->contains("texture")) {
+            texturePath = (*spriteDef)["texture"].get<std::string>();
+            sprite->textureID = texturePath;
+        } else if (spriteDef->contains("texturePath")) {
+            texturePath = (*spriteDef)["texturePath"].get<std::string>();
+        }
+
+        if (!texturePath.empty()) {
             sprite->textureHandle = RESOURCES().loadTexture(texturePath);
             if (sprite->textureHandle == INVALID_HANDLE) {
                 LOG_WARN("Failed to load texture for sprite '{}': {}", spriteID, texturePath);
             }
         }
 
+        // TextureRect: optional, defaults to entire texture
         if (spriteDef->contains("textureRect")) {
             auto& rect = (*spriteDef)["textureRect"];
             sprite->textureRect = IntRect{
@@ -267,39 +290,62 @@ private:
             };
         }
 
+        // Size: support both "size": [w, h] and "width", "height"
         if (spriteDef->contains("size")) {
             auto& size = (*spriteDef)["size"];
             sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+        } else if (spriteDef->contains("width") && spriteDef->contains("height")) {
+            sprite->size = Vec2f{
+                (*spriteDef)["width"].get<f32>(),
+                (*spriteDef)["height"].get<f32>()
+            };
         }
 
+        // Scale: support both "scale": [x, y] and "scale": value (uniform)
         if (spriteDef->contains("scale")) {
-            auto& scale = (*spriteDef)["scale"];
-            auto* transform = entity->getComponent<TransformComponent>();
-            transform->scale = Vec2f{scale[0].get<f32>(), scale[1].get<f32>()};
+            if ((*spriteDef)["scale"].is_array()) {
+                auto& scale = (*spriteDef)["scale"];
+                transform->scale = Vec2f{scale[0].get<f32>(), scale[1].get<f32>()};
+            } else {
+                f32 uniformScale = (*spriteDef)["scale"].get<f32>();
+                transform->scale = Vec2f{uniformScale, uniformScale};
+            }
         }
 
+        // Origin: optional, defaults to center if not specified
         if (spriteDef->contains("origin")) {
             auto& origin = (*spriteDef)["origin"];
-            auto* transform = entity->getComponent<TransformComponent>();
             transform->origin = Vec2f{origin[0].get<f32>(), origin[1].get<f32>()};
+        } else if (sprite->size.x > 0 && sprite->size.y > 0) {
+            // Default to center
+            transform->origin = Vec2f{sprite->size.x / 2.0f, sprite->size.y / 2.0f};
         }
 
         if (spriteDef->contains("zOrder")) {
             sprite->zOrder = (*spriteDef)["zOrder"].get<i32>();
         }
 
-        // Allow scene-specific overrides
+        // Scene-specific overrides
         if (entityData.contains("zOrder")) {
             sprite->zOrder = entityData["zOrder"].get<i32>();
         }
         if (entityData.contains("size")) {
             auto& size = entityData["size"];
             sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+        } else if (entityData.contains("width") && entityData.contains("height")) {
+            sprite->size = Vec2f{
+                entityData["width"].get<f32>(),
+                entityData["height"].get<f32>()
+            };
         }
         if (entityData.contains("scale")) {
-            auto& scale = entityData["scale"];
-            auto* transform = entity->getComponent<TransformComponent>();
-            transform->scale = Vec2f{scale[0].get<f32>(), scale[1].get<f32>()};
+            if (entityData["scale"].is_array()) {
+                auto& scale = entityData["scale"];
+                transform->scale = Vec2f{scale[0].get<f32>(), scale[1].get<f32>()};
+            } else {
+                f32 uniformScale = entityData["scale"].get<f32>();
+                transform->scale = Vec2f{uniformScale, uniformScale};
+            }
         }
 
         entity->addComponent(std::move(sprite));

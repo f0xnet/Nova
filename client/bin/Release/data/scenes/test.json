@@ -2,5 +2,19 @@
   "name": "Test Scene",
   "type": "exterior",
   "backgroundColor": [30, 30, 40, 255],
-  "entities": []
+  "entities": [
+    {
+      "type": "sprite",
+      "spriteID": "test_box",
+      "x": 1920,
+      "y": 1080
+    },
+    {
+      "type": "sprite",
+      "spriteID": "wall_brick",
+      "x": 500,
+      "y": 500,
+      "scale": 2.0
+    }
+  ]
 }
