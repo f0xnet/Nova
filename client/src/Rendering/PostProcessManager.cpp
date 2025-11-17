@@ -1,6 +1,6 @@
 #include "NovaEngine/Rendering/PostProcessManager.hpp"
-#include "NovaEngine/Backend/SFML/SFMLGraphicsBackend.hpp"
-#include <SFML/Graphics.hpp>
+#include "NovaEngine/Core/Logger.hpp"
+#include <chrono>
 
 namespace NovaEngine {
 
@@ -40,13 +40,16 @@ bool PostProcessManager::initialize(u32 width, u32 height) {
 
     // Charger le shader CRT
     m_crtShader = m_graphicsBackend->loadShader(
-        "assets/shaders/crt.vert",
-        "assets/shaders/crt.frag"
+        "data/shaders/crt.vert",
+        "data/shaders/crt.frag"
     );
 
     if(m_crtShader == INVALID_HANDLE) {
+        LOG_ERROR("Failed to load CRT shader! Check that data/shaders/crt.vert and crt.frag exist");
         return false;
     }
+
+    LOG_INFO("CRT shader loaded successfully");
 
     // Initialiser les paramètres du shader
     updateShaderParameters();
@@ -76,7 +79,7 @@ void PostProcessManager::beginFrame() {
 }
 
 void PostProcessManager::endFrame() {
-    if(!m_crtEnabled || m_renderTexture == INVALID_HANDLE) {
+    if(!m_crtEnabled || m_renderTexture == INVALID_HANDLE || m_crtShader == INVALID_HANDLE) {
         return;
     }
 
@@ -91,34 +94,12 @@ void PostProcessManager::endFrame() {
     std::chrono::duration<float> elapsed = now - m_startTime;
     float time = elapsed.count();
 
-    // Mettre à jour les paramètres du shader
+    // Mettre à jour les paramètres du shader avant le rendu
     m_graphicsBackend->setShaderParameter(m_crtShader, "time", time);
     m_graphicsBackend->setShaderParameter(m_crtShader, "resolution", Vec2f(static_cast<f32>(m_width), static_cast<f32>(m_height)));
 
-    // Obtenir la texture de la render texture
-    TextureHandle rtTexture = m_graphicsBackend->getRenderTextureAsTexture(m_renderTexture);
-    if(rtTexture == INVALID_HANDLE) {
-        return;
-    }
-
-    // Appliquer le shader CRT
-    m_graphicsBackend->bindShader(m_crtShader);
-
-    // Dessiner la texture plein écran
-    SpriteData sprite;
-    sprite.texture = rtTexture;
-    sprite.position = Vec2f(0, 0);
-    sprite.size = Vec2f(static_cast<f32>(m_width), static_cast<f32>(m_height));
-    sprite.color = Color::White;
-    sprite.blendMode = BlendMode::Alpha;
-
-    m_graphicsBackend->drawSprite(sprite);
-
-    // Unbind le shader
-    m_graphicsBackend->unbindShader();
-
-    // Nettoyer la texture temporaire
-    m_graphicsBackend->unloadTexture(rtTexture);
+    // Dessiner la render texture sur la fenêtre avec le shader CRT
+    m_graphicsBackend->drawRenderTextureToScreen(m_renderTexture, m_crtShader);
 }
 
 void PostProcessManager::updateShaderParameters() {

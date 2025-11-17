@@ -33,7 +33,7 @@ public:
     virtual void unbindRenderTexture() = 0;
     virtual void clearRenderTexture(RenderTextureHandle handle, const Color& color) = 0;
     virtual void displayRenderTexture(RenderTextureHandle handle) = 0;
-    virtual TextureHandle getRenderTextureAsTexture(RenderTextureHandle handle) = 0;
+    virtual void drawRenderTextureToScreen(RenderTextureHandle handle, ShaderHandle shader) = 0;
     virtual void unloadRenderTexture(RenderTextureHandle handle) = 0;
 };
 }

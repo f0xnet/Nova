@@ -38,7 +38,7 @@ public:
     void unbindRenderTexture() override;
     void clearRenderTexture(RenderTextureHandle handle, const Color& color) override;
     void displayRenderTexture(RenderTextureHandle handle) override;
-    TextureHandle getRenderTextureAsTexture(RenderTextureHandle handle) override;
+    void drawRenderTextureToScreen(RenderTextureHandle handle, ShaderHandle shader) override;
     void unloadRenderTexture(RenderTextureHandle handle) override;
 
     sf::Texture* getSFMLTexture(TextureHandle handle) const;

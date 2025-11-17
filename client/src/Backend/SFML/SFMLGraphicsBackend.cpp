@@ -241,17 +241,28 @@ void SFMLGraphicsBackend::displayRenderTexture(RenderTextureHandle handle) {
     }
 }
 
-TextureHandle SFMLGraphicsBackend::getRenderTextureAsTexture(RenderTextureHandle handle) {
-    if(handle == INVALID_HANDLE) return INVALID_HANDLE;
-    auto it = m_renderTextures.find(handle);
-    if(it != m_renderTextures.end() && it->second) {
-        // Créer une texture wrapper pour la render texture
-        auto tex = std::make_unique<sf::Texture>(it->second->getTexture());
-        TextureHandle texHandle = m_nextTextureHandle++;
-        m_textures[texHandle] = std::move(tex);
-        return texHandle;
+void SFMLGraphicsBackend::drawRenderTextureToScreen(RenderTextureHandle handle, ShaderHandle shader) {
+    if(handle == INVALID_HANDLE || !m_window) return;
+
+    auto rtIt = m_renderTextures.find(handle);
+    if(rtIt == m_renderTextures.end() || !rtIt->second) return;
+
+    // Créer un sprite avec la texture de la render texture
+    const sf::Texture& texture = rtIt->second->getTexture();
+    sf::Sprite sprite(texture);
+    sprite.setPosition(0, 0);
+
+    // Préparer les render states avec le shader si fourni
+    sf::RenderStates states;
+    if(shader != INVALID_HANDLE) {
+        auto shaderIt = m_shaders.find(shader);
+        if(shaderIt != m_shaders.end() && shaderIt->second) {
+            states.shader = shaderIt->second.get();
+        }
     }
-    return INVALID_HANDLE;
+
+    // Dessiner sur la fenêtre
+    m_window->draw(sprite, states);
 }
 
 void SFMLGraphicsBackend::unloadRenderTexture(RenderTextureHandle handle) {
