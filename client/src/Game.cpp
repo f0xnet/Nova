@@ -69,18 +69,16 @@ bool Game::onInitialize() {
     m_sceneManager.setActiveScene("test");
     LOG_INFO("Test scene loaded and activated");
 
-    // Player is now defined in the scene JSON (test.json)
-    // Find the player entity in the loaded scene
+    // Player is defined in the scene JSON (test.json)
+    // Find the first sprite entity and use it as the player
     NovaEngine::Scene* scene = m_sceneManager.getActiveScene();
     if (scene) {
         using namespace NovaEngine;
-        // Find the first entity with a SpriteComponent (should be the player)
-        auto& entities = scene->getEntityRegistry().getEntities();
-        for (auto& entity : entities) {
-            // Check if this entity has sprite component (basic player detection)
+        auto entities = scene->getEntityRegistry().getAllEntities();
+        for (auto* entity : entities) {
             if (entity->getComponent<SpriteComponent>()) {
                 m_playerController->setPlayerID(entity->getID());
-                LOG_INFO("Found player entity with ID: {}", entity->getID());
+                LOG_INFO("Player set to entity ID: {}", entity->getID());
                 break;
             }
         }
@@ -205,50 +203,6 @@ Game::Config Game::createConfig() {
     }
 
     return config;
-}
-
-void Game::createPlayer() {
-    using namespace NovaEngine;
-
-    Scene* scene = m_sceneManager.getActiveScene();
-    if (!scene) {
-        LOG_ERROR("Cannot create player: no active scene");
-        return;
-    }
-
-    LOG_INFO("Creating player entity...");
-    LOG_INFO("Scene has {} entities before player creation",
-             scene->getEntityRegistry().getEntityCount());
-
-    // Create player entity
-    Entity* player = scene->getEntityRegistry().createEntity();
-
-    // Add Transform - use logical coordinates (center of 3840x2160)
-    auto* transform = player->addComponent(std::make_unique<TransformComponent>());
-    transform->position = Vec2f(1920, 1080);  // Center of logical resolution
-
-    // Add Sprite
-    auto* sprite = player->addComponent(std::make_unique<SpriteComponent>());
-    sprite->textureHandle = RESOURCES().loadTexture("data/sprites/player.png");
-    if (sprite->textureHandle == INVALID_HANDLE) {
-        LOG_WARN("Player sprite texture not found: data/sprites/player.png");
-    } else {
-        LOG_INFO("Player sprite loaded successfully (handle: {})", sprite->textureHandle);
-    }
-
-    // Set sprite size in logical coordinates (matches viewport resolution)
-    // The viewport scaling system will automatically scale this to screen resolution
-    sprite->size = Vec2f(114, 225);  // Size in logical pixels
-    sprite->visible = true;
-    sprite->zOrder = 100;
-
-    // Register with player controller
-    m_playerController->setPlayerID(player->getID());
-
-    LOG_INFO("Player created at ({}, {}) with ID: {}",
-             transform->position.x, transform->position.y, player->getID());
-    LOG_INFO("Scene now has {} entities",
-             scene->getEntityRegistry().getEntityCount());
 }
 
 void Game::handleUIAction(const std::string& action,

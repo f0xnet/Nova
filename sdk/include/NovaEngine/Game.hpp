@@ -44,7 +44,6 @@ private:
 
     // Helper methods
     Config createConfig();
-    void createPlayer();
 
 public:
     bool isConnected() const;
