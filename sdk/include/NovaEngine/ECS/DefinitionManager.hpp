@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Core/Types.hpp"
 #include "../Backend/Core/BackendTypes.hpp"
 #include "../Core/Logger.hpp"
 #include <nlohmann/json.hpp>

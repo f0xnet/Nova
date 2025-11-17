@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.hpp"
+#include "../Core/Types.hpp"
 #include "../Backend/Core/BackendTypes.hpp"
 #include "../Backend/Interfaces/IGraphicsBackend.hpp"
 #include <vector>
