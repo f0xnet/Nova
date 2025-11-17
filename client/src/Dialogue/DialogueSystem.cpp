@@ -85,7 +85,7 @@ void DialogueSystem::updateDialogueUI() {
         m_uiManager->getComponent("npc_name")
     );
     if (npcNameComponent) {
-        npcNameComponent->setText(m_currentNPCName);
+        npcNameComponent->setString(m_currentNPCName);
     }
 
     // Update dialogue text
@@ -94,7 +94,7 @@ void DialogueSystem::updateDialogueUI() {
             m_uiManager->getComponent("dialogue_text")
         );
         if (dialogueTextComponent) {
-            dialogueTextComponent->setText(m_currentDialogue[m_currentDialogueLine]);
+            dialogueTextComponent->setString(m_currentDialogue[m_currentDialogueLine]);
         }
     }
 }
