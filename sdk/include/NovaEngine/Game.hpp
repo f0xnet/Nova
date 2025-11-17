@@ -42,6 +42,10 @@ private:
                        const NovaEngine::ID& componentID);
     void toggleConnectionState();
 
+    // Helper methods
+    Config createConfig();
+    void createPlayer();
+
 public:
     bool isConnected() const;
 };
