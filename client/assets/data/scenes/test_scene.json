@@ -4,7 +4,7 @@
   "backgroundColor": [30, 30, 40, 255],
   "entities": [
     {
-      "type": "sprite",
+      "type": "player",
       "spriteID": "player",
       "position": [400, 300],
       "rotation": 0,

@@ -69,18 +69,24 @@ bool Game::onInitialize() {
     m_sceneManager.setActiveScene("test");
     LOG_INFO("Test scene loaded and activated");
 
-    // Player is defined in the scene JSON (test.json)
-    // Find the first sprite entity and use it as the player
+    // Player is defined in the scene JSON (test.json) with type "player"
+    // Find the entity with tag "player"
     NovaEngine::Scene* scene = m_sceneManager.getActiveScene();
     if (scene) {
         using namespace NovaEngine;
         auto entities = scene->getEntityRegistry().getAllEntities();
+        bool playerFound = false;
         for (auto* entity : entities) {
-            if (entity->getComponent<SpriteComponent>()) {
+            auto* tag = entity->getComponent<TagComponent>();
+            if (tag && tag->tag == "player") {
                 m_playerController->setPlayerID(entity->getID());
-                LOG_INFO("Player set to entity ID: {}", entity->getID());
+                LOG_INFO("Player found and set to entity ID: {}", entity->getID());
+                playerFound = true;
                 break;
             }
+        }
+        if (!playerFound) {
+            LOG_ERROR("No player entity found in scene! Make sure scene JSON has an entity with type=\"player\"");
         }
     }
 
