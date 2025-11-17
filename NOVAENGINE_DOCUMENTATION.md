@@ -1,9 +1,9 @@
 # NovaEngine - Documentation Technique Complète
 
-**Date:** 16 Novembre 2025
-**Version:** 1.0
-**Auteur:** Analyse complète du code source (81 fichiers: 47 headers + 34 implémentations)
-**Couverture:** 100% des modules principaux (ECS, Backend, UI, Core, Events, Resources)
+**Date:** 17 Novembre 2025
+**Version:** 1.1
+**Auteur:** Analyse complète du code source (90+ fichiers: 50+ headers + 40+ implémentations)
+**Couverture:** 100% des modules principaux (ECS, Backend, UI, Core, Events, Resources, Rendering)
 
 > **Note:** Cette documentation a été générée à partir d'une analyse exhaustive du code source de NovaEngine.
 > Toutes les informations sont vérifiées et correspondent au code réel du moteur.
@@ -38,11 +38,16 @@
 9. [Pathfinding Systems](#pathfinding-systems)
    - WaypointGraph (pathfinding local)
    - SceneGraph (multi-scène)
+10. [Post-Processing & Shader System](#post-processing--shader-system)
+   - PostProcessPipeline (architecture modulaire)
+   - PostProcessEffect (interface abstraite)
+   - Effets built-in (CRT, Passthrough)
+   - Création d'effets personnalisés
 
 ### Partie 3 - Référence Détaillée
-10. [Resource Management](#resource-management)
-11. [Implémentations SFML](#implémentations-sfml)
-12. [Formats JSON](#formats-json)
+11. [Resource Management](#resource-management)
+12. [Implémentations SFML](#implémentations-sfml)
+13. [Formats JSON](#formats-json)
 
 ---
 
@@ -2692,6 +2697,634 @@ Repeat until reaching final scene and destination
 
 ---
 
+
+## Post-Processing & Shader System
+
+**Fichiers:** `Rendering/PostProcessPipeline.hpp`, `Rendering/PostProcessEffect.hpp`, `Rendering/Effects/`  
+**Depuis:** Version 1.1 (Novembre 2025)
+
+### Vue d'ensemble
+
+Le système de post-processing de NovaEngine offre une **architecture modulaire** pour appliquer des effets visuels (shaders) sur le rendu final de la scène. 
+
+**Caractéristiques principales:**
+- ✅ **Modulaire**: Ajout/retrait d'effets en 1 ligne de code
+- ✅ **Extensible**: Création de nouveaux effets sans modifier le moteur
+- ✅ **Flexible**: Contrôle individuel de chaque effet
+- ✅ **Performant**: Rendu direct sans copie de texture inutile
+- ✅ **Séparé**: Shaders sur scène uniquement, UI rendu directement
+- ✅ **Abstrait**: **Aucune dépendance SFML** hors du backend
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│           PostProcessPipeline                       │
+│  (Gère la chaîne de rendu et les effets)           │
+├─────────────────────────────────────────────────────┤
+│  + initialize(width, height): bool                  │
+│  + addEffect<T>(): T*                               │
+│  + getEffect<T>(): T*                               │
+│  + beginSceneRender()                               │
+│  + endSceneRender(deltaTime)                        │
+│  + setEnabled(bool)                                 │
+├─────────────────────────────────────────────────────┤
+│  - m_effects: vector<unique_ptr<PostProcessEffect>> │
+│  - m_renderTexture: RenderTextureHandle            │
+│  - m_graphicsBackend: IGraphicsBackend*            │
+└─────────────────────────────────────────────────────┘
+                        │
+                        │ contient
+                        ▼
+┌─────────────────────────────────────────────────────┐
+│       PostProcessEffect (Interface)                 │
+│   (Classe abstraite pour tous les effets)          │
+├─────────────────────────────────────────────────────┤
+│  + initialize(backend, w, h): bool                  │
+│  + shutdown()                                       │
+│  + apply(renderTexture, deltaTime)                  │
+│  + setEnabled(bool)                                 │
+│  + getName(): const char*                           │
+└─────────────────────────────────────────────────────┘
+                        △
+         ┌──────────────┼──────────────┐
+         │              │              │
+    ┌────────┐    ┌──────────┐   ┌──────────┐
+    │  CRT   │    │  Bloom   │   │ Custom   │
+    │ Effect │    │  Effect  │   │  Effect  │
+    └────────┘    └──────────┘   └──────────┘
+```
+
+### Classe PostProcessPipeline
+
+**Localisation:** `sdk/include/NovaEngine/Rendering/PostProcessPipeline.hpp`
+
+```cpp
+class PostProcessPipeline {
+public:
+    PostProcessPipeline(IGraphicsBackend* graphicsBackend);
+    ~PostProcessPipeline();
+
+    // Initialisation
+    bool initialize(u32 width, u32 height);
+    void shutdown();
+
+    // Gestion des effets (templates)
+    template<typename T>
+    T* addEffect() {
+        auto effect = std::make_unique<T>();
+        T* ptr = effect.get();
+        m_effects.push_back(std::move(effect));
+        
+        if(m_initialized) {
+            ptr->initialize(m_graphicsBackend, m_width, m_height);
+        }
+        
+        return ptr;
+    }
+
+    template<typename T>
+    T* getEffect() {
+        for(auto& effect : m_effects) {
+            T* ptr = dynamic_cast<T*>(effect.get());
+            if(ptr) return ptr;
+        }
+        return nullptr;
+    }
+
+    // Rendu
+    void beginSceneRender();    // Bind render texture
+    void endSceneRender(f32 dt); // Apply effects + draw to screen
+
+    // Contrôle
+    void setEnabled(bool enabled);
+    bool isEnabled() const;
+    void clearEffects();
+
+private:
+    IGraphicsBackend* m_graphicsBackend;
+    RenderTextureHandle m_renderTexture;
+    std::vector<std::unique_ptr<PostProcessEffect>> m_effects;
+    u32 m_width, m_height;
+    bool m_initialized, m_enabled;
+};
+```
+
+### Interface PostProcessEffect
+
+**Localisation:** `sdk/include/NovaEngine/Rendering/PostProcessEffect.hpp`
+
+```cpp
+class PostProcessEffect {
+public:
+    virtual ~PostProcessEffect() = default;
+
+    // Méthodes à implémenter
+    virtual bool initialize(IGraphicsBackend* backend, 
+                           u32 width, u32 height) = 0;
+    virtual void shutdown() = 0;
+    virtual void apply(RenderTextureHandle renderTexture, 
+                      f32 deltaTime) = 0;
+    virtual const char* getName() const = 0;
+
+    // Méthodes par défaut
+    virtual void setEnabled(bool enabled) { m_enabled = enabled; }
+    virtual bool isEnabled() const { return m_enabled; }
+
+protected:
+    bool m_enabled = true;
+    IGraphicsBackend* m_graphicsBackend = nullptr;
+};
+```
+
+### Effets Built-in
+
+#### 1. CRTEffect - Écran Cathodique Vintage
+
+**Localisation:** `sdk/include/NovaEngine/Rendering/Effects/CRTEffect.hpp`
+
+Simule l'apparence d'un vieux moniteur CRT avec 15 effets distincts :
+
+```cpp
+class CRTEffect : public PostProcessEffect {
+public:
+    // Interface PostProcessEffect
+    bool initialize(IGraphicsBackend* backend, u32 w, u32 h) override;
+    void shutdown() override;
+    void apply(RenderTextureHandle rt, f32 deltaTime) override;
+    const char* getName() const override { return "CRT"; }
+
+    // Paramètres ajustables en temps réel
+    void setScanlineIntensity(f32 intensity);    // Lignes de balayage
+    void setPixelGridIntensity(f32 intensity);   // Grille RGB
+    void setChromaticAberration(f32 amount);     // Aberration chromatique
+    void setRGBShiftAmount(f32 amount);          // Décalage RGB (VHS)
+    void setCurvature(f32 curvature);            // Courbure de l'écran
+    void setVignetteStrength(f32 strength);      // Assombrissement bords
+    void setGlowIntensity(f32 intensity);        // Bloom/glow
+    void setNoiseIntensity(f32 intensity);       // Grain/bruit
+    void setColorBanding(f32 banding);           // Réduction couleurs
+
+private:
+    ShaderHandle m_shader;
+    f32 m_scanlineIntensity = 0.15f;
+    f32 m_pixelGridIntensity = 0.2f;
+    f32 m_chromaticAberration = 0.001f;
+    // ... autres paramètres
+};
+```
+
+**Effets visuels inclus:**
+1. Courbure CRT (écran bombé)
+2. Scanlines animées avec flicker
+3. Grille de pixels RGB
+4. Aberration chromatique radiale
+5. RGB shift horizontal (effet VHS)
+6. Vignettage
+7. Glow/bloom sur zones lumineuses
+8. Ghosting (traînées fantômes)
+9. Phosphor decay
+10. Interference pattern
+11. Noise/grain dynamique
+12. Color banding
+13. Teinte chaleureuse
+14. Ajustement contraste
+15. Animation temporelle
+
+**Shaders:** `client/assets/shaders/crt.vert` + `crt.frag`
+
+#### 2. PassthroughEffect - Effet Transparent
+
+**Localisation:** `sdk/include/NovaEngine/Rendering/Effects/PassthroughEffect.hpp`
+
+Effet simple qui ne modifie pas l'image (utile pour tests ou désactivation temporaire).
+
+```cpp
+class PassthroughEffect : public PostProcessEffect {
+public:
+    bool initialize(IGraphicsBackend* backend, u32 w, u32 h) override {
+        m_graphicsBackend = backend;
+        return true;
+    }
+    void shutdown() override {}
+    void apply(RenderTextureHandle rt, f32 dt) override {
+        m_graphicsBackend->drawRenderTextureToScreen(rt, INVALID_HANDLE);
+    }
+    const char* getName() const override { return "Passthrough"; }
+};
+```
+
+### Utilisation
+
+#### Exemple 1 : Intégration Basique
+
+```cpp
+// Dans Game.hpp
+#include "NovaEngine/Rendering/PostProcessPipeline.hpp"
+
+class Game : public NovaEngine::Application {
+private:
+    std::unique_ptr<NovaEngine::PostProcessPipeline> m_postProcessing;
+};
+
+// Dans Game.cpp - Initialisation
+#include "NovaEngine/Rendering/Effects/CRTEffect.hpp"
+
+bool Game::onInitialize() {
+    // ... initialisation scène, UI, etc ...
+
+    // Créer le pipeline
+    m_postProcessing = std::make_unique<PostProcessPipeline>(&GRAPHICS());
+    
+    if(!m_postProcessing->initialize(logicalWidth, logicalHeight)) {
+        LOG_WARN("Failed to initialize post-processing");
+        m_postProcessing.reset();
+    } else {
+        // Ajouter l'effet CRT
+        auto* crt = m_postProcessing->addEffect<CRTEffect>();
+        
+        // Optionnel: ajuster les paramètres
+        crt->setScanlineIntensity(0.2f);
+        crt->setCurvature(0.15f);
+        
+        LOG_INFO("Post-processing initialized with CRT effect");
+    }
+
+    return true;
+}
+
+// Dans Game.cpp - Rendu
+void Game::onRender() {
+    // Shader appliqué UNIQUEMENT à la scène
+    if(m_postProcessing) {
+        m_postProcessing->beginSceneRender();
+    }
+
+    m_sceneManager.render();  // Rendu dans render texture
+
+    if(m_postProcessing) {
+        m_postProcessing->endSceneRender(deltaTime);  // Applique shader
+    }
+
+    // UI rendu directement (sans shader)
+    m_uiManager.render();
+}
+```
+
+#### Exemple 2 : Chaîne d'Effets Multiples
+
+```cpp
+bool Game::onInitialize() {
+    m_postProcessing = std::make_unique<PostProcessPipeline>(&GRAPHICS());
+    m_postProcessing->initialize(width, height);
+
+    // Ajouter plusieurs effets (appliqués dans l'ordre)
+    m_postProcessing->addEffect<BloomEffect>();
+    m_postProcessing->addEffect<CRTEffect>();
+    m_postProcessing->addEffect<VignetteEffect>();
+
+    // Ordre d'application:
+    // Scène → Bloom → CRT → Vignette → Écran
+    
+    return true;
+}
+```
+
+#### Exemple 3 : Contrôle Dynamique
+
+```cpp
+void Game::onEvent(const Event& event) {
+    if(event.type == EventType::Input && 
+       event.inputEvent.type == InputEventType::KeyPressed) {
+        
+        // Toggle CRT avec touche C
+        if(event.inputEvent.key.code == KeyCode::C) {
+            auto* crt = m_postProcessing->getEffect<CRTEffect>();
+            if(crt) {
+                crt->setEnabled(!crt->isEnabled());
+            }
+        }
+        
+        // Ajuster intensité avec +/-
+        if(event.inputEvent.key.code == KeyCode::Num0) {
+            auto* crt = m_postProcessing->getEffect<CRTEffect>();
+            if(crt) {
+                crt->setScanlineIntensity(0.5f);  // Plus intense
+            }
+        }
+        
+        // Désactiver tout le post-processing avec P
+        if(event.inputEvent.key.code == KeyCode::P) {
+            m_postProcessing->setEnabled(!m_postProcessing->isEnabled());
+        }
+    }
+}
+```
+
+### Créer un Effet Personnalisé
+
+#### Étape 1 : Créer le Header
+
+**Fichier:** `sdk/include/NovaEngine/Rendering/Effects/MyCustomEffect.hpp`
+
+```cpp
+#pragma once
+#include "../PostProcessEffect.hpp"
+
+namespace NovaEngine {
+
+class MyCustomEffect : public PostProcessEffect {
+public:
+    MyCustomEffect();
+    ~MyCustomEffect() override;
+
+    bool initialize(IGraphicsBackend* backend, u32 w, u32 h) override;
+    void shutdown() override;
+    void apply(RenderTextureHandle rt, f32 deltaTime) override;
+    const char* getName() const override { return "MyCustom"; }
+
+    // Paramètres personnalisés
+    void setIntensity(f32 intensity) { m_intensity = intensity; }
+
+private:
+    ShaderHandle m_shader;
+    f32 m_intensity = 1.0f;
+    u32 m_width, m_height;
+};
+
+}
+```
+
+#### Étape 2 : Implémenter le .cpp
+
+**Fichier:** `client/src/Rendering/Effects/MyCustomEffect.cpp`
+
+```cpp
+#include "NovaEngine/Rendering/Effects/MyCustomEffect.hpp"
+#include "NovaEngine/Core/Logger.hpp"
+
+namespace NovaEngine {
+
+MyCustomEffect::MyCustomEffect() 
+    : m_shader(INVALID_HANDLE), m_width(0), m_height(0) {}
+
+MyCustomEffect::~MyCustomEffect() {
+    shutdown();
+}
+
+bool MyCustomEffect::initialize(IGraphicsBackend* backend, u32 w, u32 h) {
+    m_graphicsBackend = backend;
+    m_width = w;
+    m_height = h;
+
+    // Charger les shaders
+    m_shader = backend->loadShader(
+        "data/shaders/mycustom.vert",
+        "data/shaders/mycustom.frag"
+    );
+
+    if(m_shader == INVALID_HANDLE) {
+        LOG_ERROR("MyCustomEffect: Failed to load shader");
+        return false;
+    }
+
+    LOG_INFO("MyCustomEffect initialized");
+    return true;
+}
+
+void MyCustomEffect::shutdown() {
+    if(m_shader != INVALID_HANDLE) {
+        m_graphicsBackend->unloadShader(m_shader);
+        m_shader = INVALID_HANDLE;
+    }
+}
+
+void MyCustomEffect::apply(RenderTextureHandle rt, f32 deltaTime) {
+    if(m_shader == INVALID_HANDLE) return;
+
+    // Envoyer les paramètres au shader
+    m_graphicsBackend->setShaderParameter(m_shader, "intensity", m_intensity);
+    m_graphicsBackend->setShaderParameter(m_shader, "time", deltaTime);
+    m_graphicsBackend->setShaderParameter(m_shader, "resolution",
+        Vec2f(static_cast<f32>(m_width), static_cast<f32>(m_height)));
+
+    // Dessiner avec le shader
+    m_graphicsBackend->drawRenderTextureToScreen(rt, m_shader);
+}
+
+}
+```
+
+#### Étape 3 : Créer les Shaders GLSL
+
+**Fichier:** `client/assets/shaders/mycustom.vert`
+
+```glsl
+#version 120
+
+void main() {
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+    gl_TexCoord[0] = gl_MultiTexCoord0;
+    gl_FrontColor = gl_Color;
+}
+```
+
+**Fichier:** `client/assets/shaders/mycustom.frag`
+
+```glsl
+#version 120
+
+uniform sampler2D texture;
+uniform float intensity;
+uniform float time;
+uniform vec2 resolution;
+
+void main() {
+    vec2 uv = gl_TexCoord[0].xy;
+    vec4 color = texture2D(texture, uv);
+    
+    // Exemple: effet de pulsation
+    float pulse = sin(time * 2.0) * 0.5 + 0.5;
+    color.rgb *= intensity * pulse;
+    
+    gl_FragColor = color;
+}
+```
+
+#### Étape 4 : Utiliser l'Effet
+
+```cpp
+#include "NovaEngine/Rendering/Effects/MyCustomEffect.hpp"
+
+// Dans onInitialize()
+auto* custom = m_postProcessing->addEffect<MyCustomEffect>();
+custom->setIntensity(0.8f);
+```
+
+#### Étape 5 : Ajouter au Build
+
+**Dans `client__compile.bat`:**
+
+```batch
+set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\MyCustomEffect.cpp"
+```
+
+### Flux de Rendu avec Post-Processing
+
+```
+Frame Start
+  │
+  ├─ WINDOW().clear(clearColor)
+  │
+  ├─ PostProcessPipeline::beginSceneRender()
+  │   ├─ clearRenderTexture(Black)
+  │   └─ bindRenderTexture()  ← Tous les draws vont dans la texture
+  │
+  ├─ SceneManager::render()
+  │   ├─ AnimationSystem::update()
+  │   ├─ LightSystem::update()
+  │   └─ RenderSystem::update()
+  │       ├─ Sort entities by zOrder
+  │       └─ For each sprite:
+  │           └─ GRAPHICS().drawSprite()  → Dans render texture
+  │
+  ├─ PostProcessPipeline::endSceneRender(dt)
+  │   ├─ displayRenderTexture()
+  │   ├─ unbindRenderTexture()  ← Retour à la fenêtre
+  │   │
+  │   ├─ For each effect:
+  │   │   └─ effect->apply(renderTexture, dt)
+  │   │       ├─ setShaderParameter(...)
+  │   │       └─ drawRenderTextureToScreen(rt, shader)
+  │   │           └─ Dessine la texture avec le shader appliqué
+  │   │
+  │   └─ Si aucun effet: drawRenderTextureToScreen(rt, INVALID_HANDLE)
+  │
+  ├─ UIManager::render()  ← Direct sur fenêtre (sans shader)
+  │   └─ For each UI component:
+  │       └─ GRAPHICS().drawSprite/drawText/drawRect()
+  │
+  └─ WINDOW().display()
+```
+
+### Exemples d'Effets Possibles
+
+```cpp
+// Bloom / Glow Effect
+class BloomEffect : public PostProcessEffect {
+    // 1. Render bright pixels à blur texture
+    // 2. Blur horizontal
+    // 3. Blur vertical  
+    // 4. Additive blend avec scène originale
+};
+
+// Motion Blur
+class MotionBlurEffect : public PostProcessEffect {
+    // Garde historique frames précédentes
+    // Blend avec frame actuelle
+};
+
+// Color Grading
+class ColorGradingEffect : public PostProcessEffect {
+    // LUT (Look-Up Table) pour correction couleur
+    // Saturation, contraste, température
+};
+
+// Vignette Simple
+class VignetteEffect : public PostProcessEffect {
+    // Assombrit les bords de l'écran
+    // Paramètre: rayon, force
+};
+
+// Film Grain
+class FilmGrainEffect : public PostProcessEffect {
+    // Ajoute du bruit aléatoire
+    // Paramètre: intensité, taille grain
+};
+
+// Pixelation
+class PixelationEffect : public PostProcessEffect {
+    // Réduit résolution apparente
+    // Paramètre: taille des "pixels"
+};
+
+// Lighting 2D
+class LightingEffect : public PostProcessEffect {
+    // Normal maps
+    // Multiple light sources
+    // Shadows
+};
+```
+
+### Intégration Backend
+
+Le système utilise les méthodes abstraites de `IGraphicsBackend`:
+
+```cpp
+// Interface abstraite (Backend/Interfaces/IGraphicsBackend.hpp)
+virtual RenderTextureHandle createRenderTexture(u32 w, u32 h) = 0;
+virtual void bindRenderTexture(RenderTextureHandle handle) = 0;
+virtual void unbindRenderTexture() = 0;
+virtual void clearRenderTexture(RenderTextureHandle, Color) = 0;
+virtual void displayRenderTexture(RenderTextureHandle) = 0;
+virtual void drawRenderTextureToScreen(RenderTextureHandle, ShaderHandle) = 0;
+virtual void unloadRenderTexture(RenderTextureHandle) = 0;
+
+virtual ShaderHandle loadShader(const String& vert, const String& frag) = 0;
+virtual void setShaderParameter(ShaderHandle, const String& name, f32) = 0;
+virtual void setShaderParameter(ShaderHandle, const String& name, Vec2f) = 0;
+```
+
+**Implémentation SFML** (`Backend/SFML/SFMLGraphicsBackend.cpp`):
+- `sf::RenderTexture` pour render-to-texture
+- `sf::Shader` pour shaders GLSL
+- Gestion automatique de l'inversion verticale des textures SFML
+
+### Performance
+
+**Optimisations appliquées:**
+1. ✅ Aucune copie de texture (référence directe à `sf::RenderTexture::getTexture()`)
+2. ✅ Render texture créée une fois au startup
+3. ✅ Shaders compilés au chargement
+4. ✅ Paramètres shader envoyés uniquement quand nécessaire
+5. ✅ Pipeline désactivable sans overhead
+
+**Coût typique:** ~0.5ms par effet sur hardware moderne (1080p)
+
+### Limitations et Considérations
+
+1. **Shaders GLSL 120:** Compatible SFML, OpenGL 2.1+
+2. **Pas de multi-pass automatique:** Chaque effet draw directement
+3. **Ordre des effets:** Important (non-commutatif)
+4. **Résolution fixe:** Définie à l'initialisation (recreate si changement)
+5. **UI non affectée:** Par design (séparation scène/UI)
+
+### Migration depuis PostProcessManager
+
+L'ancien `PostProcessManager` reste disponible mais le nouveau système est recommandé:
+
+```cpp
+// Ancien (deprecated)
+m_postProcessManager = std::make_unique<PostProcessManager>(&GRAPHICS());
+m_postProcessManager->initialize(width, height);
+m_postProcessManager->beginFrame();
+m_postProcessManager->endFrame();
+
+// Nouveau (recommandé)
+m_postProcessing = std::make_unique<PostProcessPipeline>(&GRAPHICS());
+m_postProcessing->initialize(width, height);
+m_postProcessing->addEffect<CRTEffect>();
+m_postProcessing->beginSceneRender();
+m_postProcessing->endSceneRender(deltaTime);
+```
+
+**Avantages du nouveau système:**
+- Modulaire (plusieurs effets)
+- Extensible (créer des effets facilement)
+- Contrôle individuel des effets
+- Architecture plus propre
+
+---
 ## Résumé Architecture
 
 ### Patterns Utilisés
