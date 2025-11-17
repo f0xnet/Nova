@@ -20,18 +20,40 @@ Game::~Game() {
 bool Game::onInitialize() {
     LOG_INFO("Initializing Game");
 
-    // Configure viewport with 16:9 logical resolution
-    // This is the standard approach for indie games - we only support 16:9
-    // Sprites will scale to window size but may stretch on non-16:9 screens
-    // (which is acceptable since 90% of screens are 16:9)
+    // Configure viewport with letterboxing to preserve aspect ratio
     const auto& displayConfig = NovaEngine::ConfigManager::getInstance().getDisplayConfig();
     float logicalWidth = static_cast<float>(displayConfig.nativeWidth);
     float logicalHeight = static_cast<float>(displayConfig.nativeHeight);
+    float logicalAspectRatio = logicalWidth / logicalHeight;
 
-    VIEWPORT().setViewSize(NovaEngine::Vec2f(logicalWidth, logicalHeight));
-    VIEWPORT().setViewCenter(NovaEngine::Vec2f(logicalWidth / 2.0f, logicalHeight / 2.0f));
+    // Get actual window size
+    u32 windowWidth = WINDOW().getWidth();
+    u32 windowHeight = WINDOW().getHeight();
+    float windowAspectRatio = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
 
-    LOG_INFO("Viewport configured: 16:9 logical resolution {}x{}", logicalWidth, logicalHeight);
+    // Calculate viewport with letterboxing/pillarboxing
+    NovaEngine::Rect viewportRect;
+    if (windowAspectRatio > logicalAspectRatio) {
+        // Pillarbox (vertical bars on sides)
+        float viewportWidth = logicalAspectRatio / windowAspectRatio;
+        float offsetX = (1.0f - viewportWidth) / 2.0f;
+        viewportRect = NovaEngine::Rect(offsetX, 0.0f, viewportWidth, 1.0f);
+    } else {
+        // Letterbox (horizontal bars top/bottom)
+        float viewportHeight = windowAspectRatio / logicalAspectRatio;
+        float offsetY = (1.0f - viewportHeight) / 2.0f;
+        viewportRect = NovaEngine::Rect(0.0f, offsetY, 1.0f, viewportHeight);
+    }
+
+    NovaEngine::ViewportData viewData;
+    viewData.size = NovaEngine::Vec2f(logicalWidth, logicalHeight);
+    viewData.center = NovaEngine::Vec2f(logicalWidth / 2.0f, logicalHeight / 2.0f);
+    viewData.viewport = viewportRect;
+    viewData.rotation = 0.0f;
+    VIEWPORT().setView(viewData);
+
+    LOG_INFO("Viewport: {}x{} logical, letterboxed on {}x{} window",
+             logicalWidth, logicalHeight, windowWidth, windowHeight);
 
     // Initialize ECS Scene Manager
     if (!m_sceneManager.initialize("data/definitions/", "data/scenegraph.json")) {
@@ -40,14 +62,12 @@ bool Game::onInitialize() {
     }
 
     // Load game scene
-    if (!m_sceneManager.loadScene("data/scenes/ville.json", "ville")) {
-        LOG_WARN("Failed to load ville scene, using test scene");
-        m_sceneManager.loadScene("assets/data/scenes/test_scene.json", "test");
-        m_sceneManager.setActiveScene("test");
-    } else {
-        m_sceneManager.setActiveScene("ville");
-        LOG_INFO("Ville scene loaded and activated");
+    if (!m_sceneManager.loadScene("data/scenes/test.json", "test")) {
+        LOG_ERROR("Failed to load test scene");
+        return false;
     }
+    m_sceneManager.setActiveScene("test");
+    LOG_INFO("Test scene loaded and activated");
 
     // Create player in active scene
     createPlayer();

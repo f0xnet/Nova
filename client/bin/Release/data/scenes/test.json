@@ -1,0 +1,6 @@
+{
+  "name": "Test Scene",
+  "type": "exterior",
+  "backgroundColor": [30, 30, 40, 255],
+  "entities": []
+}
