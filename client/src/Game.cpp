@@ -74,9 +74,18 @@ void Game::onUpdate(float deltaTime) {
         // Update NPC detection
         m_playerController->updateNPCDetection(scene);
 
-        // Update camera to follow player
+        // Get player position for debugging
         Vec2f playerPos = m_playerController->getPlayerPosition(scene);
-        VIEWPORT().setViewCenter(playerPos);
+
+        // Camera following disabled for testing - player should move freely on screen
+        // TODO: Implement proper camera system with smooth following or deadzones
+        // VIEWPORT().setViewCenter(playerPos);
+
+        // Debug: log player position every 60 frames
+        static int frameCount = 0;
+        if (++frameCount % 60 == 0) {
+            LOG_INFO("Player pos: ({}, {})", playerPos.x, playerPos.y);
+        }
 
         // Show/hide NPC indicator
         Entity* nearestNPC = m_playerController->getNearestNPC();
@@ -178,9 +187,13 @@ void Game::createPlayer() {
     sprite->textureHandle = RESOURCES().loadTexture("data/sprites/player.png");
     if (sprite->textureHandle == INVALID_HANDLE) {
         LOG_WARN("Player sprite texture not found: data/sprites/player.png");
+    } else {
+        LOG_INFO("Player sprite loaded successfully (handle: {})", sprite->textureHandle);
     }
-    sprite->size = Vec2f(64, 64);
-    sprite->tint = Color(100, 200, 255);
+    sprite->size = Vec2f(256, 256);  // Increased size for 4K display (was 64x64)
+    sprite->tint = Color(255, 0, 0);  // Bright red for easy visibility
+    sprite->visible = true;
+    sprite->zOrder = 100;  // Ensure it's rendered on top
 
     // Register with player controller
     m_playerController->setPlayerID(player->getID());
