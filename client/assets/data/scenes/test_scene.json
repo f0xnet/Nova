@@ -4,6 +4,14 @@
   "backgroundColor": [30, 30, 40, 255],
   "entities": [
     {
+      "type": "sprite",
+      "spriteID": "player",
+      "position": [400, 300],
+      "rotation": 0,
+      "scale": [1.0, 1.0],
+      "zOrder": 10
+    },
+    {
       "type": "light",
       "lightID": "torch",
       "position": [400, 300],

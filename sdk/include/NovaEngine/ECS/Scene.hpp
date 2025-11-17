@@ -277,7 +277,23 @@ private:
         if (!texturePath.empty()) {
             sprite->textureHandle = RESOURCES().loadTexture(texturePath);
             if (sprite->textureHandle == INVALID_HANDLE) {
-                LOG_WARN("Failed to load texture for sprite '{}': {}", spriteID, texturePath);
+                LOG_WARN("Failed to load texture for sprite '{}': {}, creating fallback texture", spriteID, texturePath);
+
+                // Create a fallback magenta texture (64x64) for visual debugging
+                sprite->textureHandle = GRAPHICS().createTexture(64, 64);
+                if (sprite->textureHandle != INVALID_HANDLE) {
+                    // Fill with magenta color (255, 0, 255, 255)
+                    constexpr u32 size = 64 * 64 * 4; // RGBA
+                    u8 pixels[size];
+                    for (u32 i = 0; i < 64 * 64; ++i) {
+                        pixels[i * 4 + 0] = 255; // R
+                        pixels[i * 4 + 1] = 0;   // G
+                        pixels[i * 4 + 2] = 255; // B
+                        pixels[i * 4 + 3] = 255; // A
+                    }
+                    GRAPHICS().updateTexture(sprite->textureHandle, pixels, 64, 64, 0, 0);
+                    LOG_INFO("Created fallback 64x64 magenta texture for sprite '{}'", spriteID);
+                }
             }
         }
 
