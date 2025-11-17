@@ -197,14 +197,21 @@ void Game::createPlayer() {
     using namespace NovaEngine;
 
     Scene* scene = m_sceneManager.getActiveScene();
-    if (!scene) return;
+    if (!scene) {
+        LOG_ERROR("Cannot create player: no active scene");
+        return;
+    }
+
+    LOG_INFO("Creating player entity...");
+    LOG_INFO("Scene has {} entities before player creation",
+             scene->getEntityRegistry().getEntityCount());
 
     // Create player entity
     Entity* player = scene->getEntityRegistry().createEntity();
 
-    // Add Transform
+    // Add Transform - use logical coordinates (center of 3840x2160)
     auto* transform = player->addComponent(std::make_unique<TransformComponent>());
-    transform->position = Vec2f(640, 360);
+    transform->position = Vec2f(1920, 1080);  // Center of logical resolution
 
     // Add Sprite
     auto* sprite = player->addComponent(std::make_unique<SpriteComponent>());
@@ -224,7 +231,10 @@ void Game::createPlayer() {
     // Register with player controller
     m_playerController->setPlayerID(player->getID());
 
-    LOG_INFO("Player created at ({}, {})", transform->position.x, transform->position.y);
+    LOG_INFO("Player created at ({}, {}) with ID: {}",
+             transform->position.x, transform->position.y, player->getID());
+    LOG_INFO("Scene now has {} entities",
+             scene->getEntityRegistry().getEntityCount());
 }
 
 void Game::handleUIAction(const std::string& action,
