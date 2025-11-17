@@ -1,0 +1,22 @@
+IMPORTANT NOTE - DialogueComponent
+
+Ce projet démontre comment créer un COMPOSANT PERSONNALISÉ (DialogueComponent).
+
+Le DialogueComponent n'est pas dans le SDK de base de NovaEngine - il est défini
+dans main.cpp de cet exemple. C'est intentionnel pour montrer comment étendre le
+moteur avec vos propres composants.
+
+Pour cette raison, les NPCs avec dialogue ne sont PAS chargés depuis les fichiers
+JSON de scène. Au lieu de cela, le code main.cpp crée manuellement les NPCs avec
+leurs DialogueComponents après le chargement de la scène.
+
+Si vous voulez ajouter DialogueComponent au SDK principal de NovaEngine et le
+charger depuis JSON, vous devriez :
+
+1. Ajouter DialogueComponent dans sdk/include/NovaEngine/ECS/Components.hpp
+2. Créer Dialogues.json dans definitions/
+3. Modifier Scene.hpp pour ajouter createDialogueEntity()
+4. Charger depuis JSON avec type: "dialogue"
+
+Pour cet exemple simple, nous gardons DialogueComponent dans main.cpp pour
+montrer la flexibilité de l'architecture ECS.

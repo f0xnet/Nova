@@ -1,0 +1,88 @@
+{
+    "name": "dialogue_system",
+    "UIID": "dialogue",
+    "language": "en",
+    "description": "NPC dialogue interface",
+    "layers": 2,
+    "images": [
+        {
+            "ID": "dialogue_box_bg",
+            "groupID": "dialogue_active",
+            "description": "Dialogue box background",
+            "image": "data/ui/dialogue/dialogue_box.png",
+            "x": 190,
+            "y": 890,
+            "width": 1500,
+            "height": 250,
+            "effect": "default",
+            "layer": 1,
+            "isActive": false
+        }
+    ],
+    "text": [
+        {
+            "ID": "npc_name",
+            "groupID": "dialogue_active",
+            "description": "NPC name display",
+            "content": "NPC",
+            "x": 230,
+            "y": 910,
+            "width": 800,
+            "height": 50,
+            "font": "data/font/SpaceMono-Regular.ttf",
+            "fontSize": 40,
+            "color": "255,255,100",
+            "effect": "default",
+            "layer": 2,
+            "isActive": false
+        },
+        {
+            "ID": "dialogue_text",
+            "groupID": "dialogue_active",
+            "description": "Dialogue line text",
+            "content": "",
+            "x": 230,
+            "y": 980,
+            "width": 1400,
+            "height": 120,
+            "font": "data/font/SpaceMono-Regular.ttf",
+            "fontSize": 30,
+            "color": "255,255,255",
+            "effect": "default",
+            "layer": 2,
+            "isActive": false
+        },
+        {
+            "ID": "continue_indicator",
+            "groupID": "dialogue_active",
+            "description": "Press E to continue",
+            "content": "[ Press E to continue ]",
+            "x": 1300,
+            "y": 1090,
+            "width": 350,
+            "height": 30,
+            "font": "data/font/SpaceMono-Regular.ttf",
+            "fontSize": 23,
+            "color": "150,150,150",
+            "effect": "default",
+            "layer": 2,
+            "isActive": false
+        },
+        {
+            "ID": "interact_indicator",
+            "groupID": "npc_nearby",
+            "description": "Press E to talk indicator above NPC",
+            "content": "[ E ]",
+            "x": 920,
+            "y": 400,
+            "width": 80,
+            "height": 30,
+            "font": "data/font/SpaceMono-Regular.ttf",
+            "fontSize": 33,
+            "color": "255,255,100",
+            "effect": "default",
+            "layer": 2,
+            "isActive": false
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+# Build directories
+bin/
+obj/
+
+# Generated sprites (if user wants to version their own)
+# Uncomment to ignore:
+# assets/data/*.png
+# assets/data/*.ttf
+
+# Windows executable
+*.exe
+
+# Object files
+*.o
+
+# Backup files
+*.bak
+*~
+
+# IDE files
+.vscode/
+.vs/
+*.suo
+*.user

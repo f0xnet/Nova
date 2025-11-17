@@ -1,0 +1,216 @@
+{
+  "name": "Ville",
+  "type": "exterior",
+  "backgroundColor": [120, 150, 180, 255],
+  "pathfinding": {
+    "waypoints": [
+      {"id": "fountain", "position": [640, 360], "tags": ["landmark", "center", "main_road"]},
+
+      {"id": "north_plaza", "position": [640, 200], "tags": ["main_road", "plaza"]},
+      {"id": "south_plaza", "position": [640, 520], "tags": ["main_road", "plaza"]},
+      {"id": "east_plaza", "position": [1000, 360], "tags": ["main_road", "plaza"]},
+      {"id": "west_plaza", "position": [280, 360], "tags": ["main_road", "plaza"]},
+
+      {"id": "maison_bob_door", "position": [250, 450], "tags": ["residential"]},
+      {"id": "maison_alice_door", "position": [450, 350], "tags": ["residential"]},
+      {"id": "taverne_door", "position": [800, 300], "tags": ["commercial"]},
+      {"id": "magasin_door", "position": [600, 200], "tags": ["commercial"]},
+      {"id": "temple_door", "position": [1200, 600], "tags": ["religious"]},
+      {"id": "caserne_door", "position": [950, 500], "tags": ["military"]},
+      {"id": "forgeron_door", "position": [350, 550], "tags": ["commercial"]},
+      {"id": "auberge_door", "position": [700, 450], "tags": ["commercial"]},
+
+      {"id": "shortcut_ne", "position": [850, 250], "tags": ["shortcut"]},
+      {"id": "shortcut_se", "position": [900, 450], "tags": ["shortcut"]},
+      {"id": "shortcut_sw", "position": [400, 500], "tags": ["shortcut"]},
+      {"id": "shortcut_nw", "position": [450, 250], "tags": ["shortcut"]},
+
+      {"id": "scenic_garden", "position": [500, 360], "tags": ["scenic", "peaceful"]},
+      {"id": "scenic_park", "position": [780, 400], "tags": ["scenic", "peaceful"]},
+      {"id": "scenic_square", "position": [720, 260], "tags": ["scenic", "peaceful"]}
+    ],
+    "connections": [
+      {"from": "fountain", "to": "north_plaza", "tags": ["main_road"], "bidirectional": true},
+      {"from": "fountain", "to": "south_plaza", "tags": ["main_road"], "bidirectional": true},
+      {"from": "fountain", "to": "east_plaza", "tags": ["main_road"], "bidirectional": true},
+      {"from": "fountain", "to": "west_plaza", "tags": ["main_road"], "bidirectional": true},
+
+      {"from": "north_plaza", "to": "magasin_door", "tags": ["main_road"], "bidirectional": true},
+      {"from": "north_plaza", "to": "maison_alice_door", "tags": ["main_road"], "bidirectional": true},
+
+      {"from": "south_plaza", "to": "maison_bob_door", "tags": ["main_road"], "bidirectional": true},
+      {"from": "south_plaza", "to": "forgeron_door", "tags": ["main_road"], "bidirectional": true},
+      {"from": "south_plaza", "to": "auberge_door", "tags": ["main_road"], "bidirectional": true},
+
+      {"from": "east_plaza", "to": "taverne_door", "tags": ["main_road"], "bidirectional": true},
+      {"from": "east_plaza", "to": "temple_door", "tags": ["main_road"], "bidirectional": true},
+      {"from": "east_plaza", "to": "caserne_door", "tags": ["main_road"], "bidirectional": true},
+
+      {"from": "shortcut_ne", "to": "magasin_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_ne", "to": "taverne_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_ne", "to": "fountain", "tags": ["shortcut"], "bidirectional": true},
+
+      {"from": "shortcut_se", "to": "taverne_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_se", "to": "caserne_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_se", "to": "auberge_door", "tags": ["shortcut"], "bidirectional": true},
+
+      {"from": "shortcut_sw", "to": "maison_bob_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_sw", "to": "forgeron_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_sw", "to": "fountain", "tags": ["shortcut"], "bidirectional": true},
+
+      {"from": "shortcut_nw", "to": "maison_alice_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_nw", "to": "magasin_door", "tags": ["shortcut"], "bidirectional": true},
+      {"from": "shortcut_nw", "to": "fountain", "tags": ["shortcut"], "bidirectional": true},
+
+      {"from": "scenic_garden", "to": "fountain", "tags": ["scenic"], "bidirectional": true},
+      {"from": "scenic_garden", "to": "west_plaza", "tags": ["scenic"], "bidirectional": true},
+      {"from": "scenic_garden", "to": "maison_alice_door", "tags": ["scenic"], "bidirectional": true},
+
+      {"from": "scenic_park", "to": "fountain", "tags": ["scenic"], "bidirectional": true},
+      {"from": "scenic_park", "to": "auberge_door", "tags": ["scenic"], "bidirectional": true},
+      {"from": "scenic_park", "to": "taverne_door", "tags": ["scenic"], "bidirectional": true},
+
+      {"from": "scenic_square", "to": "fountain", "tags": ["scenic"], "bidirectional": true},
+      {"from": "scenic_square", "to": "north_plaza", "tags": ["scenic"], "bidirectional": true},
+      {"from": "scenic_square", "to": "magasin_door", "tags": ["scenic"], "bidirectional": true}
+    ]
+  },
+  "entities": [
+    {
+      "type": "sprite",
+      "spriteID": "ground_tile",
+      "position": [0, 0],
+      "scale": [20, 15],
+      "zOrder": -10
+    },
+    {
+      "type": "sprite",
+      "spriteID": "maison_bob_exterior",
+      "position": [250, 450],
+      "zOrder": 5,
+      "comment": "Porte de la maison de Bob - exitPortal dans scenegraph"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "maison_alice_exterior",
+      "position": [450, 350],
+      "zOrder": 5,
+      "comment": "Porte de la maison d'Alice"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "taverne_exterior",
+      "position": [800, 300],
+      "zOrder": 5,
+      "comment": "Porte de la taverne"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "magasin_exterior",
+      "position": [600, 200],
+      "zOrder": 5,
+      "comment": "Porte du magasin"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "temple_exterior",
+      "position": [1200, 600],
+      "zOrder": 5,
+      "comment": "Porte du temple"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "caserne_exterior",
+      "position": [950, 500],
+      "zOrder": 5,
+      "comment": "Porte de la caserne"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "forgeron_exterior",
+      "position": [350, 550],
+      "zOrder": 5,
+      "comment": "Porte du forgeron"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "auberge_exterior",
+      "position": [700, 450],
+      "zOrder": 5,
+      "comment": "Porte de l'auberge"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "fountain",
+      "position": [640, 360],
+      "zOrder": 3,
+      "comment": "Fontaine centrale"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [250, 450],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans maison_bob"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [450, 350],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans maison_alice"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [800, 300],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans taverne"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [600, 200],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans magasin"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [1200, 600],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans temple"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [950, 500],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans caserne"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [350, 550],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans forgeron"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [700, 450],
+      "comment": "Zone qui détecte quand joueur/NPC entre dans auberge"
+    },
+    {
+      "type": "light",
+      "lightID": "torch",
+      "position": [640, 360],
+      "comment": "Lumière de la fontaine centrale"
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [250, 450],
+      "comment": "Lumière devant maison_bob"
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [800, 300],
+      "comment": "Lumière devant taverne"
+    }
+  ]
+}

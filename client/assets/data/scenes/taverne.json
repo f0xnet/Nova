@@ -1,0 +1,104 @@
+{
+  "name": "La Taverne du Dragon Ivre",
+  "type": "interior",
+  "backgroundColor": [60, 50, 40, 255],
+  "entities": [
+    {
+      "type": "sprite",
+      "spriteID": "floor_stone",
+      "position": [0, 0],
+      "scale": [12, 10],
+      "zOrder": -10
+    },
+    {
+      "type": "sprite",
+      "spriteID": "door_interior",
+      "position": [400, 580],
+      "zOrder": 5,
+      "comment": "Porte de sortie - entryPortal (entrée depuis la ville)"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "bar_counter",
+      "position": [400, 200],
+      "zOrder": 2
+    },
+    {
+      "type": "sprite",
+      "spriteID": "table",
+      "position": [250, 400],
+      "zOrder": 1,
+      "comment": "Table où Bob déjeune"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "chair",
+      "position": [250, 450],
+      "zOrder": 1
+    },
+    {
+      "type": "sprite",
+      "spriteID": "table",
+      "position": [550, 400],
+      "zOrder": 1
+    },
+    {
+      "type": "sprite",
+      "spriteID": "chair",
+      "position": [550, 450],
+      "zOrder": 1
+    },
+    {
+      "type": "sprite",
+      "spriteID": "table",
+      "position": [500, 300],
+      "zOrder": 1,
+      "comment": "Table où Alice déjeune"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "chair",
+      "position": [500, 350],
+      "zOrder": 1
+    },
+    {
+      "type": "sprite",
+      "spriteID": "fireplace",
+      "position": [150, 250],
+      "zOrder": 1
+    },
+    {
+      "type": "light",
+      "lightID": "torch",
+      "position": [400, 200],
+      "comment": "Lumière du bar"
+    },
+    {
+      "type": "light",
+      "lightID": "torch",
+      "position": [150, 250],
+      "comment": "Lumière de la cheminée"
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [250, 400]
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [550, 400]
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [500, 300]
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [400, 580],
+      "comment": "Zone qui détecte quand joueur/NPC sort vers la ville"
+    }
+  ]
+}

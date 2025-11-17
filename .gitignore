@@ -1,7 +1,13 @@
 
+# Executables
 client/bin/Release/Nova.exe
 server/bin/Release/NovaServer.exe
-server/bin/Release/server.log
 *.exe
-*.exe
+
+# Build artifacts
+client/obj/
+server/obj/
+
+# Logs
 server/bin/Release/server.log
+*.log
