@@ -16,6 +16,8 @@ CRTEffect::CRTEffect()
     , m_glowIntensity(0.5f)
     , m_noiseIntensity(0.04f)
     , m_colorBanding(0.08f)
+    , m_saturation(1.2f)
+    , m_ambientOcclusion(0.3f)
 {
     m_startTime = std::chrono::high_resolution_clock::now();
 }
@@ -87,6 +89,8 @@ void CRTEffect::updateParameters() {
     m_graphicsBackend->setShaderParameter(m_shader, "glowIntensity", m_glowIntensity);
     m_graphicsBackend->setShaderParameter(m_shader, "noiseIntensity", m_noiseIntensity);
     m_graphicsBackend->setShaderParameter(m_shader, "colorBanding", m_colorBanding);
+    m_graphicsBackend->setShaderParameter(m_shader, "saturation", m_saturation);
+    m_graphicsBackend->setShaderParameter(m_shader, "ambientOcclusion", m_ambientOcclusion);
 }
 
 }

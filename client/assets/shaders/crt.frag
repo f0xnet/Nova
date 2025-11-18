@@ -22,6 +22,8 @@ uniform float vignetteStrength;
 uniform float glowIntensity;
 uniform float noiseIntensity;
 uniform float colorBanding;
+uniform float saturation;
+uniform float ambientOcclusion;
 
 const float PI = 3.14159265359;
 
@@ -120,6 +122,30 @@ float vignette(vec2 uv) {
     float vig = smoothstep(1.5, 0.4, dist);
 
     return mix(1.0, vig, vignetteStrength);
+}
+
+// ============================================================================
+// AMBIENT OCCLUSION (simulated corner/edge darkening)
+// ============================================================================
+float applyAmbientOcclusion(vec2 uv) {
+    if (ambientOcclusion <= 0.0) return 1.0;
+
+    vec2 centered = uv * 2.0 - 1.0;
+    float cornerDist = length(centered);
+    float cornerAO = 1.0 - smoothstep(0.5, 1.4, cornerDist) * 0.5;
+    float edgeX = 1.0 - pow(abs(centered.x), 3.0) * 0.3;
+    float edgeY = 1.0 - pow(abs(centered.y), 3.0) * 0.3;
+    float ao = cornerAO * edgeX * edgeY;
+
+    return mix(1.0, ao, ambientOcclusion);
+}
+
+// ============================================================================
+// SATURATION
+// ============================================================================
+vec3 applySaturation(vec3 color, float sat) {
+    float gray = dot(color, vec3(0.299, 0.587, 0.114));
+    return mix(vec3(gray), color, sat);
 }
 
 // ============================================================================
@@ -252,11 +278,17 @@ void main()
     // Vignette
     color *= vignette(curvedUV);
 
+    // Ambient Occlusion
+    color *= applyAmbientOcclusion(curvedUV);
+
     // Color banding
     color = posterize(color, colorBanding);
 
     // Noise
     color = applyNoise(color, curvedUV, noiseIntensity);
+
+    // Saturation
+    color = applySaturation(color, saturation);
 
     // Contraste (increased)
     color = ((color - 0.5) * 1.2) + 0.5;
