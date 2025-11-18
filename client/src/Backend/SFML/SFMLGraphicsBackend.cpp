@@ -247,17 +247,27 @@ void SFMLGraphicsBackend::drawRenderTextureToScreen(RenderTextureHandle handle, 
     auto rtIt = m_renderTextures.find(handle);
     if(rtIt == m_renderTextures.end() || !rtIt->second) return;
 
+    // Sauvegarder la vue actuelle
+    sf::View previousView = m_window->getView();
+
+    // Utiliser la vue par défaut pour dessiner le sprite plein écran
+    m_window->setView(m_window->getDefaultView());
+
     // Créer un sprite avec la texture de la render texture
     const sf::Texture& texture = rtIt->second->getTexture();
     sf::Sprite sprite(texture);
-    sprite.setPosition(0, 0);
+
+    // Calculer l'échelle pour remplir la fenêtre
+    sf::Vector2u texSize = texture.getSize();
+    sf::Vector2u windowSize = m_window->getSize();
+    float scaleX = static_cast<float>(windowSize.x) / static_cast<float>(texSize.x);
+    float scaleY = static_cast<float>(windowSize.y) / static_cast<float>(texSize.y);
 
     // IMPORTANT: Les render textures SFML sont inversées verticalement
     // On doit appliquer une échelle négative sur Y pour les afficher correctement
-    sf::Vector2u texSize = texture.getSize();
     sprite.setOrigin(0, static_cast<float>(texSize.y));
-    sprite.setScale(1.0f, -1.0f);
-    sprite.setPosition(0, static_cast<float>(texSize.y));
+    sprite.setScale(scaleX, -scaleY);
+    sprite.setPosition(0, static_cast<float>(windowSize.y));
 
     // Préparer les render states avec le shader si fourni
     sf::RenderStates states;
@@ -270,6 +280,9 @@ void SFMLGraphicsBackend::drawRenderTextureToScreen(RenderTextureHandle handle, 
 
     // Dessiner sur la fenêtre
     m_window->draw(sprite, states);
+
+    // Restaurer la vue précédente
+    m_window->setView(previousView);
 }
 
 void SFMLGraphicsBackend::unloadRenderTexture(RenderTextureHandle handle) {

@@ -6,7 +6,8 @@
 #include "NovaEngine/UI/UILoader.hpp"
 #include "NovaEngine/Events/Event.hpp"
 #include "NovaEngine/ECS/ECS.hpp"
-#include "NovaEngine/Rendering/PostProcessManager.hpp"
+#include "NovaEngine/Rendering/PostProcessPipeline.hpp"
+#include "NovaEngine/Rendering/Effects/CRTEffect.hpp"
 
 // Forward declarations for game modules
 namespace NovaEngine {
@@ -24,7 +25,8 @@ private:
     // Game modules
     std::unique_ptr<NovaEngine::DialogueSystem> m_dialogueSystem;
     std::unique_ptr<NovaEngine::PlayerController> m_playerController;
-    std::unique_ptr<NovaEngine::PostProcessManager> m_postProcessManager;
+    std::unique_ptr<NovaEngine::PostProcessPipeline> m_postProcessPipeline;
+    NovaEngine::CRTEffect* m_crtEffect; // Pointer to CRT effect (owned by pipeline)
     NovaEngine::FontHandle m_font;
 
 public:

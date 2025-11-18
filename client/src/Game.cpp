@@ -9,7 +9,8 @@ Game::Game()
     , m_isConnected(false)
     , m_dialogueSystem(std::make_unique<NovaEngine::DialogueSystem>())
     , m_playerController(std::make_unique<NovaEngine::PlayerController>())
-    , m_postProcessManager(nullptr)
+    , m_postProcessPipeline(nullptr)
+    , m_crtEffect(nullptr)
 {
     LOG_TRACE("Game constructed");
 }
@@ -106,21 +107,30 @@ bool Game::onInitialize() {
     // Initialize dialogue system with UI manager
     m_dialogueSystem->initialize(&m_uiManager);
 
-    // Initialize post-processing with CRT shader
-    m_postProcessManager = std::make_unique<NovaEngine::PostProcessManager>(&GRAPHICS());
-    if (!m_postProcessManager->initialize(
+    // Initialize post-processing pipeline
+    m_postProcessPipeline = std::make_unique<NovaEngine::PostProcessPipeline>(&GRAPHICS());
+    if (!m_postProcessPipeline->initialize(
         static_cast<NovaEngine::u32>(logicalWidth),
         static_cast<NovaEngine::u32>(logicalHeight))) {
-        LOG_WARN("Failed to initialize PostProcessManager - CRT shader disabled");
-        m_postProcessManager.reset();
+        LOG_WARN("Failed to initialize PostProcessPipeline");
+        m_postProcessPipeline.reset();
     } else {
-        LOG_INFO("CRT post-processing shader initialized successfully");
+        // Add CRT effect (can be disabled/enabled at runtime)
+        m_crtEffect = m_postProcessPipeline->addEffect<NovaEngine::CRTEffect>();
+        if (m_crtEffect) {
+            // Optionally disable CRT by default - uncomment to start without shader
+            // m_crtEffect->setEnabled(false);
+            LOG_INFO("CRT post-processing effect added successfully");
+        } else {
+            LOG_WARN("Failed to add CRT effect");
+        }
     }
 
     LOG_INFO("Game initialized successfully");
     LOG_INFO("=== Controls ===");
     LOG_INFO("  WASD / Arrow Keys - Move");
     LOG_INFO("  E - Talk to NPCs / Advance dialogue");
+    LOG_INFO("  F1 - Toggle CRT shader effect");
     LOG_INFO("  ESC - Quit");
 
     return true;
@@ -154,21 +164,21 @@ void Game::onUpdate(float deltaTime) {
 }
 
 void Game::onRender() {
-    // Begin post-processing (render to texture if enabled)
-    if (m_postProcessManager) {
-        m_postProcessManager->beginFrame();
+    // Begin post-processing (render scene to texture)
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->beginSceneRender();
     }
 
-    // Render ECS scene
+    // Render ECS scene (to texture if pipeline enabled)
     m_sceneManager.render();
 
-    // Render UI (includes dialogue)
-    m_uiManager.render();
-
-    // End post-processing (apply CRT shader)
-    if (m_postProcessManager) {
-        m_postProcessManager->endFrame();
+    // End scene rendering and apply post-processing effects
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->endSceneRender(0.016f); // ~60fps delta
     }
+
+    // Render UI directly to screen (no shader applied)
+    m_uiManager.render();
 }
 
 void Game::onEvent(const NovaEngine::Event& event) {
@@ -195,15 +205,24 @@ void Game::onEvent(const NovaEngine::Event& event) {
                 }
             }
         }
+        else if (event.inputEvent.key.code == KeyCode::F1) {
+            // Toggle CRT shader effect
+            if (m_crtEffect) {
+                bool newState = !m_crtEffect->isEnabled();
+                m_crtEffect->setEnabled(newState);
+                LOG_INFO("CRT effect {}", newState ? "enabled" : "disabled");
+            }
+        }
     }
 }
 
 void Game::onShutdown() {
     LOG_INFO("Game shutting down");
-    if (m_postProcessManager) {
-        m_postProcessManager->shutdown();
-        m_postProcessManager.reset();
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->shutdown();
+        m_postProcessPipeline.reset();
     }
+    m_crtEffect = nullptr; // Owned by pipeline, already deleted
     m_sceneManager.shutdown();
 }
 
