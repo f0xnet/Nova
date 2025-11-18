@@ -255,34 +255,49 @@ void SFMLGraphicsBackend::drawRenderTextureToScreen(RenderTextureHandle handle, 
     // Sauvegarder la vue actuelle
     sf::View previousView = m_window->getView();
 
-    // Utiliser la vue par défaut pour dessiner le sprite plein écran
+    // Utiliser la vue par défaut pour dessiner le quad plein écran
     m_window->setView(m_window->getDefaultView());
 
-    // Créer un sprite avec la texture de la render texture
     const sf::Texture& texture = rtIt->second->getTexture();
-    sf::Sprite sprite(texture);
-
-    // Calculer l'échelle pour remplir la fenêtre
     sf::Vector2u texSize = texture.getSize();
     sf::Vector2u windowSize = m_window->getSize();
-    float scaleX = static_cast<float>(windowSize.x) / static_cast<float>(texSize.x);
-    float scaleY = static_cast<float>(windowSize.y) / static_cast<float>(texSize.y);
 
-    // L'inversion verticale est gérée dans le shader (uv.y = 1.0 - uv.y)
-    sprite.setScale(scaleX, scaleY);
-    sprite.setPosition(0, 0);
+    // Utiliser VertexArray pour contrôle total des UV
+    sf::VertexArray quad(sf::Quads, 4);
 
-    // Préparer les render states avec le shader si fourni
+    quad[0].position = sf::Vector2f(0, 0);
+    quad[1].position = sf::Vector2f(static_cast<float>(windowSize.x), 0);
+    quad[2].position = sf::Vector2f(static_cast<float>(windowSize.x), static_cast<float>(windowSize.y));
+    quad[3].position = sf::Vector2f(0, static_cast<float>(windowSize.y));
+
+    quad[0].texCoords = sf::Vector2f(0, 0);
+    quad[1].texCoords = sf::Vector2f(static_cast<float>(texSize.x), 0);
+    quad[2].texCoords = sf::Vector2f(static_cast<float>(texSize.x), static_cast<float>(texSize.y));
+    quad[3].texCoords = sf::Vector2f(0, static_cast<float>(texSize.y));
+
+    quad[0].color = sf::Color::White;
+    quad[1].color = sf::Color::White;
+    quad[2].color = sf::Color::White;
+    quad[3].color = sf::Color::White;
+
+    // Préparer les render states
     sf::RenderStates states;
+    states.texture = &texture;
+
     if(shader != INVALID_HANDLE) {
         auto shaderIt = m_shaders.find(shader);
         if(shaderIt != m_shaders.end() && shaderIt->second) {
+            // Passer les uniforms nécessaires au shader
+            shaderIt->second->setUniform("tex", sf::Shader::CurrentTexture);
+            shaderIt->second->setUniform("texSize", sf::Vector2f(
+                static_cast<float>(texSize.x),
+                static_cast<float>(texSize.y)));
             states.shader = shaderIt->second.get();
         }
     }
 
     // Dessiner sur la fenêtre
-    m_window->draw(sprite, states);
+    m_window->draw(quad, states);
 
     // Restaurer la vue précédente
     m_window->setView(previousView);
