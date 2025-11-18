@@ -214,9 +214,14 @@ RenderTextureHandle SFMLGraphicsBackend::createRenderTexture(u32 width, u32 heig
 }
 
 void SFMLGraphicsBackend::bindRenderTexture(RenderTextureHandle handle) {
-    if(handle == INVALID_HANDLE) return;
+    if(handle == INVALID_HANDLE || !m_window) return;
     auto it = m_renderTextures.find(handle);
     if(it != m_renderTextures.end() && it->second) {
+        // Copy the window's view (size, center, rotation) to the render texture
+        // But use full viewport since render texture is sized to logical resolution
+        sf::View view = m_window->getView();
+        view.setViewport(sf::FloatRect(0.f, 0.f, 1.f, 1.f));
+        it->second->setView(view);
         m_activeRenderTarget = it->second.get();
     }
 }

@@ -29,11 +29,16 @@ bool CRTEffect::initialize(IGraphicsBackend* graphicsBackend, u32 width, u32 hei
     m_width = width;
     m_height = height;
 
-    // Charger le shader CRT
+    // Charger le shader CRT (ou passthrough pour debug)
+    // DEBUG: Utiliser passthrough pour tester
     m_shader = m_graphicsBackend->loadShader(
-        "data/shaders/crt.vert",
-        "data/shaders/crt.frag"
+        "data/shaders/passthrough.vert",
+        "data/shaders/passthrough.frag"
     );
+    // m_shader = m_graphicsBackend->loadShader(
+    //     "data/shaders/crt.vert",
+    //     "data/shaders/crt.frag"
+    // );
 
     if(m_shader == INVALID_HANDLE) {
         LOG_ERROR("CRTEffect: Failed to load shader");
