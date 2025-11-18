@@ -271,9 +271,6 @@ void main()
         return;
     }
 
-    // Border fade to prevent edge artifacts
-    float border = borderFade(curvedUV);
-
     // Aberration chromatique
     vec3 color = chromaticAberrationEffect(curvedUV, chromaticAberration);
 
@@ -319,9 +316,6 @@ void main()
     // Teinte chaleureuse
     vec3 warmTint = vec3(1.0, 0.98, 0.95);
     color *= mix(vec3(1.0), warmTint, 0.12);
-
-    // Apply border fade to eliminate edge artifacts
-    color *= border;
 
     // Clamp
     color = clamp(color, 0.0, 1.0);
