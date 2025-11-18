@@ -31,9 +31,19 @@ const float PI = 3.14159265359;
 // SAFE TEXTURE SAMPLING (prevents edge artifacts)
 // ============================================================================
 vec4 sampleTexture(vec2 uv) {
-    // Clamp UVs to prevent sampling outside texture bounds
-    vec2 clampedUV = clamp(uv, 0.001, 0.999);
+    // Clamp UVs with larger margin to prevent edge artifacts
+    vec2 clampedUV = clamp(uv, 0.01, 0.99);
     return texture2D(tex, clampedUV);
+}
+
+// ============================================================================
+// EDGE FADE (smooth transition at borders after curvature)
+// ============================================================================
+float edgeFade(vec2 uv) {
+    float margin = 0.02;
+    float fadeX = smoothstep(0.0, margin, uv.x) * smoothstep(1.0, 1.0 - margin, uv.x);
+    float fadeY = smoothstep(0.0, margin, uv.y) * smoothstep(1.0, 1.0 - margin, uv.y);
+    return fadeX * fadeY;
 }
 
 // ============================================================================
@@ -43,8 +53,8 @@ vec2 curveCRT(vec2 uv) {
     if (curvature <= 0.0) return uv;
 
     uv = uv * 2.0 - 1.0;
-    // Reduced curvature divisors for less aggressive curve
-    vec2 offset = abs(uv.yx) / vec2(6.0, 5.0);
+    // Less aggressive curvature
+    vec2 offset = abs(uv.yx) / vec2(10.0, 8.0);
     uv = uv + uv * offset * offset * curvature;
 
     return uv * 0.5 + 0.5;
@@ -245,11 +255,14 @@ void main()
     vec2 curvedUV = curveCRT(uv);
 
     // Bords noirs (outside curved area)
-    if (curvedUV.x < 0.0 || curvedUV.x > 1.0 ||
-        curvedUV.y < 0.0 || curvedUV.y > 1.0) {
+    if (curvedUV.x < -0.01 || curvedUV.x > 1.01 ||
+        curvedUV.y < -0.01 || curvedUV.y > 1.01) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
     }
+
+    // Edge fade factor for smooth border transition
+    float fade = edgeFade(curvedUV);
 
     // Aberration chromatique
     vec3 color = chromaticAberrationEffect(curvedUV, chromaticAberration);
@@ -296,6 +309,9 @@ void main()
     // Teinte chaleureuse
     vec3 warmTint = vec3(1.0, 0.98, 0.95);
     color *= mix(vec3(1.0), warmTint, 0.12);
+
+    // Apply edge fade to eliminate border artifacts
+    color *= fade;
 
     // Clamp
     color = clamp(color, 0.0, 1.0);
