@@ -1,7 +1,7 @@
 // ============================================================================
 // SHADER CRT COMPLET - FORMAT .FRAG
 // ============================================================================
-// 17 effets distincts pour reproduction fidèle
+// 15 effets distincts pour reproduction fidèle
 // Compatible SFML avec texSize pour normalisation UV
 // ============================================================================
 
@@ -22,8 +22,6 @@ uniform float vignetteStrength;
 uniform float glowIntensity;
 uniform float noiseIntensity;
 uniform float colorBanding;
-uniform float saturation;
-uniform float ambientOcclusion;
 
 const float PI = 3.14159265359;
 
@@ -32,22 +30,8 @@ const float PI = 3.14159265359;
 // ============================================================================
 vec4 sampleTexture(vec2 uv) {
     // Clamp UVs to prevent sampling outside texture bounds
-    vec2 clampedUV = clamp(uv, 0.002, 0.998);
+    vec2 clampedUV = clamp(uv, 0.001, 0.999);
     return texture2D(tex, clampedUV);
-}
-
-// ============================================================================
-// BORDER FADE (smooth transition to black at edges)
-// ============================================================================
-float borderFade(vec2 uv) {
-    // Create smooth fade at edges - only fade the outer 1%
-    float fadeWidth = 0.01;
-    float left = smoothstep(0.0, fadeWidth, uv.x);
-    float right = smoothstep(0.0, fadeWidth, 1.0 - uv.x);
-    float top = smoothstep(0.0, fadeWidth, uv.y);
-    float bottom = smoothstep(0.0, fadeWidth, 1.0 - uv.y);
-    // Ensure we never go completely black except at very edge
-    return max(left * right * top * bottom, 0.001);
 }
 
 // ============================================================================
@@ -57,8 +41,8 @@ vec2 curveCRT(vec2 uv) {
     if (curvature <= 0.0) return uv;
 
     uv = uv * 2.0 - 1.0;
-    // Reduced curvature for less aggressive curve
-    vec2 offset = abs(uv.yx) / vec2(8.0, 6.0);
+    // Reduced curvature divisors for less aggressive curve
+    vec2 offset = abs(uv.yx) / vec2(6.0, 5.0);
     uv = uv + uv * offset * offset * curvature;
 
     return uv * 0.5 + 0.5;
@@ -136,36 +120,6 @@ float vignette(vec2 uv) {
     float vig = smoothstep(1.5, 0.4, dist);
 
     return mix(1.0, vig, vignetteStrength);
-}
-
-// ============================================================================
-// AMBIENT OCCLUSION (simulated corner/edge darkening)
-// ============================================================================
-float applyAmbientOcclusion(vec2 uv) {
-    if (ambientOcclusion <= 0.0) return 1.0;
-
-    // Distance from center
-    vec2 centered = uv * 2.0 - 1.0;
-
-    // Corner darkening (stronger in corners)
-    float cornerDist = length(centered);
-    float cornerAO = 1.0 - smoothstep(0.5, 1.4, cornerDist) * 0.5;
-
-    // Edge darkening
-    float edgeX = 1.0 - pow(abs(centered.x), 3.0) * 0.3;
-    float edgeY = 1.0 - pow(abs(centered.y), 3.0) * 0.3;
-    float edgeAO = edgeX * edgeY;
-
-    float ao = cornerAO * edgeAO;
-    return mix(1.0, ao, ambientOcclusion);
-}
-
-// ============================================================================
-// SATURATION
-// ============================================================================
-vec3 applySaturation(vec3 color, float sat) {
-    float gray = dot(color, vec3(0.299, 0.587, 0.114));
-    return mix(vec3(gray), color, sat);
 }
 
 // ============================================================================
@@ -264,7 +218,7 @@ void main()
     // Courbure CRT
     vec2 curvedUV = curveCRT(uv);
 
-    // Bords noirs (outside curved area) with smooth fade
+    // Bords noirs (outside curved area)
     if (curvedUV.x < 0.0 || curvedUV.x > 1.0 ||
         curvedUV.y < 0.0 || curvedUV.y > 1.0) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -298,17 +252,11 @@ void main()
     // Vignette
     color *= vignette(curvedUV);
 
-    // Ambient Occlusion
-    color *= applyAmbientOcclusion(curvedUV);
-
     // Color banding
     color = posterize(color, colorBanding);
 
     // Noise
     color = applyNoise(color, curvedUV, noiseIntensity);
-
-    // Saturation
-    color = applySaturation(color, saturation);
 
     // Contraste (increased)
     color = ((color - 0.5) * 1.2) + 0.5;

@@ -34,8 +34,6 @@ public:
     void setGlowIntensity(f32 intensity) { m_glowIntensity = intensity; updateParameters(); }
     void setNoiseIntensity(f32 intensity) { m_noiseIntensity = intensity; updateParameters(); }
     void setColorBanding(f32 banding) { m_colorBanding = banding; updateParameters(); }
-    void setSaturation(f32 saturation) { m_saturation = saturation; updateParameters(); }
-    void setAmbientOcclusion(f32 ao) { m_ambientOcclusion = ao; updateParameters(); }
 
 private:
     void updateParameters();
@@ -54,8 +52,6 @@ private:
     f32 m_glowIntensity;
     f32 m_noiseIntensity;
     f32 m_colorBanding;
-    f32 m_saturation;
-    f32 m_ambientOcclusion;
 
     std::chrono::high_resolution_clock::time_point m_startTime;
 };
