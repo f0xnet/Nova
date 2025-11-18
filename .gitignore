@@ -7,6 +7,8 @@ server/bin/Release/NovaServer.exe
 # Build artifacts
 client/obj/
 server/obj/
+client/bin/Release/data/
+server/bin/Release/data/
 
 # Logs
 server/bin/Release/server.log
