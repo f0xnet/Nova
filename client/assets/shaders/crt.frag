@@ -144,9 +144,13 @@ float applyAmbientOcclusion(vec2 uv) {
 
     vec2 centered = uv * 2.0 - 1.0;
     float cornerDist = length(centered);
-    float cornerAO = 1.0 - smoothstep(0.5, 1.4, cornerDist) * 0.5;
-    float edgeX = 1.0 - pow(abs(centered.x), 3.0) * 0.3;
-    float edgeY = 1.0 - pow(abs(centered.y), 3.0) * 0.3;
+
+    // More aggressive corner darkening
+    float cornerAO = 1.0 - smoothstep(0.3, 1.2, cornerDist) * 0.8;
+
+    // Stronger edge darkening
+    float edgeX = 1.0 - pow(abs(centered.x), 2.0) * 0.6;
+    float edgeY = 1.0 - pow(abs(centered.y), 2.0) * 0.6;
     float ao = cornerAO * edgeX * edgeY;
 
     return mix(1.0, ao, ambientOcclusion);
