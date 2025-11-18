@@ -40,9 +40,11 @@ vec4 sampleTexture(vec2 uv) {
 // EDGE FADE (smooth transition at borders after curvature)
 // ============================================================================
 float edgeFade(vec2 uv) {
-    float margin = 0.02;
-    float fadeX = smoothstep(0.0, margin, uv.x) * smoothstep(1.0, 1.0 - margin, uv.x);
-    float fadeY = smoothstep(0.0, margin, uv.y) * smoothstep(1.0, 1.0 - margin, uv.y);
+    // Clamp UV first to handle values outside 0-1
+    vec2 safeUV = clamp(uv, 0.0, 1.0);
+    float margin = 0.03;
+    float fadeX = smoothstep(0.0, margin, safeUV.x) * smoothstep(1.0, 1.0 - margin, safeUV.x);
+    float fadeY = smoothstep(0.0, margin, safeUV.y) * smoothstep(1.0, 1.0 - margin, safeUV.y);
     return fadeX * fadeY;
 }
 
@@ -233,13 +235,11 @@ vec3 phosphorDecay(vec3 color) {
 }
 
 // ============================================================================
-// INTERFERENCE PATTERN
+// INTERFERENCE PATTERN (disabled - was causing unwanted scanlines)
 // ============================================================================
 float interference(vec2 uv) {
-    float pattern = sin(uv.y * 200.0 + time * 5.0) * 0.5 + 0.5;
-    pattern = smoothstep(0.3, 0.7, pattern);
-
-    return mix(1.0, pattern, 0.03);
+    // Disabled - return 1.0 (no effect)
+    return 1.0;
 }
 
 // ============================================================================
