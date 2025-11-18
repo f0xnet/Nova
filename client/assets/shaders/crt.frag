@@ -40,13 +40,14 @@ vec4 sampleTexture(vec2 uv) {
 // BORDER FADE (smooth transition to black at edges)
 // ============================================================================
 float borderFade(vec2 uv) {
-    // Create smooth fade at all edges
-    float fadeWidth = 0.02;
+    // Create smooth fade at edges - only fade the outer 1%
+    float fadeWidth = 0.01;
     float left = smoothstep(0.0, fadeWidth, uv.x);
     float right = smoothstep(0.0, fadeWidth, 1.0 - uv.x);
     float top = smoothstep(0.0, fadeWidth, uv.y);
     float bottom = smoothstep(0.0, fadeWidth, 1.0 - uv.y);
-    return left * right * top * bottom;
+    // Ensure we never go completely black except at very edge
+    return max(left * right * top * bottom, 0.001);
 }
 
 // ============================================================================
