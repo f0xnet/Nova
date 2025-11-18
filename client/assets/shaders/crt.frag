@@ -137,46 +137,38 @@ float vignette(vec2 uv) {
 }
 
 // ============================================================================
-// EDGE-BASED AO (Sobel Edge Detection for Ambient Occlusion)
-// Based on Sobel filter by Patrick Hebron
+// DIFFUSE AO (Soft edge darkening spreading inward)
 // ============================================================================
-vec3 applyEdgeAO(vec2 uv, vec3 color, float intensity) {
-    if (intensity <= 0.0) return color;
+float applyDiffuseAO(vec2 uv, float intensity) {
+    if (intensity <= 0.0) return 1.0;
 
-    vec2 pixelSize = 1.0 / resolution;
+    // Center the UV coordinates
+    vec2 centered = uv * 2.0 - 1.0;
 
-    // Sample 3x3 neighborhood
-    vec3 n[9];
-    n[0] = sampleTexture(uv + vec2(-pixelSize.x, -pixelSize.y)).rgb;
-    n[1] = sampleTexture(uv + vec2(0.0, -pixelSize.y)).rgb;
-    n[2] = sampleTexture(uv + vec2(pixelSize.x, -pixelSize.y)).rgb;
-    n[3] = sampleTexture(uv + vec2(-pixelSize.x, 0.0)).rgb;
-    n[4] = sampleTexture(uv).rgb;
-    n[5] = sampleTexture(uv + vec2(pixelSize.x, 0.0)).rgb;
-    n[6] = sampleTexture(uv + vec2(-pixelSize.x, pixelSize.y)).rgb;
-    n[7] = sampleTexture(uv + vec2(0.0, pixelSize.y)).rgb;
-    n[8] = sampleTexture(uv + vec2(pixelSize.x, pixelSize.y)).rgb;
+    // Distance from each edge (0 at edge, 1 at center)
+    float distLeft = uv.x;
+    float distRight = 1.0 - uv.x;
+    float distTop = uv.y;
+    float distBottom = 1.0 - uv.y;
 
-    // Convert to luminance for edge detection
-    float l0 = dot(n[0], vec3(0.299, 0.587, 0.114));
-    float l1 = dot(n[1], vec3(0.299, 0.587, 0.114));
-    float l2 = dot(n[2], vec3(0.299, 0.587, 0.114));
-    float l3 = dot(n[3], vec3(0.299, 0.587, 0.114));
-    float l5 = dot(n[5], vec3(0.299, 0.587, 0.114));
-    float l6 = dot(n[6], vec3(0.299, 0.587, 0.114));
-    float l7 = dot(n[7], vec3(0.299, 0.587, 0.114));
-    float l8 = dot(n[8], vec3(0.299, 0.587, 0.114));
+    // Soft fade from edges - use pow for diffuse spread
+    float fadeLeft = pow(distLeft, 0.5);
+    float fadeRight = pow(distRight, 0.5);
+    float fadeTop = pow(distTop, 0.5);
+    float fadeBottom = pow(distBottom, 0.5);
 
-    // Sobel operator
-    float sobel_h = l2 + (2.0 * l5) + l8 - (l0 + (2.0 * l3) + l6);
-    float sobel_v = l0 + (2.0 * l1) + l2 - (l6 + (2.0 * l7) + l8);
-    float edge = sqrt(sobel_h * sobel_h + sobel_v * sobel_v);
+    // Combine all edges with smooth multiplication
+    float edgeFade = fadeLeft * fadeRight * fadeTop * fadeBottom;
 
-    // Darken edges (AO effect)
-    float ao = 1.0 - (edge * intensity * 2.0);
-    ao = clamp(ao, 0.3, 1.0); // Don't go too dark
+    // Also add subtle corner darkening
+    float cornerDist = length(centered);
+    float cornerFade = 1.0 - smoothstep(0.5, 1.5, cornerDist) * 0.3;
 
-    return color * ao;
+    // Combine edge and corner effects
+    float ao = edgeFade * cornerFade;
+
+    // Apply intensity - more intensity = more darkening
+    return mix(1.0 - intensity * 0.6, 1.0, ao);
 }
 
 // ============================================================================
@@ -318,8 +310,8 @@ void main()
     // Vignette
     color *= vignette(curvedUV);
 
-    // Edge-based AO (darken edges/contours)
-    color = applyEdgeAO(curvedUV, color, ambientOcclusion);
+    // Diffuse AO (soft darkening from edges)
+    color *= applyDiffuseAO(curvedUV, ambientOcclusion);
 
     // Color banding
     color = posterize(color, colorBanding);
