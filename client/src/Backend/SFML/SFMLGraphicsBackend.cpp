@@ -268,11 +268,9 @@ void SFMLGraphicsBackend::drawRenderTextureToScreen(RenderTextureHandle handle, 
     float scaleX = static_cast<float>(windowSize.x) / static_cast<float>(texSize.x);
     float scaleY = static_cast<float>(windowSize.y) / static_cast<float>(texSize.y);
 
-    // IMPORTANT: Les render textures SFML sont inversées verticalement
-    // On doit appliquer une échelle négative sur Y pour les afficher correctement
-    sprite.setOrigin(0, static_cast<float>(texSize.y));
-    sprite.setScale(scaleX, -scaleY);
-    sprite.setPosition(0, static_cast<float>(windowSize.y));
+    // L'inversion verticale est gérée dans le shader (uv.y = 1.0 - uv.y)
+    sprite.setScale(scaleX, scaleY);
+    sprite.setPosition(0, 0);
 
     // Préparer les render states avec le shader si fourni
     sf::RenderStates states;
