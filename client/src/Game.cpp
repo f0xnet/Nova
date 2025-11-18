@@ -130,7 +130,7 @@ bool Game::onInitialize() {
     LOG_INFO("=== Controls ===");
     LOG_INFO("  WASD / Arrow Keys - Move");
     LOG_INFO("  E - Talk to NPCs / Advance dialogue");
-    LOG_INFO("  F1 - Toggle CRT shader effect");
+    LOG_INFO("  P - Toggle CRT shader effect");
     LOG_INFO("  ESC - Quit");
 
     return true;
@@ -205,8 +205,8 @@ void Game::onEvent(const NovaEngine::Event& event) {
                 }
             }
         }
-        else if (event.inputEvent.key.code == KeyCode::F1) {
-            // Toggle CRT shader effect
+        else if (event.inputEvent.key.code == KeyCode::P) {
+            // Toggle CRT shader effect (P for Post-processing)
             if (m_crtEffect) {
                 bool newState = !m_crtEffect->isEnabled();
                 m_crtEffect->setEnabled(newState);
