@@ -137,43 +137,22 @@ float vignette(vec2 uv) {
 }
 
 // ============================================================================
-// SSAO SIMPLIFIÉ (Screen Space Ambient Occlusion)
+// FAKE AO (Brightness-based Ambient Occlusion)
 // ============================================================================
-float applySSAO(vec2 uv) {
-    if (ambientOcclusion <= 0.0) return 1.0;
+vec3 applyFakeAO(vec3 color, float intensity) {
+    if (intensity <= 0.0) return color;
 
-    vec2 pixelSize = 1.0 / resolution;
-    float radius = 3.0; // Sample radius in pixels
+    // Get brightness
+    float brightness = dot(color, vec3(0.299, 0.587, 0.114));
 
-    // Get current pixel brightness
-    vec3 centerColor = sampleTexture(uv).rgb;
-    float centerBright = dot(centerColor, vec3(0.299, 0.587, 0.114));
+    // Darken darker areas more (simulates light not reaching crevices)
+    // Areas below 0.5 brightness get progressively darker
+    float aoFactor = smoothstep(0.0, 0.6, brightness);
 
-    // Sample surrounding pixels
-    float occlusion = 0.0;
-    float samples = 0.0;
+    // Apply: darker areas get multiplied by smaller value
+    float darken = mix(1.0 - intensity * 0.8, 1.0, aoFactor);
 
-    // 8 direction sampling pattern
-    for (float angle = 0.0; angle < 6.28; angle += 0.785) { // 8 samples
-        for (float r = 1.0; r <= radius; r += 1.0) {
-            vec2 offset = vec2(cos(angle), sin(angle)) * r * pixelSize;
-            vec3 sampleColor = sampleTexture(uv + offset).rgb;
-            float sampleBright = dot(sampleColor, vec3(0.299, 0.587, 0.114));
-
-            // If neighbor is darker, add occlusion
-            float diff = centerBright - sampleBright;
-            if (diff > 0.05) {
-                occlusion += diff * (1.0 - r / (radius + 1.0));
-            }
-            samples += 1.0;
-        }
-    }
-
-    // Normalize and apply
-    occlusion = occlusion / samples * 8.0;
-    occlusion = clamp(occlusion, 0.0, 1.0);
-
-    return 1.0 - (occlusion * ambientOcclusion);
+    return color * darken;
 }
 
 // ============================================================================
@@ -315,8 +294,8 @@ void main()
     // Vignette
     color *= vignette(curvedUV);
 
-    // SSAO
-    color *= applySSAO(curvedUV);
+    // Fake AO (darken dark areas)
+    color = applyFakeAO(color, ambientOcclusion);
 
     // Color banding
     color = posterize(color, colorBanding);
