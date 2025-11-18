@@ -137,23 +137,43 @@ float vignette(vec2 uv) {
 }
 
 // ============================================================================
-// AMBIENT OCCLUSION (simulated corner/edge darkening)
+// SSAO SIMPLIFIÉ (Screen Space Ambient Occlusion)
 // ============================================================================
-float applyAmbientOcclusion(vec2 uv) {
+float applySSAO(vec2 uv) {
     if (ambientOcclusion <= 0.0) return 1.0;
 
-    vec2 centered = uv * 2.0 - 1.0;
-    float cornerDist = length(centered);
+    vec2 pixelSize = 1.0 / resolution;
+    float radius = 3.0; // Sample radius in pixels
 
-    // More aggressive corner darkening
-    float cornerAO = 1.0 - smoothstep(0.3, 1.2, cornerDist) * 0.8;
+    // Get current pixel brightness
+    vec3 centerColor = sampleTexture(uv).rgb;
+    float centerBright = dot(centerColor, vec3(0.299, 0.587, 0.114));
 
-    // Stronger edge darkening
-    float edgeX = 1.0 - pow(abs(centered.x), 2.0) * 0.6;
-    float edgeY = 1.0 - pow(abs(centered.y), 2.0) * 0.6;
-    float ao = cornerAO * edgeX * edgeY;
+    // Sample surrounding pixels
+    float occlusion = 0.0;
+    float samples = 0.0;
 
-    return mix(1.0, ao, ambientOcclusion);
+    // 8 direction sampling pattern
+    for (float angle = 0.0; angle < 6.28; angle += 0.785) { // 8 samples
+        for (float r = 1.0; r <= radius; r += 1.0) {
+            vec2 offset = vec2(cos(angle), sin(angle)) * r * pixelSize;
+            vec3 sampleColor = sampleTexture(uv + offset).rgb;
+            float sampleBright = dot(sampleColor, vec3(0.299, 0.587, 0.114));
+
+            // If neighbor is darker, add occlusion
+            float diff = centerBright - sampleBright;
+            if (diff > 0.05) {
+                occlusion += diff * (1.0 - r / (radius + 1.0));
+            }
+            samples += 1.0;
+        }
+    }
+
+    // Normalize and apply
+    occlusion = occlusion / samples * 8.0;
+    occlusion = clamp(occlusion, 0.0, 1.0);
+
+    return 1.0 - (occlusion * ambientOcclusion);
 }
 
 // ============================================================================
@@ -295,8 +315,8 @@ void main()
     // Vignette
     color *= vignette(curvedUV);
 
-    // Ambient Occlusion
-    color *= applyAmbientOcclusion(curvedUV);
+    // SSAO
+    color *= applySSAO(curvedUV);
 
     // Color banding
     color = posterize(color, colorBanding);
