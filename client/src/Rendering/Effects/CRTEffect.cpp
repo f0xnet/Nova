@@ -7,15 +7,15 @@ CRTEffect::CRTEffect()
     : m_shader(INVALID_HANDLE)
     , m_width(0)
     , m_height(0)
-    , m_scanlineIntensity(0.15f)
-    , m_pixelGridIntensity(0.2f)
-    , m_chromaticAberration(0.001f)
-    , m_rgbShiftAmount(0.0005f)
-    , m_curvature(0.15f)
-    , m_vignetteStrength(0.3f)
-    , m_glowIntensity(0.4f)
-    , m_noiseIntensity(0.03f)
-    , m_colorBanding(0.05f)
+    , m_scanlineIntensity(0.25f)
+    , m_pixelGridIntensity(0.3f)
+    , m_chromaticAberration(0.002f)
+    , m_rgbShiftAmount(0.001f)
+    , m_curvature(0.08f)
+    , m_vignetteStrength(0.4f)
+    , m_glowIntensity(0.5f)
+    , m_noiseIntensity(0.04f)
+    , m_colorBanding(0.08f)
 {
     m_startTime = std::chrono::high_resolution_clock::now();
 }
@@ -29,16 +29,11 @@ bool CRTEffect::initialize(IGraphicsBackend* graphicsBackend, u32 width, u32 hei
     m_width = width;
     m_height = height;
 
-    // Charger le shader CRT (ou passthrough pour debug)
-    // DEBUG: Utiliser passthrough pour tester
+    // Load CRT shader
     m_shader = m_graphicsBackend->loadShader(
-        "data/shaders/passthrough.vert",
-        "data/shaders/passthrough.frag"
+        "data/shaders/crt.vert",
+        "data/shaders/crt.frag"
     );
-    // m_shader = m_graphicsBackend->loadShader(
-    //     "data/shaders/crt.vert",
-    //     "data/shaders/crt.frag"
-    // );
 
     if(m_shader == INVALID_HANDLE) {
         LOG_ERROR("CRTEffect: Failed to load shader");

@@ -1,14 +1,14 @@
 // ============================================================================
 // SHADER CRT COMPLET - FORMAT .FRAG
 // ============================================================================
-// Basé sur analyse approfondie de 2 images
 // 15 effets distincts pour reproduction fidèle
-// Compatible SFML
+// Compatible SFML avec texSize pour normalisation UV
 // ============================================================================
 
 #version 120
 
-uniform sampler2D texture;
+uniform sampler2D tex;
+uniform vec2 texSize;
 uniform vec2 resolution;
 uniform float time;
 
@@ -26,13 +26,23 @@ uniform float colorBanding;
 const float PI = 3.14159265359;
 
 // ============================================================================
+// SAFE TEXTURE SAMPLING (prevents edge artifacts)
+// ============================================================================
+vec4 sampleTexture(vec2 uv) {
+    // Clamp UVs to prevent sampling outside texture bounds
+    vec2 clampedUV = clamp(uv, 0.001, 0.999);
+    return texture2D(tex, clampedUV);
+}
+
+// ============================================================================
 // COURBURE CRT
 // ============================================================================
 vec2 curveCRT(vec2 uv) {
     if (curvature <= 0.0) return uv;
 
     uv = uv * 2.0 - 1.0;
-    vec2 offset = abs(uv.yx) / vec2(5.0, 4.0);
+    // Reduced curvature divisors for less aggressive curve
+    vec2 offset = abs(uv.yx) / vec2(6.0, 5.0);
     uv = uv + uv * offset * offset * curvature;
 
     return uv * 0.5 + 0.5;
@@ -41,8 +51,8 @@ vec2 curveCRT(vec2 uv) {
 // ============================================================================
 // ABERRATION CHROMATIQUE
 // ============================================================================
-vec3 chromaticAberrationEffect(sampler2D tex, vec2 uv, float amount) {
-    if (amount <= 0.0) return texture2D(tex, uv).rgb;
+vec3 chromaticAberrationEffect(vec2 uv, float amount) {
+    if (amount <= 0.0) return sampleTexture(uv).rgb;
 
     vec2 direction = uv - 0.5;
     float dist = length(direction);
@@ -50,9 +60,9 @@ vec3 chromaticAberrationEffect(sampler2D tex, vec2 uv, float amount) {
 
     float aberration = amount * dist * 1.5;
 
-    float r = texture2D(tex, uv + direction * aberration).r;
-    float g = texture2D(tex, uv).g;
-    float b = texture2D(tex, uv - direction * aberration).b;
+    float r = sampleTexture(uv + direction * aberration).r;
+    float g = sampleTexture(uv).g;
+    float b = sampleTexture(uv - direction * aberration).b;
 
     return vec3(r, g, b);
 }
@@ -60,14 +70,14 @@ vec3 chromaticAberrationEffect(sampler2D tex, vec2 uv, float amount) {
 // ============================================================================
 // RGB SHIFT HORIZONTAL (VHS)
 // ============================================================================
-vec3 rgbShift(sampler2D tex, vec2 uv, float amount) {
-    if (amount <= 0.0) return texture2D(tex, uv).rgb;
+vec3 rgbShift(vec2 uv, float amount) {
+    if (amount <= 0.0) return sampleTexture(uv).rgb;
 
     float shift = sin(uv.y * 100.0 + time * 2.0) * amount;
 
-    float r = texture2D(tex, uv + vec2(shift, 0.0)).r;
-    float g = texture2D(tex, uv).g;
-    float b = texture2D(tex, uv - vec2(shift, 0.0)).b;
+    float r = sampleTexture(uv + vec2(shift, 0.0)).r;
+    float g = sampleTexture(uv).g;
+    float b = sampleTexture(uv - vec2(shift, 0.0)).b;
 
     return vec3(r, g, b);
 }
@@ -115,8 +125,8 @@ float vignette(vec2 uv) {
 // ============================================================================
 // GLOW/BLOOM
 // ============================================================================
-vec3 applyGlow(sampler2D tex, vec2 uv, float intensity) {
-    vec3 color = texture2D(tex, uv).rgb;
+vec3 applyGlow(vec2 uv, float intensity) {
+    vec3 color = sampleTexture(uv).rgb;
     float brightness = dot(color, vec3(0.299, 0.587, 0.114));
 
     if (brightness > 0.6) {
@@ -126,7 +136,7 @@ vec3 applyGlow(sampler2D tex, vec2 uv, float intensity) {
         for (float x = -3.0; x <= 3.0; x += 1.0) {
             for (float y = -3.0; y <= 3.0; y += 1.0) {
                 vec2 offset = vec2(x, y) * pixelSize * 1.5;
-                glow += texture2D(tex, uv + offset).rgb;
+                glow += sampleTexture(uv + offset).rgb;
             }
         }
 
@@ -163,12 +173,12 @@ vec3 posterize(vec3 color, float levels) {
 // ============================================================================
 // GHOSTING
 // ============================================================================
-vec3 applyGhosting(sampler2D tex, vec2 uv) {
-    vec3 color = texture2D(tex, uv).rgb;
+vec3 applyGhosting(vec2 uv) {
+    vec3 color = sampleTexture(uv).rgb;
 
     vec2 offset = vec2(0.003, 0.0);
-    vec3 ghost1 = texture2D(tex, uv + offset).rgb * 0.15;
-    vec3 ghost2 = texture2D(tex, uv + offset * 2.0).rgb * 0.08;
+    vec3 ghost1 = sampleTexture(uv + offset).rgb * 0.15;
+    vec3 ghost2 = sampleTexture(uv + offset * 2.0).rgb * 0.08;
 
     return color + ghost1 + ghost2;
 }
@@ -201,12 +211,14 @@ float interference(vec2 uv) {
 // ============================================================================
 void main()
 {
-    vec2 uv = gl_TexCoord[0].xy;
+    // Normalize UV from pixel coords to 0-1 and flip Y
+    vec2 uv = gl_TexCoord[0].xy / texSize;
+    uv.y = 1.0 - uv.y;
 
     // Courbure CRT
     vec2 curvedUV = curveCRT(uv);
 
-    // Bords noirs
+    // Bords noirs (outside curved area)
     if (curvedUV.x < 0.0 || curvedUV.x > 1.0 ||
         curvedUV.y < 0.0 || curvedUV.y > 1.0) {
         gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -214,16 +226,16 @@ void main()
     }
 
     // Aberration chromatique
-    vec3 color = chromaticAberrationEffect(texture, curvedUV, chromaticAberration);
+    vec3 color = chromaticAberrationEffect(curvedUV, chromaticAberration);
 
-    // RGB Shift
-    color = mix(color, rgbShift(texture, curvedUV, rgbShiftAmount), 0.6);
+    // RGB Shift (increased mix)
+    color = mix(color, rgbShift(curvedUV, rgbShiftAmount), 0.5);
 
-    // Ghosting
-    color = mix(color, applyGhosting(texture, curvedUV), 0.3);
+    // Ghosting (increased mix)
+    color = mix(color, applyGhosting(curvedUV), 0.4);
 
     // Glow
-    color = applyGlow(texture, curvedUV, glowIntensity);
+    color = applyGlow(curvedUV, glowIntensity);
 
     // Phosphor decay
     color = phosphorDecay(color);
@@ -246,8 +258,8 @@ void main()
     // Noise
     color = applyNoise(color, curvedUV, noiseIntensity);
 
-    // Contraste
-    color = ((color - 0.5) * 1.15) + 0.5;
+    // Contraste (increased)
+    color = ((color - 0.5) * 1.2) + 0.5;
 
     // Teinte chaleureuse
     vec3 warmTint = vec3(1.0, 0.98, 0.95);
