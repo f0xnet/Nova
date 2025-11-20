@@ -118,6 +118,12 @@ void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
     if(shaderToUse != INVALID_HANDLE) {
         auto sit = m_shaders.find(shaderToUse);
         if(sit != m_shaders.end() && sit->second) {
+            // Set required uniforms (pattern to avoid black screen)
+            sit->second->setUniform("tex", sf::Shader::CurrentTexture);
+            sf::Vector2u texSize = it->second->getSize();
+            sit->second->setUniform("texSize", sf::Vector2f(
+                static_cast<float>(texSize.x),
+                static_cast<float>(texSize.y)));
             states.shader = sit->second.get();
         }
     }
