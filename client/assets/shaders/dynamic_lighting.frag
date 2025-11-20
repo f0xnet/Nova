@@ -12,8 +12,8 @@ uniform float lightIntensity[MAX_LIGHTS];   // Intensité de teinte (0-1)
 uniform float ambientDarkness;              // Obscurité ambiante (0-1)
 
 void main() {
-    // UV normalisés (0-1)
-    vec2 uv = gl_TexCoord[0].xy;
+    // UV normalisés (0-1) - diviser par texSize pour normaliser de pixels → 0-1
+    vec2 uv = gl_TexCoord[0].xy / texSize;
 
     // Flip Y pour RenderTexture
     uv.y = 1.0 - uv.y;

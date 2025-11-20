@@ -21,9 +21,9 @@ bool DynamicLightingEffect::initialize(IGraphicsBackend* graphicsBackend, u32 wi
     m_width = width;
     m_height = height;
 
-    // Charger le shader (vertex shader passthrough + fragment shader lighting)
+    // Charger le shader
     m_lightingShader = m_graphicsBackend->loadShader(
-        "data/shaders/passthrough.vert",
+        "data/shaders/crt.vert",  // Vertex shader standard (comme BloomEffect et ColorGradingEffect)
         "data/shaders/dynamic_lighting.frag");
 
     if (m_lightingShader == INVALID_HANDLE) {
