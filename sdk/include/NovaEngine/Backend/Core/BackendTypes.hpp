@@ -37,12 +37,26 @@ namespace NovaEngine {
         Vec2i operator-(const Vec2i& o) const { return Vec2i(x - o.x, y - o.y); }
     };
     
-    struct Vec2u { 
-        u32 x, y; 
-        Vec2u() : x(0), y(0) {} 
-        Vec2u(u32 x, u32 y) : x(x), y(y) {} 
+    struct Vec2u {
+        u32 x, y;
+        Vec2u() : x(0), y(0) {}
+        Vec2u(u32 x, u32 y) : x(x), y(y) {}
     };
-    
+
+    struct Vec3f {
+        f32 x, y, z;
+        Vec3f() : x(0), y(0), z(0) {}
+        Vec3f(f32 x, f32 y, f32 z) : x(x), y(y), z(z) {}
+        Vec3f operator+(const Vec3f& o) const { return Vec3f(x + o.x, y + o.y, z + o.z); }
+        Vec3f operator-(const Vec3f& o) const { return Vec3f(x - o.x, y - o.y, z - o.z); }
+        Vec3f operator*(f32 s) const { return Vec3f(x * s, y * s, z * s); }
+        Vec3f operator/(f32 s) const { return Vec3f(x / s, y / s, z / s); }
+        Vec3f& operator+=(const Vec3f& o) { x += o.x; y += o.y; z += o.z; return *this; }
+        Vec3f& operator-=(const Vec3f& o) { x -= o.x; y -= o.y; z -= o.z; return *this; }
+        Vec3f& operator*=(f32 s) { x *= s; y *= s; z *= s; return *this; }
+        Vec3f& operator/=(f32 s) { x /= s; y /= s; z /= s; return *this; }
+    };
+
     struct Rect { 
         f32 left, top, width, height; 
         Rect() : left(0), top(0), width(0), height(0) {}

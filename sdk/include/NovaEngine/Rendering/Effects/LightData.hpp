@@ -1,8 +1,6 @@
 #pragma once
 
-#include <NovaEngine/Math/Vector2.hpp>
-#include <NovaEngine/Math/Vector3.hpp>
-#include <NovaEngine/Core/Types.hpp>
+#include "../../Backend/Core/BackendTypes.hpp"
 
 struct LightData {
     NovaEngine::Vec2f position;     // Position normalisée (0-1)
