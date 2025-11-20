@@ -123,8 +123,9 @@ bool Game::onInitialize() {
         // 1. SSAO - Ambient Occlusion (applied first, single-pass)
         m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
         if (m_ssaoEffect) {
-            m_ssaoEffect->setStrength(0.4f);
-            m_ssaoEffect->setRadius(12.0f);
+            // COMMENTED FOR TESTING: Let constructor values take effect
+            // m_ssaoEffect->setStrength(0.4f);
+            // m_ssaoEffect->setRadius(12.0f);
             LOG_INFO("SSAO effect added successfully");
         }
 
