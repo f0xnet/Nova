@@ -46,10 +46,14 @@ void ColorGradingEffect::shutdown() {
     }
 }
 
-void ColorGradingEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
+void ColorGradingEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) {
     if(m_shader == INVALID_HANDLE) {
         // Fallback: draw without color grading
-        m_graphicsBackend->drawRenderTextureToScreen(renderTexture, INVALID_HANDLE);
+        if(outputTexture == INVALID_HANDLE) {
+            m_graphicsBackend->drawRenderTextureToScreen(inputTexture, INVALID_HANDLE);
+        } else {
+            m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, INVALID_HANDLE);
+        }
         return;
     }
 
@@ -59,7 +63,11 @@ void ColorGradingEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime)
     m_graphicsBackend->setShaderParameter(m_shader, "brightness", m_brightness);
 
     // Draw with color grading
-    m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_shader);
+    if(outputTexture == INVALID_HANDLE) {
+        m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_shader);
+    } else {
+        m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, m_shader);
+    }
 }
 
 void ColorGradingEffect::updateParameters() {

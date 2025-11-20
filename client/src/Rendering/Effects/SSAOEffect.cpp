@@ -49,10 +49,14 @@ void SSAOEffect::shutdown() {
     }
 }
 
-void SSAOEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
+void SSAOEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) {
     if(m_ssaoShader == INVALID_HANDLE) {
         // Fallback: draw without AO
-        m_graphicsBackend->drawRenderTextureToScreen(renderTexture, INVALID_HANDLE);
+        if(outputTexture == INVALID_HANDLE) {
+            m_graphicsBackend->drawRenderTextureToScreen(inputTexture, INVALID_HANDLE);
+        } else {
+            m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, INVALID_HANDLE);
+        }
         return;
     }
 
@@ -63,7 +67,11 @@ void SSAOEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
     m_graphicsBackend->setShaderParameter(m_ssaoShader, "aoRadius", m_radius);
 
     // Apply SSAO shader (computes + applies AO in single pass)
-    m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_ssaoShader);
+    if(outputTexture == INVALID_HANDLE) {
+        m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_ssaoShader);
+    } else {
+        m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, m_ssaoShader);
+    }
 }
 
 void SSAOEffect::updateParameters() {

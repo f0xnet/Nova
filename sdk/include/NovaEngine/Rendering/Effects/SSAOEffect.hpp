@@ -16,7 +16,7 @@ public:
 
     bool initialize(IGraphicsBackend* graphicsBackend, u32 width, u32 height) override;
     void shutdown() override;
-    void apply(RenderTextureHandle renderTexture, f32 deltaTime) override;
+    void apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) override;
     const char* getName() const override { return "SSAO"; }
 
     // Paramètres ajustables

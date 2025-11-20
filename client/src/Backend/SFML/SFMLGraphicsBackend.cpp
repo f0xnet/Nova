@@ -319,6 +319,57 @@ void SFMLGraphicsBackend::drawRenderTextureToScreen(RenderTextureHandle handle, 
     m_window->setView(previousView);
 }
 
+void SFMLGraphicsBackend::drawRenderTextureToRenderTexture(RenderTextureHandle source, RenderTextureHandle dest, ShaderHandle shader) {
+    if(source == INVALID_HANDLE || dest == INVALID_HANDLE) return;
+
+    auto srcIt = m_renderTextures.find(source);
+    if(srcIt == m_renderTextures.end() || !srcIt->second) return;
+
+    auto destIt = m_renderTextures.find(dest);
+    if(destIt == m_renderTextures.end() || !destIt->second) return;
+
+    const sf::Texture& texture = srcIt->second->getTexture();
+    sf::Vector2u texSize = texture.getSize();
+    sf::Vector2u destSize = destIt->second->getSize();
+
+    // Utiliser VertexArray pour contrôle total des UV
+    sf::VertexArray quad(sf::Quads, 4);
+
+    quad[0].position = sf::Vector2f(0, 0);
+    quad[1].position = sf::Vector2f(static_cast<float>(destSize.x), 0);
+    quad[2].position = sf::Vector2f(static_cast<float>(destSize.x), static_cast<float>(destSize.y));
+    quad[3].position = sf::Vector2f(0, static_cast<float>(destSize.y));
+
+    quad[0].texCoords = sf::Vector2f(0, 0);
+    quad[1].texCoords = sf::Vector2f(static_cast<float>(texSize.x), 0);
+    quad[2].texCoords = sf::Vector2f(static_cast<float>(texSize.x), static_cast<float>(texSize.y));
+    quad[3].texCoords = sf::Vector2f(0, static_cast<float>(texSize.y));
+
+    quad[0].color = sf::Color::White;
+    quad[1].color = sf::Color::White;
+    quad[2].color = sf::Color::White;
+    quad[3].color = sf::Color::White;
+
+    // Préparer les render states
+    sf::RenderStates states;
+    states.texture = &texture;
+
+    if(shader != INVALID_HANDLE) {
+        auto shaderIt = m_shaders.find(shader);
+        if(shaderIt != m_shaders.end() && shaderIt->second) {
+            // Passer les uniforms nécessaires au shader
+            shaderIt->second->setUniform("tex", sf::Shader::CurrentTexture);
+            shaderIt->second->setUniform("texSize", sf::Vector2f(
+                static_cast<float>(texSize.x),
+                static_cast<float>(texSize.y)));
+            states.shader = shaderIt->second.get();
+        }
+    }
+
+    // Dessiner dans la RenderTexture de destination
+    destIt->second->draw(quad, states);
+}
+
 void SFMLGraphicsBackend::unloadRenderTexture(RenderTextureHandle handle) {
     if(handle == INVALID_HANDLE) return;
     m_renderTextures.erase(handle);

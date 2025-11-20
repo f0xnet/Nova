@@ -120,7 +120,7 @@ void CRTEffect::shutdown() {
     }
 }
 
-void CRTEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
+void CRTEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) {
     if(m_shader == INVALID_HANDLE) {
         return;
     }
@@ -143,7 +143,7 @@ void CRTEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
             Vec2f(static_cast<f32>(m_width / 2), static_cast<f32>(m_height / 2)));
 
         // Draw scene with SSAO shader to generate AO map
-        m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_ssaoShader);
+        m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_ssaoShader);
 
         // Display and unbind
         m_graphicsBackend->displayRenderTexture(m_aoTexture);
@@ -183,8 +183,12 @@ void CRTEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
     // TODO: Bind AO texture as secondary texture (need to extend IGraphicsBackend interface)
     // For now, draw without AO texture (will work but no AO effect)
 
-    // Draw final result to screen
-    m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_shader);
+    // Draw final result
+    if(outputTexture == INVALID_HANDLE) {
+        m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_shader);
+    } else {
+        m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, m_shader);
+    }
 }
 
 void CRTEffect::updateParameters() {

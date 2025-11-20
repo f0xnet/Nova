@@ -98,7 +98,8 @@ private:
     bool hasAnyEffectEnabled() const;
 
     IGraphicsBackend* m_graphicsBackend;
-    RenderTextureHandle m_renderTexture;
+    RenderTextureHandle m_renderTexture;      // Texture principale (scène)
+    RenderTextureHandle m_tempTexture;        // Texture temporaire pour ping-pong
     std::vector<std::unique_ptr<PostProcessEffect>> m_effects;
 
     u32 m_width;

@@ -30,10 +30,11 @@ public:
 
     /**
      * @brief Applique l'effet sur la render texture
-     * @param renderTexture Handle de la texture à traiter
+     * @param inputTexture Handle de la texture à traiter
+     * @param outputTexture Handle de la texture de sortie (INVALID_HANDLE = écran)
      * @param deltaTime Temps écoulé depuis la dernière frame
      */
-    virtual void apply(RenderTextureHandle renderTexture, f32 deltaTime) = 0;
+    virtual void apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) = 0;
 
     /**
      * @brief Active ou désactive l'effet

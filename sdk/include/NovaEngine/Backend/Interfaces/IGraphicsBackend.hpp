@@ -34,6 +34,7 @@ public:
     virtual void clearRenderTexture(RenderTextureHandle handle, const Color& color) = 0;
     virtual void displayRenderTexture(RenderTextureHandle handle) = 0;
     virtual void drawRenderTextureToScreen(RenderTextureHandle handle, ShaderHandle shader) = 0;
+    virtual void drawRenderTextureToRenderTexture(RenderTextureHandle source, RenderTextureHandle dest, ShaderHandle shader) = 0;
     virtual void unloadRenderTexture(RenderTextureHandle handle) = 0;
 };
 }
