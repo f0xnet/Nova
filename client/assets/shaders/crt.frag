@@ -145,59 +145,57 @@ float bloomAmount = (brightness - 0.6) * intensity * 2.0;
 return baseColor + bloom * bloomAmount;
 }
 // ============================================================================
-// AMBIENT OCCLUSION (détection des bords des formes)
+// AMBIENT OCCLUSION (ombres s'estompant depuis les bords des objets)
 // ============================================================================
 float applyAO(vec2 uv, float strength) {
 if (strength <= 0.0) return 1.0;
 
 vec2 pixelSize = 1.0 / resolution;
-vec3 centerColor = sampleTex(uv);
-float centerLum = dot(centerColor, vec3(0.299, 0.587, 0.114));
 
-// Détection de bord simple avec Sobel-like
-float edgeDetect = 0.0;
-float dx = 0.0;
-float dy = 0.0;
+// Chercher la distance au bord le plus proche
+float minDistToEdge = 999.0;
+float aoRadius = 5.0; // Rayon de recherche en pixels
 
-// Échantillonnage 3x3 pour détecter les contours
-for (float x = -1.0; x <= 1.0; x += 1.0) {
-    for (float y = -1.0; y <= 1.0; y += 1.0) {
-        if (x == 0.0 && y == 0.0) continue;
+// Échantillonner en cercle pour trouver les bords
+for (float angle = 0.0; angle < 6.28318; angle += 0.523599) { // 12 directions
+    vec2 dir = vec2(cos(angle), sin(angle));
 
-        vec2 offset = vec2(x, y) * pixelSize;
-        float sampleLum = dot(sampleTex(uv + offset), vec3(0.299, 0.587, 0.114));
-        float diff = abs(centerLum - sampleLum);
+    for (float dist = 1.0; dist <= aoRadius; dist += 1.0) {
+        vec2 sampleUV = uv + dir * dist * pixelSize;
 
-        dx += diff * x;
-        dy += diff * y;
-    }
-}
+        // Détecter si ce point est un bord
+        vec3 sampleColor = sampleTex(sampleUV);
+        float sampleLum = dot(sampleColor, vec3(0.299, 0.587, 0.114));
 
-edgeDetect = length(vec2(dx, dy));
+        // Vérifier le contraste avec les voisins pour détecter un bord
+        float edgeStrength = 0.0;
+        for (float checkAngle = 0.0; checkAngle < 6.28318; checkAngle += 2.094395) { // 3 checks
+            vec2 checkDir = vec2(cos(checkAngle), sin(checkAngle));
+            vec2 checkUV = sampleUV + checkDir * pixelSize;
+            float checkLum = dot(sampleTex(checkUV), vec3(0.299, 0.587, 0.114));
+            edgeStrength += abs(sampleLum - checkLum);
+        }
 
-// Si on est près d'un bord, on calcule l'occlusion
-float occlusion = 0.0;
-if (edgeDetect > 0.1) {
-    // Échantillonner autour pour trouver les zones sombres
-    for (float angle = 0.0; angle < 6.28318; angle += 1.0472) { // 6 directions
-        vec2 dir = vec2(cos(angle), sin(angle));
-        for (float dist = 1.0; dist <= 2.0; dist += 1.0) {
-            vec2 sampleUV = uv + dir * dist * pixelSize;
-            float sampleLum = dot(sampleTex(sampleUV), vec3(0.299, 0.587, 0.114));
-
-            // Si c'est plus sombre, ça contribue à l'occlusion
-            if (sampleLum < centerLum - 0.05) {
-                float weight = (3.0 - dist) / 2.0;
-                occlusion += (centerLum - sampleLum) * weight * edgeDetect;
-            }
+        // Si c'est un bord (fort contraste)
+        if (edgeStrength > 0.3) {
+            if (dist < minDistToEdge) minDistToEdge = dist;
+            break; // Trouvé un bord dans cette direction
         }
     }
-    occlusion = occlusion / 12.0; // Normaliser (6 directions * 2 distances)
 }
 
-// Appliquer l'occlusion avec la force demandée
-float aoFactor = 1.0 - clamp(occlusion * strength * 2.0, 0.0, 0.5);
-return aoFactor;
+// Calculer l'occlusion basée sur la distance au bord
+float occlusion = 0.0;
+if (minDistToEdge < aoRadius) {
+    // Plus on est proche d'un bord, plus l'ombre est forte
+    // Utiliser une courbe douce pour l'estompage
+    float distFactor = minDistToEdge / aoRadius;
+    occlusion = (1.0 - distFactor) * (1.0 - distFactor); // Courbe quadratique
+    occlusion *= strength;
+}
+
+// Retourner le facteur d'assombrissement (1.0 = pas d'ombre, <1.0 = ombre)
+return 1.0 - clamp(occlusion * 0.4, 0.0, 0.4);
 }
 // ============================================================================
 // SATURATION
