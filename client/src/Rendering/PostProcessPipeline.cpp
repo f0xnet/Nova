@@ -125,10 +125,8 @@ void PostProcessPipeline::endSceneRender(f32 deltaTime) {
             } else {
                 // Effet intermédiaire : dessiner dans tempTexture
                 m_graphicsBackend->clearRenderTexture(currentOutput, Color::Black);
-                m_graphicsBackend->bindRenderTexture(currentOutput);
                 effect->apply(currentInput, currentOutput, deltaTime);
                 m_graphicsBackend->displayRenderTexture(currentOutput);
-                m_graphicsBackend->unbindRenderTexture();
 
                 // Swap : la sortie devient l'entrée du prochain effet
                 std::swap(currentInput, currentOutput);

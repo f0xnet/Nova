@@ -328,6 +328,12 @@ void SFMLGraphicsBackend::drawRenderTextureToRenderTexture(RenderTextureHandle s
     auto destIt = m_renderTextures.find(dest);
     if(destIt == m_renderTextures.end() || !destIt->second) return;
 
+    // Sauvegarder la vue actuelle de la RenderTexture de destination
+    sf::View previousView = destIt->second->getView();
+
+    // Utiliser la vue par défaut pour dessiner le quad plein écran
+    destIt->second->setView(destIt->second->getDefaultView());
+
     const sf::Texture& texture = srcIt->second->getTexture();
     sf::Vector2u texSize = texture.getSize();
     sf::Vector2u destSize = destIt->second->getSize();
@@ -368,6 +374,9 @@ void SFMLGraphicsBackend::drawRenderTextureToRenderTexture(RenderTextureHandle s
 
     // Dessiner dans la RenderTexture de destination
     destIt->second->draw(quad, states);
+
+    // Restaurer la vue précédente
+    destIt->second->setView(previousView);
 }
 
 void SFMLGraphicsBackend::unloadRenderTexture(RenderTextureHandle handle) {
