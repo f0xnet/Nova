@@ -30,17 +30,26 @@ public:
     void setChromaticAberration(f32 amount) { m_chromaticAberration = amount; updateParameters(); }
     void setRGBShiftAmount(f32 amount) { m_rgbShiftAmount = amount; updateParameters(); }
     void setCurvature(f32 curvature) { m_curvature = curvature; updateParameters(); }
-    void setVignetteStrength(f32 strength) { m_vignetteStrength = strength; updateParameters(); }
+    void setAOStrength(f32 strength) { m_aoStrength = strength; updateAOParameters(); }
+    void setAORadius(f32 radius) { m_aoRadius = radius; updateAOParameters(); }
     void setGlowIntensity(f32 intensity) { m_glowIntensity = intensity; updateParameters(); }
     void setNoiseIntensity(f32 intensity) { m_noiseIntensity = intensity; updateParameters(); }
     void setColorBanding(f32 banding) { m_colorBanding = banding; updateParameters(); }
     void setSaturation(f32 saturation) { m_saturation = saturation; updateParameters(); }
-    void setAmbientOcclusion(f32 ao) { m_ambientOcclusion = ao; updateParameters(); }
 
 private:
     void updateParameters();
+    void updateAOParameters();
 
+    // Main shader
     ShaderHandle m_shader;
+
+    // Multi-pass SSAO
+    ShaderHandle m_ssaoShader;
+    ShaderHandle m_blurShader;
+    RenderTextureHandle m_aoTexture;
+    RenderTextureHandle m_blurredAOTexture;
+
     u32 m_width;
     u32 m_height;
 
@@ -50,12 +59,13 @@ private:
     f32 m_chromaticAberration;
     f32 m_rgbShiftAmount;
     f32 m_curvature;
-    f32 m_vignetteStrength;
+    f32 m_aoStrength;
+    f32 m_aoRadius;
     f32 m_glowIntensity;
     f32 m_noiseIntensity;
     f32 m_colorBanding;
     f32 m_saturation;
-    f32 m_ambientOcclusion;
+    f32 m_ambientOcclusion;  // Gardé pour compatibilité
 
     std::chrono::high_resolution_clock::time_point m_startTime;
 };
