@@ -99,8 +99,8 @@ float ambientOcclusionDiffuse(vec2 uv) {
     if (vignetteStrength <= 0.0) return 1.0;
 
     // Distance de chaque bord
-    float distX = min(uv.x, 1.0 - uv.x);
-    float distY = min(uv.y, 1.0 - uv.y);
+    float distX = min(uv.x, (1.0 - uv.x));
+    float distY = min(uv.y, (1.0 - uv.y));
 
     // Fade doux avec pow pour diffusion
     float fadeX = pow(distX * 2.0, 0.5);
