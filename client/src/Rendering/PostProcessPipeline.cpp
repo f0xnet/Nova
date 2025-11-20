@@ -124,8 +124,13 @@ void PostProcessPipeline::endSceneRender(f32 deltaTime) {
                 effect->apply(currentInput, INVALID_HANDLE, deltaTime);
             } else {
                 // Effet intermédiaire : dessiner dans tempTexture
+                // Clear la texture de sortie
                 m_graphicsBackend->clearRenderTexture(currentOutput, Color::Black);
+
+                // Appliquer l'effet (dessine currentInput avec shader vers currentOutput)
                 effect->apply(currentInput, currentOutput, deltaTime);
+
+                // Finaliser la texture de sortie pour qu'elle soit lisible
                 m_graphicsBackend->displayRenderTexture(currentOutput);
 
                 // Swap : la sortie devient l'entrée du prochain effet

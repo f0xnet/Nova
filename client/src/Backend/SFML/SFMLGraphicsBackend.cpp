@@ -224,6 +224,10 @@ RenderTextureHandle SFMLGraphicsBackend::createRenderTexture(u32 width, u32 heig
     if(width == 0 || height == 0) return INVALID_HANDLE;
     auto renderTexture = std::make_unique<sf::RenderTexture>();
     if(!renderTexture->create(width, height)) return INVALID_HANDLE;
+
+    // Disable texture smoothing to avoid interpolation artifacts in post-processing
+    renderTexture->setSmooth(false);
+
     RenderTextureHandle handle = m_nextRenderTextureHandle++;
     m_renderTextures[handle] = std::move(renderTexture);
     return handle;
