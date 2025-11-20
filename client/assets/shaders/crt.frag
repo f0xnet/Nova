@@ -2,8 +2,7 @@
 // POST-PROCESSING SHADER
 // ============================================================================
 // Effets de post-processing HD-2D style:
-// - Tilt-shift blur (zone nette autour joueur, flou progressif)
-// - Ambient occlusion diffus (assombrissement doux des bords)
+// - Ambient occlusion (halos d'ombre autour des objets)
 // - Bloom (glow sur zones lumineuses)
 // - Saturation (vibrance des couleurs)
 // ============================================================================
@@ -15,76 +14,11 @@ uniform vec2 resolution;
 uniform float vignetteStrength; // Force de l'ambient occlusion
 uniform float glowIntensity; // Intensité du bloom
 uniform float saturation; // Saturation des couleurs
-uniform float ambientOcclusion; // Intensité du tilt-shift blur
 // ============================================================================
 // TEXTURE SAMPLING
 // ============================================================================
 vec3 sampleTex(vec2 uv) {
 return texture2D(tex, clamp(uv, 0.0, 1.0)).rgb;
-}
-// ============================================================================
-// TILT-SHIFT BLUR
-// ============================================================================
-vec3 applyTiltShift(vec2 uv, float intensity) {
-if (intensity <= 0.0) return sampleTex(uv);
-
-
-
-vec2 pixelSize = 1.0 / resolution;
-
-float distFromCenter = abs(uv.y - 0.5) * 2.0;
-
-
-
-// Zone nette au centre (autour du joueur)
-
-float blurAmount = smoothstep(0.15, 0.7, distFromCenter) * intensity;
-
-
-
-if (blurAmount < 0.01) return sampleTex(uv);
-
-
-
-vec3 color = vec3(0.0);
-
-float totalWeight = 0.0;
-
-
-
-// Blur gaussien avec rayon variable
-
-float radius = blurAmount * 8.0;
-
-int samples = int(radius) + 1;
-
-if (samples > 10) samples = 10; // Limite pour performance
-
-
-
-for (int x = -samples; x <= samples; x++) {
-
-    for (int y = -samples; y <= samples; y++) {
-
-        vec2 offset = vec2(float(x), float(y)) * pixelSize;
-
-        float dist = length(vec2(x, y));
-
-        float weight = exp(-dist * dist / (2.0 * radius));
-
-
-
-        color += sampleTex(uv + offset) * weight;
-
-        totalWeight += weight;
-
-    }
-
-}
-
-
-
-return color / totalWeight;
 }
 // ============================================================================
 // BLOOM
@@ -218,9 +152,9 @@ uv.y = 1.0 - uv.y;
 
 
 
-// Tilt-shift blur
+// Échantillonner la texture de base
 
-vec3 color = applyTiltShift(uv, ambientOcclusion);
+vec3 color = sampleTex(uv);
 
 
 
