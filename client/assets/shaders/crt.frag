@@ -24,10 +24,10 @@ uniform float ambientOcclusion;    // Tilt-shift
 vec3 tiltShift(vec2 uv) {
     // Distance radiale du centre (0 = centre, 1 = coins)
     vec2 centered = uv - vec2(0.5, 0.5);
-    float dist = length(centered) * 2.0;
+    float distFromCenter = length(centered) * 2.0;
 
     // Calculer l'intensité du blur (0 au centre, max aux bords)
-    float blurAmount = smoothstep(0.3, 1.0, dist) * ambientOcclusion;
+    float blurAmount = smoothstep(0.3, 1.0, distFromCenter) * ambientOcclusion;
 
     // Si pas de blur, retourner la texture directe
     if (blurAmount < 0.01) {
