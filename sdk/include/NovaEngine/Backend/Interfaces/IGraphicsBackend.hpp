@@ -25,7 +25,12 @@ public:
     virtual void bindShader(ShaderHandle handle) = 0;
     virtual void unbindShader() = 0;
     virtual void setShaderParameter(ShaderHandle handle, const String& name, f32 value) = 0;
+    virtual void setShaderParameter(ShaderHandle handle, const String& name, i32 value) = 0;
     virtual void setShaderParameter(ShaderHandle handle, const String& name, const Vec2f& value) = 0;
+    virtual void setShaderParameter(ShaderHandle handle, const String& name, const Vec3f& value) = 0;
+    virtual void setShaderParameterArray(ShaderHandle handle, const String& name, const f32* values, size_t count) = 0;
+    virtual void setShaderParameterArray(ShaderHandle handle, const String& name, const Vec2f* values, size_t count) = 0;
+    virtual void setShaderParameterArray(ShaderHandle handle, const String& name, const Vec3f* values, size_t count) = 0;
     virtual void unloadShader(ShaderHandle handle) = 0;
 
     virtual RenderTextureHandle createRenderTexture(u32 width, u32 height) = 0;

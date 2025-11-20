@@ -220,6 +220,54 @@ void SFMLGraphicsBackend::setShaderParameter(ShaderHandle handle, const String& 
     }
 }
 
+void SFMLGraphicsBackend::setShaderParameter(ShaderHandle handle, const String& name, i32 value) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_shaders.find(handle);
+    if(it != m_shaders.end() && it->second) {
+        it->second->setUniform(name, value);
+    }
+}
+
+void SFMLGraphicsBackend::setShaderParameter(ShaderHandle handle, const String& name, const Vec3f& value) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_shaders.find(handle);
+    if(it != m_shaders.end() && it->second) {
+        it->second->setUniform(name, sf::Glsl::Vec3(value.x, value.y, value.z));
+    }
+}
+
+void SFMLGraphicsBackend::setShaderParameterArray(ShaderHandle handle, const String& name, const f32* values, size_t count) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_shaders.find(handle);
+    if(it != m_shaders.end() && it->second) {
+        it->second->setUniformArray(name, values, count);
+    }
+}
+
+void SFMLGraphicsBackend::setShaderParameterArray(ShaderHandle handle, const String& name, const Vec2f* values, size_t count) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_shaders.find(handle);
+    if(it != m_shaders.end() && it->second) {
+        std::vector<sf::Glsl::Vec2> sfmlValues(count);
+        for(size_t i = 0; i < count; ++i) {
+            sfmlValues[i] = sf::Glsl::Vec2(values[i].x, values[i].y);
+        }
+        it->second->setUniformArray(name, sfmlValues.data(), count);
+    }
+}
+
+void SFMLGraphicsBackend::setShaderParameterArray(ShaderHandle handle, const String& name, const Vec3f* values, size_t count) {
+    if(handle == INVALID_HANDLE) return;
+    auto it = m_shaders.find(handle);
+    if(it != m_shaders.end() && it->second) {
+        std::vector<sf::Glsl::Vec3> sfmlValues(count);
+        for(size_t i = 0; i < count; ++i) {
+            sfmlValues[i] = sf::Glsl::Vec3(values[i].x, values[i].y, values[i].z);
+        }
+        it->second->setUniformArray(name, sfmlValues.data(), count);
+    }
+}
+
 void SFMLGraphicsBackend::unloadShader(ShaderHandle handle) {
     if(handle == INVALID_HANDLE) return;
     if(m_boundShader == handle) m_boundShader = INVALID_HANDLE;

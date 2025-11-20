@@ -13,6 +13,7 @@ Game::Game()
     , m_ssaoEffect(nullptr)
     , m_bloomEffect(nullptr)
     , m_colorGradingEffect(nullptr)
+    , m_dynamicLightingEffect(nullptr)
 {
     LOG_TRACE("Game constructed");
 }
@@ -144,6 +145,25 @@ bool Game::onInitialize() {
             m_colorGradingEffect->setBrightness(0.0f);
             LOG_INFO("Color grading effect added successfully");
         }
+
+        // 4. Dynamic Lighting - Multi-light system with colors
+        m_dynamicLightingEffect = m_postProcessPipeline->addEffect<DynamicLightingEffect>();
+        if (m_dynamicLightingEffect) {
+            m_dynamicLightingEffect->setEnabled(false);  // Désactivé par défaut
+            m_dynamicLightingEffect->setAmbientDarkness(0.01f);  // Très sombre
+
+            // Ajouter quelques lumières de démonstration
+            LightData redLight(Vec2f(0.3f, 0.3f), Vec3f(1.0f, 0.0f, 0.0f), 0.25f, 0.3f);
+            m_dynamicLightingEffect->addLight(redLight);
+
+            LightData whiteLight(Vec2f(0.7f, 0.3f), Vec3f(1.0f, 1.0f, 1.0f), 0.3f, 0.5f);
+            m_dynamicLightingEffect->addLight(whiteLight);
+
+            LightData greenLight(Vec2f(0.5f, 0.7f), Vec3f(0.0f, 1.0f, 0.0f), 0.2f, 0.4f);
+            m_dynamicLightingEffect->addLight(greenLight);
+
+            LOG_INFO("Dynamic lighting effect added successfully ({} lights)", m_dynamicLightingEffect->getLightCount());
+        }
     }
 
     LOG_INFO("Game initialized successfully");
@@ -153,6 +173,7 @@ bool Game::onInitialize() {
     LOG_INFO("  1 - Toggle SSAO");
     LOG_INFO("  2 - Toggle Bloom");
     LOG_INFO("  3 - Toggle Color Grading");
+    LOG_INFO("  4 - Toggle Dynamic Lighting");
     LOG_INFO("  ESC - Quit");
 
     return true;
@@ -252,6 +273,14 @@ void Game::onEvent(const NovaEngine::Event& event) {
                 bool newState = !m_colorGradingEffect->isEnabled();
                 m_colorGradingEffect->setEnabled(newState);
                 LOG_INFO("Color grading effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::Num4) {
+            // Toggle Dynamic Lighting effect
+            if (m_dynamicLightingEffect) {
+                bool newState = !m_dynamicLightingEffect->isEnabled();
+                m_dynamicLightingEffect->setEnabled(newState);
+                LOG_INFO("Dynamic lighting effect {}", newState ? "enabled" : "disabled");
             }
         }
     }

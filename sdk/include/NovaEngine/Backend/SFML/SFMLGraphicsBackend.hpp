@@ -30,7 +30,12 @@ public:
     void bindShader(ShaderHandle handle) override;
     void unbindShader() override;
     void setShaderParameter(ShaderHandle handle, const String& name, f32 value) override;
+    void setShaderParameter(ShaderHandle handle, const String& name, i32 value) override;
     void setShaderParameter(ShaderHandle handle, const String& name, const Vec2f& value) override;
+    void setShaderParameter(ShaderHandle handle, const String& name, const Vec3f& value) override;
+    void setShaderParameterArray(ShaderHandle handle, const String& name, const f32* values, size_t count) override;
+    void setShaderParameterArray(ShaderHandle handle, const String& name, const Vec2f* values, size_t count) override;
+    void setShaderParameterArray(ShaderHandle handle, const String& name, const Vec3f* values, size_t count) override;
     void unloadShader(ShaderHandle handle) override;
 
     RenderTextureHandle createRenderTexture(u32 width, u32 height) override;

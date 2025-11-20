@@ -10,6 +10,7 @@
 #include "NovaEngine/Rendering/Effects/SSAOEffect.hpp"
 #include "NovaEngine/Rendering/Effects/BloomEffect.hpp"
 #include "NovaEngine/Rendering/Effects/ColorGradingEffect.hpp"
+#include "NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp"
 
 // Forward declarations for game modules
 namespace NovaEngine {
@@ -33,6 +34,7 @@ private:
     NovaEngine::SSAOEffect* m_ssaoEffect;
     NovaEngine::BloomEffect* m_bloomEffect;
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
+    DynamicLightingEffect* m_dynamicLightingEffect;
 
     NovaEngine::FontHandle m_font;
 
