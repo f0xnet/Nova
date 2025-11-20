@@ -1,12 +1,11 @@
 // ============================================================================
-// OCTOPATH TRAVELER STYLE SHADER
+// POST-PROCESSING SHADER
 // ============================================================================
-// Effets HD-2D inspirés d'Octopath Traveler :
-// - Tilt-shift blur (effet miniature/diorama)
-// - Bloom/glow intense
-// - Saturation et contraste élevés
-// - Vignette douce
-// - God rays (rayons de lumière volumétriques)
+// Effets de post-processing HD-2D style:
+// - Tilt-shift blur (zone nette autour joueur, flou progressif)
+// - Ambient occlusion diffus (assombrissement doux des bords)
+// - Bloom (glow sur zones lumineuses)
+// - Saturation (vibrance des couleurs)
 // ============================================================================
 
 #version 120
@@ -14,59 +13,49 @@
 uniform sampler2D tex;
 uniform vec2 texSize;
 uniform vec2 resolution;
-uniform float time;
 
-// Paramètres ajustables (gardés pour compatibilité avec CRTEffect.cpp)
-uniform float scanlineIntensity;      // Non utilisé
-uniform float pixelGridIntensity;     // Non utilisé
-uniform float chromaticAberration;    // Non utilisé
-uniform float rgbShiftAmount;         // Non utilisé
-uniform float curvature;              // Non utilisé
-uniform float vignetteStrength;       // Utilisé pour vignette
-uniform float glowIntensity;          // Utilisé pour bloom
-uniform float noiseIntensity;         // Non utilisé
-uniform float colorBanding;           // Non utilisé
-uniform float saturation;             // Utilisé pour saturation
-uniform float ambientOcclusion;       // Utilisé pour intensité tilt-shift
-
-const float PI = 3.14159265359;
+// Paramètres actifs
+uniform float vignetteStrength;    // Force de l'ambient occlusion
+uniform float glowIntensity;       // Intensité du bloom
+uniform float saturation;          // Saturation des couleurs
+uniform float ambientOcclusion;    // Intensité du tilt-shift blur
 
 // ============================================================================
-// SAFE TEXTURE SAMPLING
+// TEXTURE SAMPLING
 // ============================================================================
-vec4 sampleTexture(vec2 uv) {
-    vec2 clampedUV = clamp(uv, 0.0, 1.0);
-    return texture2D(tex, clampedUV);
+vec3 sampleTex(vec2 uv) {
+    return texture2D(tex, clamp(uv, 0.0, 1.0)).rgb;
 }
 
 // ============================================================================
-// TILT-SHIFT BLUR (effet miniature/diorama)
+// TILT-SHIFT BLUR
 // ============================================================================
 vec3 applyTiltShift(vec2 uv, float intensity) {
-    if (intensity <= 0.0) return sampleTexture(uv).rgb;
+    if (intensity <= 0.0) return sampleTex(uv);
 
     vec2 pixelSize = 1.0 / resolution;
-
-    // Distance from horizontal center (0 at center, 1 at top/bottom)
     float distFromCenter = abs(uv.y - 0.5) * 2.0;
 
-    // Focus zone plus étroite pour effet plus fort
+    // Zone nette au centre (autour du joueur)
     float blurAmount = smoothstep(0.15, 0.7, distFromCenter) * intensity;
+
+    if (blurAmount < 0.01) return sampleTex(uv);
 
     vec3 color = vec3(0.0);
     float totalWeight = 0.0;
 
-    // Gaussian-like blur with variable radius based on distance
-    float radius = blurAmount * 12.0; // Augmenté de 8 à 12 pour plus de flou
+    // Blur gaussien avec rayon variable
+    float radius = blurAmount * 8.0;
     int samples = int(radius) + 1;
+    samples = min(samples, 10); // Limite pour performance
 
     for (int x = -samples; x <= samples; x++) {
         for (int y = -samples; y <= samples; y++) {
             vec2 offset = vec2(float(x), float(y)) * pixelSize;
-            float dist = length(offset / pixelSize);
-            float weight = exp(-dist * dist / (radius * radius * 0.5));
+            float dist = length(vec2(x, y));
+            float weight = exp(-dist * dist / (2.0 * radius));
 
-            color += sampleTexture(uv + offset).rgb * weight;
+            color += sampleTex(uv + offset) * weight;
             totalWeight += weight;
         }
     }
@@ -75,81 +64,66 @@ vec3 applyTiltShift(vec2 uv, float intensity) {
 }
 
 // ============================================================================
-// BLOOM/GLOW (effet de lumière intense)
+// BLOOM
 // ============================================================================
-vec3 applyBloom(vec2 uv, float intensity) {
-    vec3 color = sampleTexture(uv).rgb;
-    float brightness = dot(color, vec3(0.299, 0.587, 0.114));
+vec3 applyBloom(vec2 uv, vec3 baseColor, float intensity) {
+    if (intensity <= 0.0) return baseColor;
 
-    if (brightness > 0.5) {
-        vec2 pixelSize = 1.0 / resolution;
-        vec3 bloom = vec3(0.0);
-        float totalWeight = 0.0;
+    float brightness = dot(baseColor, vec3(0.299, 0.587, 0.114));
 
-        // Large radius bloom
-        for (float x = -5.0; x <= 5.0; x += 1.0) {
-            for (float y = -5.0; y <= 5.0; y += 1.0) {
-                vec2 offset = vec2(x, y) * pixelSize * 2.0;
-                float dist = length(vec2(x, y));
-                float weight = exp(-dist * dist / 16.0);
+    // Bloom seulement sur zones lumineuses
+    if (brightness < 0.6) return baseColor;
 
-                bloom += sampleTexture(uv + offset).rgb * weight;
-                totalWeight += weight;
-            }
+    vec2 pixelSize = 1.0 / resolution;
+    vec3 bloom = vec3(0.0);
+    float totalWeight = 0.0;
+
+    // Échantillonnage 5x5
+    for (float x = -2.0; x <= 2.0; x += 1.0) {
+        for (float y = -2.0; y <= 2.0; y += 1.0) {
+            vec2 offset = vec2(x, y) * pixelSize * 2.0;
+            float dist = length(vec2(x, y));
+            float weight = exp(-dist * dist / 4.0);
+
+            bloom += sampleTex(uv + offset) * weight;
+            totalWeight += weight;
         }
-
-        bloom /= totalWeight;
-        float bloomAmount = pow(brightness - 0.5, 1.5) * intensity * 3.0;
-        color += bloom * bloomAmount;
     }
 
-    return color;
+    bloom /= totalWeight;
+    float bloomAmount = (brightness - 0.6) * intensity * 2.0;
+
+    return baseColor + bloom * bloomAmount;
 }
 
 // ============================================================================
-// GOD RAYS (rayons de lumière volumétriques)
+// AMBIENT OCCLUSION (assombrissement diffus depuis les bords)
 // ============================================================================
-vec3 applyGodRays(vec2 uv, vec3 color) {
-    // Light source position (top center, slightly animated)
-    vec2 lightPos = vec2(0.5, 0.2 + sin(time * 0.3) * 0.05);
+float applyAO(vec2 uv, float strength) {
+    if (strength <= 0.0) return 1.0;
 
-    vec2 dir = uv - lightPos;
-    float dist = length(dir);
+    // Distance depuis chaque bord
+    float distLeft = uv.x;
+    float distRight = 1.0 - uv.x;
+    float distTop = uv.y;
+    float distBottom = 1.0 - uv.y;
 
-    // Sample along ray from pixel to light source
-    vec3 rayColor = vec3(0.0);
-    int samples = 8;
-    float decay = 0.96;
-    float weight = 1.0;
+    // Fade doux depuis les bords
+    float fadeLeft = pow(distLeft, 0.5);
+    float fadeRight = pow(distRight, 0.5);
+    float fadeTop = pow(distTop, 0.5);
+    float fadeBottom = pow(distBottom, 0.5);
 
-    for (int i = 0; i < samples; i++) {
-        vec2 samplePos = uv - dir * (float(i) / float(samples));
-        vec3 sampleCol = sampleTexture(samplePos).rgb;
-        float brightness = dot(sampleCol, vec3(0.299, 0.587, 0.114));
+    float edgeFade = fadeLeft * fadeRight * fadeTop * fadeBottom;
 
-        rayColor += sampleCol * weight * brightness;
-        weight *= decay;
-    }
-
-    rayColor /= float(samples);
-
-    // Fade rays based on distance from light
-    float rayStrength = exp(-dist * dist * 2.0) * 0.3;
-
-    return color + rayColor * rayStrength;
-}
-
-// ============================================================================
-// VIGNETTE (assombrissement des bords)
-// ============================================================================
-float applyVignette(vec2 uv, float strength) {
+    // Assombrissement des coins
     vec2 centered = uv * 2.0 - 1.0;
-    float dist = length(centered);
+    float cornerDist = length(centered);
+    float cornerFade = 1.0 - smoothstep(0.5, 1.5, cornerDist) * 0.3;
 
-    // Vignette plus forte pour effet AO renforcé
-    float vig = smoothstep(1.6, 0.3, dist);
+    float ao = edgeFade * cornerFade;
 
-    return mix(1.0, vig, strength);
+    return mix(1.0 - strength * 0.6, 1.0, ao);
 }
 
 // ============================================================================
@@ -161,55 +135,27 @@ vec3 applySaturation(vec3 color, float sat) {
 }
 
 // ============================================================================
-// COLOR GRADING (ajustement des couleurs style Octopath)
-// ============================================================================
-vec3 applyColorGrading(vec3 color) {
-    // Teinte chaude et dorée renforcée
-    vec3 warmTint = vec3(1.08, 1.02, 0.92);
-    color *= warmTint;
-
-    // Boost des midtones plus fort
-    float luma = dot(color, vec3(0.299, 0.587, 0.114));
-    float midtoneBoost = smoothstep(0.3, 0.7, luma) * 0.15;
-    color += vec3(midtoneBoost * 1.2, midtoneBoost * 0.9, midtoneBoost * 0.5);
-
-    // Augmentation globale de la luminosité
-    color += vec3(0.08, 0.06, 0.04);
-
-    return color;
-}
-
-// ============================================================================
 // MAIN
 // ============================================================================
 void main()
 {
-    // Normalize UV from pixel coords to 0-1 and flip Y
+    // Normaliser les UV et inverser Y
     vec2 uv = gl_TexCoord[0].xy / texSize;
     uv.y = 1.0 - uv.y;
 
-    // Tilt-shift blur (effet diorama)
+    // Tilt-shift blur
     vec3 color = applyTiltShift(uv, ambientOcclusion);
 
-    // Bloom intense (caractéristique d'Octopath)
-    color = applyBloom(uv, glowIntensity);
+    // Bloom
+    color = applyBloom(uv, color, glowIntensity);
 
-    // God rays (rayons volumétriques)
-    color = applyGodRays(uv, color);
-
-    // Saturation élevée (style HD-2D)
+    // Saturation
     color = applySaturation(color, saturation);
 
-    // Color grading
-    color = applyColorGrading(color);
+    // Ambient occlusion
+    color *= applyAO(uv, vignetteStrength);
 
-    // Contraste fort
-    color = ((color - 0.5) * 1.3) + 0.5;
-
-    // Vignette douce
-    color *= applyVignette(uv, vignetteStrength);
-
-    // Clamp
+    // Clamp final
     color = clamp(color, 0.0, 1.0);
 
     gl_FragColor = vec4(color, 1.0);

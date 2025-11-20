@@ -7,17 +7,17 @@ CRTEffect::CRTEffect()
     : m_shader(INVALID_HANDLE)
     , m_width(0)
     , m_height(0)
-    , m_scanlineIntensity(0.0f)       // Non utilisé dans Octopath style
-    , m_pixelGridIntensity(0.0f)      // Non utilisé
-    , m_chromaticAberration(0.0f)     // Non utilisé
-    , m_rgbShiftAmount(0.0f)          // Non utilisé
-    , m_curvature(0.0f)               // Non utilisé
-    , m_vignetteStrength(0.6f)        // Vignette renforcée pour AO
-    , m_glowIntensity(0.8f)           // Bloom intense (caractéristique Octopath)
-    , m_noiseIntensity(0.0f)          // Non utilisé
-    , m_colorBanding(0.0f)            // Non utilisé
-    , m_saturation(1.4f)              // Saturation élevée style HD-2D
-    , m_ambientOcclusion(0.8f)        // Tilt-shift blur renforcé
+    , m_scanlineIntensity(0.0f)
+    , m_pixelGridIntensity(0.0f)
+    , m_chromaticAberration(0.0f)
+    , m_rgbShiftAmount(0.0f)
+    , m_curvature(0.0f)
+    , m_vignetteStrength(0.4f)        // AO diffus modéré
+    , m_glowIntensity(0.3f)           // Bloom léger
+    , m_noiseIntensity(0.0f)
+    , m_colorBanding(0.0f)
+    , m_saturation(1.2f)              // Saturation légère
+    , m_ambientOcclusion(0.5f)        // Tilt-shift modéré
 {
     m_startTime = std::chrono::high_resolution_clock::now();
 }
