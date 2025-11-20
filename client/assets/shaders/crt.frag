@@ -145,56 +145,59 @@ float bloomAmount = (brightness - 0.6) * intensity * 2.0;
 return baseColor + bloom * bloomAmount;
 }
 // ============================================================================
-// AMBIENT OCCLUSION (assombrissement diffus depuis les bords)
+// AMBIENT OCCLUSION (détection des bords des formes)
 // ============================================================================
 float applyAO(vec2 uv, float strength) {
 if (strength <= 0.0) return 1.0;
 
+vec2 pixelSize = 1.0 / resolution;
+vec3 centerColor = sampleTex(uv);
+float centerLum = dot(centerColor, vec3(0.299, 0.587, 0.114));
 
+// Détection de bord simple avec Sobel-like
+float edgeDetect = 0.0;
+float dx = 0.0;
+float dy = 0.0;
 
-// Distance depuis chaque bord
+// Échantillonnage 3x3 pour détecter les contours
+for (float x = -1.0; x <= 1.0; x += 1.0) {
+    for (float y = -1.0; y <= 1.0; y += 1.0) {
+        if (x == 0.0 && y == 0.0) continue;
 
-float distLeft = uv.x;
+        vec2 offset = vec2(x, y) * pixelSize;
+        float sampleLum = dot(sampleTex(uv + offset), vec3(0.299, 0.587, 0.114));
+        float diff = abs(centerLum - sampleLum);
 
-float distRight = (1.0 - uv.x);
+        dx += diff * x;
+        dy += diff * y;
+    }
+}
 
-float distTop = uv.y;
+edgeDetect = length(vec2(dx, dy));
 
-float distBottom = (1.0 - uv.y);
+// Si on est près d'un bord, on calcule l'occlusion
+float occlusion = 0.0;
+if (edgeDetect > 0.1) {
+    // Échantillonner autour pour trouver les zones sombres
+    for (float angle = 0.0; angle < 6.28318; angle += 1.0472) { // 6 directions
+        vec2 dir = vec2(cos(angle), sin(angle));
+        for (float dist = 1.0; dist <= 2.0; dist += 1.0) {
+            vec2 sampleUV = uv + dir * dist * pixelSize;
+            float sampleLum = dot(sampleTex(sampleUV), vec3(0.299, 0.587, 0.114));
 
+            // Si c'est plus sombre, ça contribue à l'occlusion
+            if (sampleLum < centerLum - 0.05) {
+                float weight = (3.0 - dist) / 2.0;
+                occlusion += (centerLum - sampleLum) * weight * edgeDetect;
+            }
+        }
+    }
+    occlusion = occlusion / 12.0; // Normaliser (6 directions * 2 distances)
+}
 
-
-// Fade doux depuis les bords
-
-float fadeLeft = pow(distLeft, 0.5);
-
-float fadeRight = pow(distRight, 0.5);
-
-float fadeTop = pow(distTop, 0.5);
-
-float fadeBottom = pow(distBottom, 0.5);
-
-
-
-float edgeFade = fadeLeft * fadeRight * fadeTop * fadeBottom;
-
-
-
-// Assombrissement des coins
-
-vec2 centered = uv * 2.0 - 1.0;
-
-float cornerDist = length(centered);
-
-float cornerFade = 1.0 - smoothstep(0.5, 1.5, cornerDist) * 0.3;
-
-
-
-float ao = edgeFade * cornerFade;
-
-
-
-return mix(1.0 - strength * 0.6, 1.0, ao);
+// Appliquer l'occlusion avec la force demandée
+float aoFactor = 1.0 - clamp(occlusion * strength * 2.0, 0.0, 0.5);
+return aoFactor;
 }
 // ============================================================================
 // SATURATION
