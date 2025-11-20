@@ -56,9 +56,11 @@ void SSAOEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
         return;
     }
 
-    // Set shader parameters
+    // Set shader parameters (must be set before each draw)
     m_graphicsBackend->setShaderParameter(m_ssaoShader, "resolution",
         Vec2f(static_cast<f32>(m_width), static_cast<f32>(m_height)));
+    m_graphicsBackend->setShaderParameter(m_ssaoShader, "aoStrength", m_strength);
+    m_graphicsBackend->setShaderParameter(m_ssaoShader, "aoRadius", m_radius);
 
     // Apply SSAO shader (computes + applies AO in single pass)
     m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_ssaoShader);

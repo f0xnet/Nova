@@ -53,6 +53,11 @@ void ColorGradingEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime)
         return;
     }
 
+    // Set shader parameters (must be set before each draw)
+    m_graphicsBackend->setShaderParameter(m_shader, "saturation", m_saturation);
+    m_graphicsBackend->setShaderParameter(m_shader, "contrast", m_contrast);
+    m_graphicsBackend->setShaderParameter(m_shader, "brightness", m_brightness);
+
     // Draw with color grading
     m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_shader);
 }

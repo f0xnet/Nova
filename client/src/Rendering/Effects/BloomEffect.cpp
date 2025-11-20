@@ -51,9 +51,10 @@ void BloomEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
         return;
     }
 
-    // Set shader parameters
+    // Set shader parameters (must be set before each draw)
     m_graphicsBackend->setShaderParameter(m_shader, "resolution",
         Vec2f(static_cast<f32>(m_width), static_cast<f32>(m_height)));
+    m_graphicsBackend->setShaderParameter(m_shader, "intensity", m_intensity);
 
     // Draw with bloom
     m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_shader);
