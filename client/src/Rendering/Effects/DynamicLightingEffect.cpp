@@ -22,7 +22,7 @@ bool DynamicLightingEffect::initialize(IGraphicsBackend* graphicsBackend, u32 wi
     m_height = height;
 
     // Charger le shader
-    m_lightingShader = m_graphicsBackend->loadShader("", "assets/shaders/dynamic_lighting.frag");
+    m_lightingShader = m_graphicsBackend->loadShader("", "data/shaders/dynamic_lighting.frag");
 
     if (m_lightingShader == INVALID_HANDLE) {
         LOG_ERROR("DynamicLightingEffect: Failed to load dynamic lighting shader");
