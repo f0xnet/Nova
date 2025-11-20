@@ -159,7 +159,7 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Resources\ResourceTypes.cpp src\Resources\R
 set "SOURCE_FILES=%SOURCE_FILES% src\Audio\SoundPlayer.cpp src\Audio\MusicPlayer.cpp src\Audio\AudioManager.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Events\EventDispatcher.cpp src\Events\Event.cpp src\Events\EventHandler.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\PostProcessManager.cpp src\Rendering\PostProcessPipeline.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp src\Rendering\Effects\SSAOEffect.cpp src\Rendering\Effects\BloomEffect.cpp src\Rendering\Effects\ColorGradingEffect.cpp"
 
 :: Compile each source file
 set COMPILED=0
