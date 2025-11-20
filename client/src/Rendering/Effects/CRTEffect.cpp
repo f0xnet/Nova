@@ -13,11 +13,11 @@ CRTEffect::CRTEffect()
     , m_rgbShiftAmount(0.0f)
     , m_curvature(0.0f)
     , m_vignetteStrength(0.4f)        // AO diffus modéré
-    , m_glowIntensity(0.3f)           // Bloom léger
+    , m_glowIntensity(0.4f)           // Bloom
     , m_noiseIntensity(0.0f)
     , m_colorBanding(0.0f)
-    , m_saturation(1.2f)              // Saturation légère
-    , m_ambientOcclusion(0.5f)        // Tilt-shift modéré
+    , m_saturation(1.3f)              // Saturation
+    , m_ambientOcclusion(1.0f)        // Tilt-shift radial
 {
     m_startTime = std::chrono::high_resolution_clock::now();
 }
