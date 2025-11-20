@@ -10,7 +10,9 @@ Game::Game()
     , m_dialogueSystem(std::make_unique<NovaEngine::DialogueSystem>())
     , m_playerController(std::make_unique<NovaEngine::PlayerController>())
     , m_postProcessPipeline(nullptr)
-    , m_crtEffect(nullptr)
+    , m_ssaoEffect(nullptr)
+    , m_bloomEffect(nullptr)
+    , m_colorGradingEffect(nullptr)
 {
     LOG_TRACE("Game constructed");
 }
@@ -115,14 +117,32 @@ bool Game::onInitialize() {
         LOG_WARN("Failed to initialize PostProcessPipeline");
         m_postProcessPipeline.reset();
     } else {
-        // Add CRT effect (can be disabled/enabled at runtime)
-        m_crtEffect = m_postProcessPipeline->addEffect<NovaEngine::CRTEffect>();
-        if (m_crtEffect) {
-            // Optionally disable CRT by default - uncomment to start without shader
-            // m_crtEffect->setEnabled(false);
-            LOG_INFO("CRT post-processing effect added successfully");
-        } else {
-            LOG_WARN("Failed to add CRT effect");
+        // Add post-processing effects in order
+        // Each effect can be enabled/disabled independently
+
+        // 1. SSAO - Ambient Occlusion (applied first, optional for now)
+        m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
+        if (m_ssaoEffect) {
+            m_ssaoEffect->setStrength(0.4f);
+            m_ssaoEffect->setRadius(12.0f);
+            m_ssaoEffect->setEnabled(false);  // Désactivé par défaut (pas encore de combine shader)
+            LOG_INFO("SSAO effect added successfully");
+        }
+
+        // 2. Bloom - Glow effect
+        m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
+        if (m_bloomEffect) {
+            m_bloomEffect->setIntensity(0.4f);
+            LOG_INFO("Bloom effect added successfully");
+        }
+
+        // 3. Color Grading - Saturation, contrast, etc.
+        m_colorGradingEffect = m_postProcessPipeline->addEffect<NovaEngine::ColorGradingEffect>();
+        if (m_colorGradingEffect) {
+            m_colorGradingEffect->setSaturation(1.3f);
+            m_colorGradingEffect->setContrast(1.0f);
+            m_colorGradingEffect->setBrightness(0.0f);
+            LOG_INFO("Color grading effect added successfully");
         }
     }
 
@@ -130,7 +150,9 @@ bool Game::onInitialize() {
     LOG_INFO("=== Controls ===");
     LOG_INFO("  WASD / Arrow Keys - Move");
     LOG_INFO("  E - Talk to NPCs / Advance dialogue");
-    LOG_INFO("  P - Toggle CRT shader effect");
+    LOG_INFO("  1 - Toggle SSAO");
+    LOG_INFO("  2 - Toggle Bloom");
+    LOG_INFO("  3 - Toggle Color Grading");
     LOG_INFO("  ESC - Quit");
 
     return true;
@@ -205,12 +227,28 @@ void Game::onEvent(const NovaEngine::Event& event) {
                 }
             }
         }
-        else if (event.inputEvent.key.code == KeyCode::P) {
-            // Toggle CRT shader effect (P for Post-processing)
-            if (m_crtEffect) {
-                bool newState = !m_crtEffect->isEnabled();
-                m_crtEffect->setEnabled(newState);
-                LOG_INFO("CRT effect {}", newState ? "enabled" : "disabled");
+        else if (event.inputEvent.key.code == KeyCode::Num1) {
+            // Toggle SSAO effect
+            if (m_ssaoEffect) {
+                bool newState = !m_ssaoEffect->isEnabled();
+                m_ssaoEffect->setEnabled(newState);
+                LOG_INFO("SSAO effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::Num2) {
+            // Toggle Bloom effect
+            if (m_bloomEffect) {
+                bool newState = !m_bloomEffect->isEnabled();
+                m_bloomEffect->setEnabled(newState);
+                LOG_INFO("Bloom effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::Num3) {
+            // Toggle Color Grading effect
+            if (m_colorGradingEffect) {
+                bool newState = !m_colorGradingEffect->isEnabled();
+                m_colorGradingEffect->setEnabled(newState);
+                LOG_INFO("Color grading effect {}", newState ? "enabled" : "disabled");
             }
         }
     }
@@ -222,7 +260,10 @@ void Game::onShutdown() {
         m_postProcessPipeline->shutdown();
         m_postProcessPipeline.reset();
     }
-    m_crtEffect = nullptr; // Owned by pipeline, already deleted
+    // Effects are owned by pipeline, already deleted
+    m_ssaoEffect = nullptr;
+    m_bloomEffect = nullptr;
+    m_colorGradingEffect = nullptr;
     m_sceneManager.shutdown();
 }
 

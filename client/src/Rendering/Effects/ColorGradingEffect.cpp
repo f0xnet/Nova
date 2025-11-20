@@ -1,0 +1,70 @@
+#include "NovaEngine/Rendering/Effects/ColorGradingEffect.hpp"
+#include "NovaEngine/Core/Logger.hpp"
+
+namespace NovaEngine {
+
+ColorGradingEffect::ColorGradingEffect()
+    : m_shader(INVALID_HANDLE)
+    , m_width(0)
+    , m_height(0)
+    , m_saturation(1.3f)
+    , m_contrast(1.0f)
+    , m_brightness(0.0f)
+{
+}
+
+ColorGradingEffect::~ColorGradingEffect() {
+    shutdown();
+}
+
+bool ColorGradingEffect::initialize(IGraphicsBackend* graphicsBackend, u32 width, u32 height) {
+    m_graphicsBackend = graphicsBackend;
+    m_width = width;
+    m_height = height;
+
+    // Load color grading shader
+    m_shader = m_graphicsBackend->loadShader(
+        "data/shaders/crt.vert",  // Utilise le vertex shader standard
+        "data/shaders/color_grading.frag"
+    );
+
+    if(m_shader == INVALID_HANDLE) {
+        LOG_ERROR("ColorGradingEffect: Failed to load shader");
+        return false;
+    }
+
+    updateParameters();
+
+    LOG_INFO("ColorGradingEffect initialized");
+    return true;
+}
+
+void ColorGradingEffect::shutdown() {
+    if(m_shader != INVALID_HANDLE) {
+        m_graphicsBackend->unloadShader(m_shader);
+        m_shader = INVALID_HANDLE;
+    }
+}
+
+void ColorGradingEffect::apply(RenderTextureHandle renderTexture, f32 deltaTime) {
+    if(m_shader == INVALID_HANDLE) {
+        // Fallback: draw without color grading
+        m_graphicsBackend->drawRenderTextureToScreen(renderTexture, INVALID_HANDLE);
+        return;
+    }
+
+    // Draw with color grading
+    m_graphicsBackend->drawRenderTextureToScreen(renderTexture, m_shader);
+}
+
+void ColorGradingEffect::updateParameters() {
+    if(m_shader == INVALID_HANDLE || !m_graphicsBackend) {
+        return;
+    }
+
+    m_graphicsBackend->setShaderParameter(m_shader, "saturation", m_saturation);
+    m_graphicsBackend->setShaderParameter(m_shader, "contrast", m_contrast);
+    m_graphicsBackend->setShaderParameter(m_shader, "brightness", m_brightness);
+}
+
+}
