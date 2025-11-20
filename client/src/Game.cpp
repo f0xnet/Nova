@@ -120,12 +120,11 @@ bool Game::onInitialize() {
         // Add post-processing effects in order
         // Each effect can be enabled/disabled independently
 
-        // 1. SSAO - Ambient Occlusion (applied first, optional for now)
+        // 1. SSAO - Ambient Occlusion (applied first, single-pass)
         m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
         if (m_ssaoEffect) {
             m_ssaoEffect->setStrength(0.4f);
             m_ssaoEffect->setRadius(12.0f);
-            m_ssaoEffect->setEnabled(false);  // Désactivé par défaut (pas encore de combine shader)
             LOG_INFO("SSAO effect added successfully");
         }
 

@@ -1,8 +1,8 @@
 // ============================================================================
 // SSAO SHADER (Screen-Space Ambient Occlusion)
 // ============================================================================
-// Détecte les bords des objets et calcule l'occlusion
-// Output: Grayscale AO map (1.0 = pas d'ombre, <1.0 = ombre)
+// Détecte les bords des objets et applique des ombres qui s'estompent
+// Calcul ET application en une seule passe
 // ============================================================================
 #version 120
 
@@ -80,9 +80,13 @@ void main()
     vec2 uv = gl_TexCoord[0].xy / texSize;
     uv.y = 1.0 - uv.y;
 
-    // Calculer l'AO
-    float ao = computeAO(uv);
+    // Échantillonner la scène
+    vec3 color = sampleTex(uv);
 
-    // Output grayscale
-    gl_FragColor = vec4(ao, ao, ao, 1.0);
+    // Calculer et appliquer l'AO
+    float ao = computeAO(uv);
+    color *= ao;
+
+    // Output final avec AO appliqué
+    gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }

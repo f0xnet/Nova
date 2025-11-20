@@ -22,7 +22,6 @@ public:
     // Paramètres ajustables
     void setStrength(f32 strength) { m_strength = strength; updateParameters(); }
     void setRadius(f32 radius) { m_radius = radius; updateParameters(); }
-    void setDownsampleFactor(u32 factor) { m_downsampleFactor = factor; }
 
     f32 getStrength() const { return m_strength; }
     f32 getRadius() const { return m_radius; }
@@ -31,13 +30,13 @@ private:
     void updateParameters();
 
     ShaderHandle m_ssaoShader;
-    ShaderHandle m_blurShader;
-    RenderTextureHandle m_aoTexture;
-    RenderTextureHandle m_blurredAOTexture;
+    ShaderHandle m_blurShader;           // Non utilisé en single-pass
+    RenderTextureHandle m_aoTexture;      // Non utilisé en single-pass
+    RenderTextureHandle m_blurredAOTexture; // Non utilisé en single-pass
 
     u32 m_width;
     u32 m_height;
-    u32 m_downsampleFactor;  // 2 = half res, 4 = quarter res
+    u32 m_downsampleFactor;  // Non utilisé en single-pass
 
     f32 m_strength;
     f32 m_radius;
