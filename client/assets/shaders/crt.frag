@@ -50,14 +50,14 @@ vec3 applyTiltShift(vec2 uv, float intensity) {
     // Distance from horizontal center (0 at center, 1 at top/bottom)
     float distFromCenter = abs(uv.y - 0.5) * 2.0;
 
-    // Focus zone in the middle (0.3 = sharp zone size)
-    float blurAmount = smoothstep(0.2, 0.8, distFromCenter) * intensity;
+    // Focus zone plus étroite pour effet plus fort
+    float blurAmount = smoothstep(0.15, 0.7, distFromCenter) * intensity;
 
     vec3 color = vec3(0.0);
     float totalWeight = 0.0;
 
     // Gaussian-like blur with variable radius based on distance
-    float radius = blurAmount * 8.0;
+    float radius = blurAmount * 12.0; // Augmenté de 8 à 12 pour plus de flou
     int samples = int(radius) + 1;
 
     for (int x = -samples; x <= samples; x++) {
@@ -145,7 +145,9 @@ vec3 applyGodRays(vec2 uv, vec3 color) {
 float applyVignette(vec2 uv, float strength) {
     vec2 centered = uv * 2.0 - 1.0;
     float dist = length(centered);
-    float vig = smoothstep(1.8, 0.5, dist);
+
+    // Vignette plus forte pour effet AO renforcé
+    float vig = smoothstep(1.6, 0.3, dist);
 
     return mix(1.0, vig, strength);
 }
@@ -162,14 +164,17 @@ vec3 applySaturation(vec3 color, float sat) {
 // COLOR GRADING (ajustement des couleurs style Octopath)
 // ============================================================================
 vec3 applyColorGrading(vec3 color) {
-    // Légère teinte chaude et magique
-    vec3 warmTint = vec3(1.02, 0.99, 0.96);
+    // Teinte chaude et dorée renforcée
+    vec3 warmTint = vec3(1.08, 1.02, 0.92);
     color *= warmTint;
 
-    // Boost des midtones
+    // Boost des midtones plus fort
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
-    float midtoneBoost = smoothstep(0.3, 0.7, luma) * 0.1;
-    color += vec3(midtoneBoost * 0.8, midtoneBoost, midtoneBoost * 0.6);
+    float midtoneBoost = smoothstep(0.3, 0.7, luma) * 0.15;
+    color += vec3(midtoneBoost * 1.2, midtoneBoost * 0.9, midtoneBoost * 0.5);
+
+    // Augmentation globale de la luminosité
+    color += vec3(0.08, 0.06, 0.04);
 
     return color;
 }
