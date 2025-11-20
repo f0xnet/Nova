@@ -88,7 +88,7 @@ vec2 pixelSize = 1.0 / resolution;
 
 // Chercher la distance au bord le plus proche
 float minDistToEdge = 999.0;
-float aoRadius = 8.0; // Rayon de recherche en pixels (augmenté pour plus de portée)
+float aoRadius = 12.0; // Rayon de recherche en pixels (très large pour ombres étendues)
 
 // Échantillonner en cercle pour trouver les bords
 for (float angle = 0.0; angle < 6.28318; angle += 0.523599) { // 12 directions
@@ -110,8 +110,8 @@ for (float angle = 0.0; angle < 6.28318; angle += 0.523599) { // 12 directions
             edgeStrength += abs(sampleLum - checkLum);
         }
 
-        // Si c'est un bord (fort contraste)
-        if (edgeStrength > 0.3) {
+        // Si c'est un bord (fort contraste) - seuil abaissé pour détecter plus de bords
+        if (edgeStrength > 0.2) {
             if (dist < minDistToEdge) minDistToEdge = dist;
             break; // Trouvé un bord dans cette direction
         }
@@ -129,8 +129,8 @@ if (minDistToEdge < aoRadius) {
 }
 
 // Retourner le facteur d'assombrissement (1.0 = pas d'ombre, <1.0 = ombre)
-// Augmentation de l'intensité: 0.7 au lieu de 0.4 pour des ombres plus marquées
-return 1.0 - clamp(occlusion * 0.7, 0.0, 0.7);
+// Intensité maximale de 0.9 pour des ombres très prononcées
+return 1.0 - clamp(occlusion * 0.9, 0.0, 0.9);
 }
 // ============================================================================
 // SATURATION
