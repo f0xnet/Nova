@@ -145,40 +145,56 @@ float bloomAmount = (brightness - 0.6) * intensity * 2.0;
 return baseColor + bloom * bloomAmount;
 }
 // ============================================================================
-// AMBIENT OCCLUSION (SSAO simplifié basé sur les bords des formes)
+// AMBIENT OCCLUSION (assombrissement diffus depuis les bords)
 // ============================================================================
 float applyAO(vec2 uv, float strength) {
 if (strength <= 0.0) return 1.0;
 
-vec2 pixelSize = 1.0 / resolution;
-vec3 centerColor = sampleTex(uv);
-float centerLuminance = dot(centerColor, vec3(0.299, 0.587, 0.114));
 
-float occlusion = 0.0;
-int aoSamples = 0;
 
-// Échantillonnage en cercle autour du pixel
-float aoRadius = 3.0;
-for (float angle = 0.0; angle < 6.28318; angle += 0.785398) { // 8 directions
-    for (float dist = 1.0; dist <= aoRadius; dist += 1.0) {
-        vec2 offset = vec2(cos(angle), sin(angle)) * dist * pixelSize;
-        vec3 sampleColor = sampleTex(uv + offset);
-        float sampleLuminance = dot(sampleColor, vec3(0.299, 0.587, 0.114));
+// Distance depuis chaque bord
 
-        // Si le sample est significativement plus sombre, il y a occlusion
-        float diff = centerLuminance - sampleLuminance;
-        if (diff > 0.1) {
-            // Plus le sample est proche et sombre, plus l'occlusion est forte
-            float weight = (1.0 - dist / aoRadius) * diff;
-            occlusion += weight;
-        }
-        aoSamples++;
-    }
-}
+float distLeft = uv.x;
 
-// Normaliser et appliquer
-occlusion = occlusion / float(aoSamples) * strength;
-return 1.0 - clamp(occlusion, 0.0, 0.6);
+float distRight = (1.0 - uv.x);
+
+float distTop = uv.y;
+
+float distBottom = (1.0 - uv.y);
+
+
+
+// Fade doux depuis les bords
+
+float fadeLeft = pow(distLeft, 0.5);
+
+float fadeRight = pow(distRight, 0.5);
+
+float fadeTop = pow(distTop, 0.5);
+
+float fadeBottom = pow(distBottom, 0.5);
+
+
+
+float edgeFade = fadeLeft * fadeRight * fadeTop * fadeBottom;
+
+
+
+// Assombrissement des coins
+
+vec2 centered = uv * 2.0 - 1.0;
+
+float cornerDist = length(centered);
+
+float cornerFade = 1.0 - smoothstep(0.5, 1.5, cornerDist) * 0.3;
+
+
+
+float ao = edgeFade * cornerFade;
+
+
+
+return mix(1.0 - strength * 0.6, 1.0, ao);
 }
 // ============================================================================
 // SATURATION
