@@ -88,7 +88,7 @@ vec2 pixelSize = 1.0 / resolution;
 
 // Chercher la distance au bord le plus proche
 float minDistToEdge = 999.0;
-float aoRadius = 5.0; // Rayon de recherche en pixels
+float aoRadius = 8.0; // Rayon de recherche en pixels (augmenté pour plus de portée)
 
 // Échantillonner en cercle pour trouver les bords
 for (float angle = 0.0; angle < 6.28318; angle += 0.523599) { // 12 directions
@@ -124,12 +124,13 @@ if (minDistToEdge < aoRadius) {
     // Plus on est proche d'un bord, plus l'ombre est forte
     // Utiliser une courbe douce pour l'estompage
     float distFactor = minDistToEdge / aoRadius;
-    occlusion = (1.0 - distFactor) * (1.0 - distFactor); // Courbe quadratique
+    occlusion = (1.0 - distFactor) * (1.0 - distFactor) * (1.0 - distFactor); // Courbe cubique pour plus de contraste
     occlusion *= strength;
 }
 
 // Retourner le facteur d'assombrissement (1.0 = pas d'ombre, <1.0 = ombre)
-return 1.0 - clamp(occlusion * 0.4, 0.0, 0.4);
+// Augmentation de l'intensité: 0.7 au lieu de 0.4 pour des ombres plus marquées
+return 1.0 - clamp(occlusion * 0.7, 0.0, 0.7);
 }
 // ============================================================================
 // SATURATION
