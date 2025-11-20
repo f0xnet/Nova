@@ -125,18 +125,19 @@ namespace NovaEngine {
         Transform() : position(0,0), rotation(0), scale(1,1), origin(0,0) {}
     };
     
-    struct SpriteData { 
-        TextureHandle texture; 
-        Vec2f position; 
-        Vec2f size; 
+    struct SpriteData {
+        TextureHandle texture;
+        Vec2f position;
+        Vec2f size;
         f32 rotation;
-        Vec2f scale; 
-        Vec2f origin; 
-        IntRect textureRect; 
-        Color color; 
+        Vec2f scale;
+        Vec2f origin;
+        IntRect textureRect;
+        Color color;
         BlendMode blendMode;
+        ShaderHandle shader;
         SpriteData() : texture(INVALID_HANDLE), position(0,0), size(0,0), rotation(0),
-            scale(1,1), origin(0,0), textureRect(0,0,0,0), color(Color::White), blendMode(BlendMode::Alpha) {}
+            scale(1,1), origin(0,0), textureRect(0,0,0,0), color(Color::White), blendMode(BlendMode::Alpha), shader(INVALID_HANDLE) {}
     };
     
     struct RectData { 

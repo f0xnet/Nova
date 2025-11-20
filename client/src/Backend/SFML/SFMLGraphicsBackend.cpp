@@ -106,12 +106,22 @@ void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
 
     sf::RenderStates states;
     states.blendMode = SFMLConv::toSFML(sprite.blendMode);
-    if(m_boundShader != INVALID_HANDLE) {
-        auto sit = m_shaders.find(m_boundShader);
+
+    // Check for per-sprite shader first, then global bound shader
+    ShaderHandle shaderToUse = INVALID_HANDLE;
+    if(sprite.shader != INVALID_HANDLE) {
+        shaderToUse = sprite.shader;
+    } else if(m_boundShader != INVALID_HANDLE) {
+        shaderToUse = m_boundShader;
+    }
+
+    if(shaderToUse != INVALID_HANDLE) {
+        auto sit = m_shaders.find(shaderToUse);
         if(sit != m_shaders.end() && sit->second) {
             states.shader = sit->second.get();
         }
     }
+
     m_activeRenderTarget->draw(sfSprite, states);
 }
 
