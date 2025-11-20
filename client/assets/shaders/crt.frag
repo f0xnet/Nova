@@ -58,7 +58,7 @@ float radius = blurAmount * 8.0;
 
 int samples = int(radius) + 1;
 
-samples = min(samples, 10); // Limite pour performance
+if (samples > 10) samples = 10; // Limite pour performance
 
 
 
