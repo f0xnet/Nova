@@ -11,8 +11,8 @@ SSAOEffect::SSAOEffect()
     , m_width(0)
     , m_height(0)
     , m_downsampleFactor(1)  // Pas de downsample, single-pass
-    , m_strength(0.4f)
-    , m_radius(12.0f)
+    , m_strength(2.0f)    // TEST: Valeur TRÈS forte pour vérifier que les uniforms fonctionnent
+    , m_radius(50.0f)     // TEST: Rayon ÉNORME pour vérifier que les uniforms fonctionnent
 {
 }
 
