@@ -199,6 +199,9 @@ void Game::onRender() {
         m_postProcessPipeline->endSceneRender(0.016f); // ~60fps delta
     }
 
+    // Reset view to default before rendering UI (avoid camera offset)
+    VIEWPORT().resetView();
+
     // Render UI directly to screen (no shader applied)
     m_uiManager.render();
 }
