@@ -1,8 +1,12 @@
 // ============================================================================
-// SHADER CRT COMPLET - FORMAT .FRAG
+// OCTOPATH TRAVELER STYLE SHADER
 // ============================================================================
-// 15 effets distincts pour reproduction fidèle
-// Compatible SFML avec texSize pour normalisation UV
+// Effets HD-2D inspirés d'Octopath Traveler :
+// - Tilt-shift blur (effet miniature/diorama)
+// - Bloom/glow intense
+// - Saturation et contraste élevés
+// - Vignette douce
+// - God rays (rayons de lumière volumétriques)
 // ============================================================================
 
 #version 120
@@ -12,163 +16,138 @@ uniform vec2 texSize;
 uniform vec2 resolution;
 uniform float time;
 
-// Paramètres ajustables
-uniform float scanlineIntensity;
-uniform float pixelGridIntensity;
-uniform float chromaticAberration;
-uniform float rgbShiftAmount;
-uniform float curvature;
-uniform float vignetteStrength;
-uniform float glowIntensity;
-uniform float noiseIntensity;
-uniform float colorBanding;
-uniform float saturation;
-uniform float ambientOcclusion;
+// Paramètres ajustables (gardés pour compatibilité avec CRTEffect.cpp)
+uniform float scanlineIntensity;      // Non utilisé
+uniform float pixelGridIntensity;     // Non utilisé
+uniform float chromaticAberration;    // Non utilisé
+uniform float rgbShiftAmount;         // Non utilisé
+uniform float curvature;              // Non utilisé
+uniform float vignetteStrength;       // Utilisé pour vignette
+uniform float glowIntensity;          // Utilisé pour bloom
+uniform float noiseIntensity;         // Non utilisé
+uniform float colorBanding;           // Non utilisé
+uniform float saturation;             // Utilisé pour saturation
+uniform float ambientOcclusion;       // Utilisé pour intensité tilt-shift
 
 const float PI = 3.14159265359;
 
 // ============================================================================
-// SAFE TEXTURE SAMPLING (prevents edge artifacts)
+// SAFE TEXTURE SAMPLING
 // ============================================================================
 vec4 sampleTexture(vec2 uv) {
-    // Clamp UVs with larger margin to prevent edge artifacts
-    vec2 clampedUV = clamp(uv, 0.01, 0.99);
+    vec2 clampedUV = clamp(uv, 0.0, 1.0);
     return texture2D(tex, clampedUV);
 }
 
 // ============================================================================
-// EDGE FADE (smooth transition at borders after curvature)
+// TILT-SHIFT BLUR (effet miniature/diorama)
 // ============================================================================
-float edgeFade(vec2 uv) {
-    // Clamp UV first to handle values outside 0-1
-    vec2 safeUV = clamp(uv, 0.0, 1.0);
-    float margin = 0.03;
-    float fadeX = smoothstep(0.0, margin, safeUV.x) * smoothstep(1.0, 1.0 - margin, safeUV.x);
-    float fadeY = smoothstep(0.0, margin, safeUV.y) * smoothstep(1.0, 1.0 - margin, safeUV.y);
-    return fadeX * fadeY;
+vec3 applyTiltShift(vec2 uv, float intensity) {
+    if (intensity <= 0.0) return sampleTexture(uv).rgb;
+
+    vec2 pixelSize = 1.0 / resolution;
+
+    // Distance from horizontal center (0 at center, 1 at top/bottom)
+    float distFromCenter = abs(uv.y - 0.5) * 2.0;
+
+    // Focus zone in the middle (0.3 = sharp zone size)
+    float blurAmount = smoothstep(0.2, 0.8, distFromCenter) * intensity;
+
+    vec3 color = vec3(0.0);
+    float totalWeight = 0.0;
+
+    // Gaussian-like blur with variable radius based on distance
+    float radius = blurAmount * 8.0;
+    int samples = int(radius) + 1;
+
+    for (int x = -samples; x <= samples; x++) {
+        for (int y = -samples; y <= samples; y++) {
+            vec2 offset = vec2(float(x), float(y)) * pixelSize;
+            float dist = length(offset / pixelSize);
+            float weight = exp(-dist * dist / (radius * radius * 0.5));
+
+            color += sampleTexture(uv + offset).rgb * weight;
+            totalWeight += weight;
+        }
+    }
+
+    return color / totalWeight;
 }
 
 // ============================================================================
-// COURBURE CRT
+// BLOOM/GLOW (effet de lumière intense)
 // ============================================================================
-vec2 curveCRT(vec2 uv) {
-    if (curvature <= 0.0) return uv;
+vec3 applyBloom(vec2 uv, float intensity) {
+    vec3 color = sampleTexture(uv).rgb;
+    float brightness = dot(color, vec3(0.299, 0.587, 0.114));
 
-    uv = uv * 2.0 - 1.0;
-    // Less aggressive curvature
-    vec2 offset = abs(uv.yx) / vec2(10.0, 8.0);
-    uv = uv + uv * offset * offset * curvature;
+    if (brightness > 0.5) {
+        vec2 pixelSize = 1.0 / resolution;
+        vec3 bloom = vec3(0.0);
+        float totalWeight = 0.0;
 
-    return uv * 0.5 + 0.5;
+        // Large radius bloom
+        for (float x = -5.0; x <= 5.0; x += 1.0) {
+            for (float y = -5.0; y <= 5.0; y += 1.0) {
+                vec2 offset = vec2(x, y) * pixelSize * 2.0;
+                float dist = length(vec2(x, y));
+                float weight = exp(-dist * dist / 16.0);
+
+                bloom += sampleTexture(uv + offset).rgb * weight;
+                totalWeight += weight;
+            }
+        }
+
+        bloom /= totalWeight;
+        float bloomAmount = pow(brightness - 0.5, 1.5) * intensity * 3.0;
+        color += bloom * bloomAmount;
+    }
+
+    return color;
 }
 
 // ============================================================================
-// ABERRATION CHROMATIQUE
+// GOD RAYS (rayons de lumière volumétriques)
 // ============================================================================
-vec3 chromaticAberrationEffect(vec2 uv, float amount) {
-    if (amount <= 0.0) return sampleTexture(uv).rgb;
+vec3 applyGodRays(vec2 uv, vec3 color) {
+    // Light source position (top center, slightly animated)
+    vec2 lightPos = vec2(0.5, 0.2 + sin(time * 0.3) * 0.05);
 
-    vec2 direction = uv - 0.5;
-    float dist = length(direction);
-    direction = normalize(direction);
+    vec2 dir = uv - lightPos;
+    float dist = length(dir);
 
-    float aberration = amount * dist * 1.5;
+    // Sample along ray from pixel to light source
+    vec3 rayColor = vec3(0.0);
+    int samples = 8;
+    float decay = 0.96;
+    float weight = 1.0;
 
-    float r = sampleTexture(uv + direction * aberration).r;
-    float g = sampleTexture(uv).g;
-    float b = sampleTexture(uv - direction * aberration).b;
+    for (int i = 0; i < samples; i++) {
+        vec2 samplePos = uv - dir * (float(i) / float(samples));
+        vec3 sampleCol = sampleTexture(samplePos).rgb;
+        float brightness = dot(sampleCol, vec3(0.299, 0.587, 0.114));
 
-    return vec3(r, g, b);
+        rayColor += sampleCol * weight * brightness;
+        weight *= decay;
+    }
+
+    rayColor /= float(samples);
+
+    // Fade rays based on distance from light
+    float rayStrength = exp(-dist * dist * 2.0) * 0.3;
+
+    return color + rayColor * rayStrength;
 }
 
 // ============================================================================
-// RGB SHIFT HORIZONTAL (VHS)
+// VIGNETTE (assombrissement des bords)
 // ============================================================================
-vec3 rgbShift(vec2 uv, float amount) {
-    if (amount <= 0.0) return sampleTexture(uv).rgb;
-
-    float shift = sin(uv.y * 100.0 + time * 2.0) * amount;
-
-    float r = sampleTexture(uv + vec2(shift, 0.0)).r;
-    float g = sampleTexture(uv).g;
-    float b = sampleTexture(uv - vec2(shift, 0.0)).b;
-
-    return vec3(r, g, b);
-}
-
-// ============================================================================
-// SCANLINES
-// ============================================================================
-float scanlines(vec2 coord) {
-    float scanline = sin(coord.y * resolution.y * PI * 2.0);
-    scanline = scanline * 0.5 + 0.5;
-    scanline = pow(scanline, 0.85);
-
-    float flicker = sin(time * 20.0 + coord.y * 50.0) * 0.01;
-    scanline += flicker;
-
-    return 1.0 - (scanline * scanlineIntensity);
-}
-
-// ============================================================================
-// GRILLE DE PIXELS
-// ============================================================================
-float pixelGrid(vec2 coord) {
-    vec2 pixel = coord * resolution;
-    vec2 grid = fract(pixel);
-
-    float gridX = smoothstep(0.0, 0.15, grid.x) * smoothstep(1.0, 0.85, grid.x);
-    float gridY = smoothstep(0.0, 0.15, grid.y) * smoothstep(1.0, 0.85, grid.y);
-
-    float gridEffect = gridX * gridY;
-
-    return mix(0.80, 1.0, gridEffect * (1.0 - pixelGridIntensity) + pixelGridIntensity);
-}
-
-// ============================================================================
-// VIGNETTE
-// ============================================================================
-float vignette(vec2 uv) {
-    vec2 position = uv * 2.0 - 1.0;
-    float dist = length(position);
-    float vig = smoothstep(1.5, 0.4, dist);
-
-    return mix(1.0, vig, vignetteStrength);
-}
-
-// ============================================================================
-// DIFFUSE AO (Soft edge darkening spreading inward)
-// ============================================================================
-float applyDiffuseAO(vec2 uv, float intensity) {
-    if (intensity <= 0.0) return 1.0;
-
-    // Center the UV coordinates
+float applyVignette(vec2 uv, float strength) {
     vec2 centered = uv * 2.0 - 1.0;
+    float dist = length(centered);
+    float vig = smoothstep(1.8, 0.5, dist);
 
-    // Distance from each edge (0 at edge, 1 at center)
-    float distLeft = uv.x;
-    float distRight = 1.0 - uv.x;
-    float distTop = uv.y;
-    float distBottom = 1.0 - uv.y;
-
-    // Soft fade from edges - use pow for diffuse spread
-    float fadeLeft = pow(distLeft, 0.5);
-    float fadeRight = pow(distRight, 0.5);
-    float fadeTop = pow(distTop, 0.5);
-    float fadeBottom = pow(distBottom, 0.5);
-
-    // Combine all edges with smooth multiplication
-    float edgeFade = fadeLeft * fadeRight * fadeTop * fadeBottom;
-
-    // Also add subtle corner darkening
-    float cornerDist = length(centered);
-    float cornerFade = 1.0 - smoothstep(0.5, 1.5, cornerDist) * 0.3;
-
-    // Combine edge and corner effects
-    float ao = edgeFade * cornerFade;
-
-    // Apply intensity - more intensity = more darkening
-    return mix(1.0 - intensity * 0.6, 1.0, ao);
+    return mix(1.0, vig, strength);
 }
 
 // ============================================================================
@@ -180,85 +159,19 @@ vec3 applySaturation(vec3 color, float sat) {
 }
 
 // ============================================================================
-// GLOW/BLOOM
+// COLOR GRADING (ajustement des couleurs style Octopath)
 // ============================================================================
-vec3 applyGlow(vec2 uv, float intensity) {
-    vec3 color = sampleTexture(uv).rgb;
-    float brightness = dot(color, vec3(0.299, 0.587, 0.114));
+vec3 applyColorGrading(vec3 color) {
+    // Légère teinte chaude et magique
+    vec3 warmTint = vec3(1.02, 0.99, 0.96);
+    color *= warmTint;
 
-    if (brightness > 0.6) {
-        vec2 pixelSize = 1.0 / resolution;
-        vec3 glow = vec3(0.0);
-
-        for (float x = -3.0; x <= 3.0; x += 1.0) {
-            for (float y = -3.0; y <= 3.0; y += 1.0) {
-                vec2 offset = vec2(x, y) * pixelSize * 1.5;
-                glow += sampleTexture(uv + offset).rgb;
-            }
-        }
-
-        glow /= 49.0;
-        float glowAmount = (brightness - 0.6) * intensity * 2.5;
-        color += glow * glowAmount;
-    }
+    // Boost des midtones
+    float luma = dot(color, vec3(0.299, 0.587, 0.114));
+    float midtoneBoost = smoothstep(0.3, 0.7, luma) * 0.1;
+    color += vec3(midtoneBoost * 0.8, midtoneBoost, midtoneBoost * 0.6);
 
     return color;
-}
-
-// ============================================================================
-// NOISE/GRAIN
-// ============================================================================
-float noise(vec2 uv) {
-    return fract(sin(dot(uv, vec2(12.9898, 78.233)) + time * 10.0) * 43758.5453);
-}
-
-vec3 applyNoise(vec3 color, vec2 uv, float intensity) {
-    float n = (noise(uv * 1000.0) * 2.0 - 1.0) * intensity;
-    return color + vec3(n);
-}
-
-// ============================================================================
-// COLOR BANDING
-// ============================================================================
-vec3 posterize(vec3 color, float levels) {
-    if (levels <= 0.0) return color;
-
-    float numLevels = 256.0 - (levels * 128.0);
-    return floor(color * numLevels + 0.5) / numLevels;
-}
-
-// ============================================================================
-// GHOSTING
-// ============================================================================
-vec3 applyGhosting(vec2 uv) {
-    vec3 color = sampleTexture(uv).rgb;
-
-    vec2 offset = vec2(0.003, 0.0);
-    vec3 ghost1 = sampleTexture(uv + offset).rgb * 0.15;
-    vec3 ghost2 = sampleTexture(uv + offset * 2.0).rgb * 0.08;
-
-    return color + ghost1 + ghost2;
-}
-
-// ============================================================================
-// PHOSPHOR DECAY
-// ============================================================================
-vec3 phosphorDecay(vec3 color) {
-    float brightness = dot(color, vec3(0.299, 0.587, 0.114));
-
-    if (brightness > 0.7) {
-        color += vec3(0.02, 0.03, 0.01) * (brightness - 0.7);
-    }
-
-    return color;
-}
-
-// ============================================================================
-// INTERFERENCE PATTERN (disabled - was causing unwanted scanlines)
-// ============================================================================
-float interference(vec2 uv) {
-    // Disabled - return 1.0 (no effect)
-    return 1.0;
 }
 
 // ============================================================================
@@ -270,67 +183,26 @@ void main()
     vec2 uv = gl_TexCoord[0].xy / texSize;
     uv.y = 1.0 - uv.y;
 
-    // Courbure CRT
-    vec2 curvedUV = curveCRT(uv);
+    // Tilt-shift blur (effet diorama)
+    vec3 color = applyTiltShift(uv, ambientOcclusion);
 
-    // Bords noirs (outside curved area)
-    if (curvedUV.x < -0.01 || curvedUV.x > 1.01 ||
-        curvedUV.y < -0.01 || curvedUV.y > 1.01) {
-        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-        return;
-    }
+    // Bloom intense (caractéristique d'Octopath)
+    color = applyBloom(uv, glowIntensity);
 
-    // Edge fade factor for smooth border transition
-    float fade = edgeFade(curvedUV);
+    // God rays (rayons volumétriques)
+    color = applyGodRays(uv, color);
 
-    // Aberration chromatique
-    vec3 color = chromaticAberrationEffect(curvedUV, chromaticAberration);
-
-    // RGB Shift (increased mix)
-    color = mix(color, rgbShift(curvedUV, rgbShiftAmount), 0.5);
-
-    // Ghosting (increased mix)
-    color = mix(color, applyGhosting(curvedUV), 0.4);
-
-    // Glow
-    color = applyGlow(curvedUV, glowIntensity);
-
-    // Phosphor decay
-    color = phosphorDecay(color);
-
-    // Grille de pixels
-    color *= pixelGrid(curvedUV);
-
-    // Scanlines
-    color *= scanlines(curvedUV);
-
-    // Interference
-    color *= interference(curvedUV);
-
-    // Vignette
-    color *= vignette(curvedUV);
-
-    // Diffuse AO (soft darkening from edges)
-    color *= applyDiffuseAO(curvedUV, ambientOcclusion);
-
-    // Color banding
-    color = posterize(color, colorBanding);
-
-    // Noise
-    color = applyNoise(color, curvedUV, noiseIntensity);
-
-    // Saturation
+    // Saturation élevée (style HD-2D)
     color = applySaturation(color, saturation);
 
-    // Contraste (increased)
-    color = ((color - 0.5) * 1.2) + 0.5;
+    // Color grading
+    color = applyColorGrading(color);
 
-    // Teinte chaleureuse
-    vec3 warmTint = vec3(1.0, 0.98, 0.95);
-    color *= mix(vec3(1.0), warmTint, 0.12);
+    // Contraste fort
+    color = ((color - 0.5) * 1.3) + 0.5;
 
-    // Apply edge fade to eliminate border artifacts
-    color *= fade;
+    // Vignette douce
+    color *= applyVignette(uv, vignetteStrength);
 
     // Clamp
     color = clamp(color, 0.0, 1.0);

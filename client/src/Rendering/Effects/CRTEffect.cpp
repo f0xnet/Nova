@@ -7,17 +7,17 @@ CRTEffect::CRTEffect()
     : m_shader(INVALID_HANDLE)
     , m_width(0)
     , m_height(0)
-    , m_scanlineIntensity(0.25f)
-    , m_pixelGridIntensity(0.3f)
-    , m_chromaticAberration(0.002f)
-    , m_rgbShiftAmount(0.001f)
-    , m_curvature(0.08f)
-    , m_vignetteStrength(0.4f)
-    , m_glowIntensity(0.5f)
-    , m_noiseIntensity(0.04f)
-    , m_colorBanding(0.08f)
-    , m_saturation(1.2f)
-    , m_ambientOcclusion(0.3f)
+    , m_scanlineIntensity(0.0f)       // Non utilisé dans Octopath style
+    , m_pixelGridIntensity(0.0f)      // Non utilisé
+    , m_chromaticAberration(0.0f)     // Non utilisé
+    , m_rgbShiftAmount(0.0f)          // Non utilisé
+    , m_curvature(0.0f)               // Non utilisé
+    , m_vignetteStrength(0.4f)        // Vignette douce
+    , m_glowIntensity(0.8f)           // Bloom intense (caractéristique Octopath)
+    , m_noiseIntensity(0.0f)          // Non utilisé
+    , m_colorBanding(0.0f)            // Non utilisé
+    , m_saturation(1.4f)              // Saturation élevée style HD-2D
+    , m_ambientOcclusion(0.6f)        // Utilisé pour intensité tilt-shift blur
 {
     m_startTime = std::chrono::high_resolution_clock::now();
 }
