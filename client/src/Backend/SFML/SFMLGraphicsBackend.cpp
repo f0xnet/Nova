@@ -1,5 +1,6 @@
 #include "NovaEngine/Backend/SFML/SFMLGraphicsBackend.hpp"
 #include "NovaEngine/Backend/SFML/SFMLWindowBackend.hpp"
+#include "NovaEngine/Core/Logger.hpp"
 
 namespace NovaEngine {
 SFMLGraphicsBackend::SFMLGraphicsBackend() : m_window(nullptr), m_activeRenderTarget(nullptr) {}
@@ -199,10 +200,15 @@ void SFMLGraphicsBackend::unbindShader() {
 }
 
 void SFMLGraphicsBackend::setShaderParameter(ShaderHandle handle, const String& name, f32 value) {
-    if(handle == INVALID_HANDLE) return;
+    if(handle == INVALID_HANDLE) {
+        LOG_WARN("setShaderParameter: INVALID_HANDLE for {}", name);
+        return;
+    }
     auto it = m_shaders.find(handle);
     if(it != m_shaders.end() && it->second) {
         it->second->setUniform(name, value);
+    } else {
+        LOG_WARN("setShaderParameter: Shader not found (handle={}) for uniform {}", handle, name);
     }
 }
 

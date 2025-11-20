@@ -66,6 +66,12 @@ void SSAOEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle out
     m_graphicsBackend->setShaderParameter(m_ssaoShader, "aoStrength", m_strength);
     m_graphicsBackend->setShaderParameter(m_ssaoShader, "aoRadius", m_radius);
 
+    // Debug: log uniforms once per second
+    static int logCounter = 0;
+    if(++logCounter % 60 == 0) {
+        LOG_INFO("SSAO uniforms sent: aoStrength={}, aoRadius={}", m_strength, m_radius);
+    }
+
     // Apply SSAO shader (computes + applies AO in single pass)
     if(outputTexture == INVALID_HANDLE) {
         m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_ssaoShader);
