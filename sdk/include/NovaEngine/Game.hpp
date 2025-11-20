@@ -34,7 +34,7 @@ private:
     NovaEngine::SSAOEffect* m_ssaoEffect;
     NovaEngine::BloomEffect* m_bloomEffect;
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
-    DynamicLightingEffect* m_dynamicLightingEffect;
+    NovaEngine::DynamicLightingEffect* m_dynamicLightingEffect;
 
     NovaEngine::FontHandle m_font;
 

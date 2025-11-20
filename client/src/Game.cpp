@@ -147,19 +147,19 @@ bool Game::onInitialize() {
         }
 
         // 4. Dynamic Lighting - Multi-light system with colors
-        m_dynamicLightingEffect = m_postProcessPipeline->addEffect<DynamicLightingEffect>();
+        m_dynamicLightingEffect = m_postProcessPipeline->addEffect<NovaEngine::DynamicLightingEffect>();
         if (m_dynamicLightingEffect) {
             m_dynamicLightingEffect->setEnabled(false);  // Désactivé par défaut
             m_dynamicLightingEffect->setAmbientDarkness(0.01f);  // Très sombre
 
             // Ajouter quelques lumières de démonstration
-            LightData redLight(Vec2f(0.3f, 0.3f), Vec3f(1.0f, 0.0f, 0.0f), 0.25f, 0.3f);
+            LightData redLight(NovaEngine::Vec2f(0.3f, 0.3f), NovaEngine::Vec3f(1.0f, 0.0f, 0.0f), 0.25f, 0.3f);
             m_dynamicLightingEffect->addLight(redLight);
 
-            LightData whiteLight(Vec2f(0.7f, 0.3f), Vec3f(1.0f, 1.0f, 1.0f), 0.3f, 0.5f);
+            LightData whiteLight(NovaEngine::Vec2f(0.7f, 0.3f), NovaEngine::Vec3f(1.0f, 1.0f, 1.0f), 0.3f, 0.5f);
             m_dynamicLightingEffect->addLight(whiteLight);
 
-            LightData greenLight(Vec2f(0.5f, 0.7f), Vec3f(0.0f, 1.0f, 0.0f), 0.2f, 0.4f);
+            LightData greenLight(NovaEngine::Vec2f(0.5f, 0.7f), NovaEngine::Vec3f(0.0f, 1.0f, 0.0f), 0.2f, 0.4f);
             m_dynamicLightingEffect->addLight(greenLight);
 
             LOG_INFO("Dynamic lighting effect added successfully ({} lights)", m_dynamicLightingEffect->getLightCount());

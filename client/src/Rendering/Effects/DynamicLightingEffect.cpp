@@ -1,28 +1,50 @@
-#include <NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp>
-#include <NovaEngine/Backend/Interfaces/IGraphicsBackend.hpp>
-#include <NovaEngine/Core/Logger.hpp>
+#include "NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp"
+#include "NovaEngine/Core/Logger.hpp"
 #include <algorithm>
 
-DynamicLightingEffect::DynamicLightingEffect(NovaEngine::IGraphicsBackend* graphicsBackend)
-    : m_graphicsBackend(graphicsBackend)
-    , m_lightingShader(NovaEngine::INVALID_HANDLE)
+namespace NovaEngine {
+
+DynamicLightingEffect::DynamicLightingEffect()
+    : m_lightingShader(INVALID_HANDLE)
+    , m_width(0)
+    , m_height(0)
     , m_ambientDarkness(0.01f)  // Très sombre par défaut
 {
+}
+
+DynamicLightingEffect::~DynamicLightingEffect() {
+    shutdown();
+}
+
+bool DynamicLightingEffect::initialize(IGraphicsBackend* graphicsBackend, u32 width, u32 height) {
+    m_graphicsBackend = graphicsBackend;
+    m_width = width;
+    m_height = height;
+
     // Charger le shader
     m_lightingShader = m_graphicsBackend->loadShader("", "assets/shaders/dynamic_lighting.frag");
 
-    if (m_lightingShader == NovaEngine::INVALID_HANDLE) {
-        LOG_ERROR("Failed to load dynamic lighting shader");
-    } else {
-        LOG_INFO("DynamicLightingEffect initialized successfully");
+    if (m_lightingShader == INVALID_HANDLE) {
+        LOG_ERROR("DynamicLightingEffect: Failed to load dynamic lighting shader");
+        return false;
+    }
+
+    LOG_INFO("DynamicLightingEffect initialized ({}x{})", width, height);
+    return true;
+}
+
+void DynamicLightingEffect::shutdown() {
+    if (m_lightingShader != INVALID_HANDLE) {
+        m_graphicsBackend->unloadShader(m_lightingShader);
+        m_lightingShader = INVALID_HANDLE;
     }
 }
 
-void DynamicLightingEffect::apply(NovaEngine::RenderTextureHandle inputTexture,
-                                   NovaEngine::RenderTextureHandle outputTexture,
-                                   NovaEngine::f32 deltaTime)
+void DynamicLightingEffect::apply(RenderTextureHandle inputTexture,
+                                   RenderTextureHandle outputTexture,
+                                   f32 deltaTime)
 {
-    if (m_lightingShader == NovaEngine::INVALID_HANDLE) {
+    if (m_lightingShader == INVALID_HANDLE) {
         LOG_WARN("DynamicLightingEffect: Invalid shader handle");
         return;
     }
@@ -31,7 +53,7 @@ void DynamicLightingEffect::apply(NovaEngine::RenderTextureHandle inputTexture,
     updateShaderUniforms();
 
     // Appliquer le shader
-    if (outputTexture == NovaEngine::INVALID_HANDLE) {
+    if (outputTexture == INVALID_HANDLE) {
         // Dernier effet : dessiner à l'écran
         m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_lightingShader);
     } else {
@@ -42,7 +64,7 @@ void DynamicLightingEffect::apply(NovaEngine::RenderTextureHandle inputTexture,
 
 void DynamicLightingEffect::updateShaderUniforms() {
     // Nombre de lumières actives
-    NovaEngine::i32 activeLightCount = 0;
+    i32 activeLightCount = 0;
     for (const auto& light : m_lights) {
         if (light.enabled) activeLightCount++;
     }
@@ -51,10 +73,10 @@ void DynamicLightingEffect::updateShaderUniforms() {
     m_graphicsBackend->setShaderParameter(m_lightingShader, "ambientDarkness", m_ambientDarkness);
 
     // Préparer les tableaux pour les uniforms
-    std::vector<NovaEngine::Vec2f> positions;
-    std::vector<NovaEngine::Vec3f> colors;
-    std::vector<NovaEngine::f32> radii;
-    std::vector<NovaEngine::f32> intensities;
+    std::vector<Vec2f> positions;
+    std::vector<Vec3f> colors;
+    std::vector<f32> radii;
+    std::vector<f32> intensities;
 
     positions.reserve(MAX_LIGHTS);
     colors.reserve(MAX_LIGHTS);
@@ -73,8 +95,8 @@ void DynamicLightingEffect::updateShaderUniforms() {
 
     // Remplir le reste avec des valeurs par défaut (si moins de MAX_LIGHTS)
     while (positions.size() < MAX_LIGHTS) {
-        positions.push_back(NovaEngine::Vec2f(0.0f, 0.0f));
-        colors.push_back(NovaEngine::Vec3f(1.0f, 1.0f, 1.0f));
+        positions.push_back(Vec2f(0.0f, 0.0f));
+        colors.push_back(Vec3f(1.0f, 1.0f, 1.0f));
         radii.push_back(0.0f);
         intensities.push_back(0.0f);
     }
@@ -86,7 +108,7 @@ void DynamicLightingEffect::updateShaderUniforms() {
     m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightIntensity", intensities.data(), MAX_LIGHTS);
 }
 
-NovaEngine::i32 DynamicLightingEffect::addLight(const LightData& light) {
+i32 DynamicLightingEffect::addLight(const LightData& light) {
     if (m_lights.size() >= MAX_LIGHTS) {
         LOG_WARN("Cannot add light: maximum of {} lights reached", MAX_LIGHTS);
         return -1;
@@ -94,11 +116,11 @@ NovaEngine::i32 DynamicLightingEffect::addLight(const LightData& light) {
 
     m_lights.push_back(light);
     LOG_INFO("Light added (total: {})", m_lights.size());
-    return static_cast<NovaEngine::i32>(m_lights.size() - 1);
+    return static_cast<i32>(m_lights.size() - 1);
 }
 
-void DynamicLightingEffect::removeLight(NovaEngine::i32 index) {
-    if (index < 0 || index >= static_cast<NovaEngine::i32>(m_lights.size())) {
+void DynamicLightingEffect::removeLight(i32 index) {
+    if (index < 0 || index >= static_cast<i32>(m_lights.size())) {
         LOG_WARN("Cannot remove light: invalid index {}", index);
         return;
     }
@@ -107,8 +129,8 @@ void DynamicLightingEffect::removeLight(NovaEngine::i32 index) {
     LOG_INFO("Light removed (remaining: {})", m_lights.size());
 }
 
-void DynamicLightingEffect::updateLight(NovaEngine::i32 index, const LightData& light) {
-    if (index < 0 || index >= static_cast<NovaEngine::i32>(m_lights.size())) {
+void DynamicLightingEffect::updateLight(i32 index, const LightData& light) {
+    if (index < 0 || index >= static_cast<i32>(m_lights.size())) {
         LOG_WARN("Cannot update light: invalid index {}", index);
         return;
     }
@@ -117,14 +139,16 @@ void DynamicLightingEffect::updateLight(NovaEngine::i32 index, const LightData& 
 }
 
 void DynamicLightingEffect::clearLights() {
-    NovaEngine::i32 count = static_cast<NovaEngine::i32>(m_lights.size());
+    i32 count = static_cast<i32>(m_lights.size());
     m_lights.clear();
     LOG_INFO("All lights cleared (removed {} lights)", count);
 }
 
-LightData* DynamicLightingEffect::getLight(NovaEngine::i32 index) {
-    if (index < 0 || index >= static_cast<NovaEngine::i32>(m_lights.size())) {
+LightData* DynamicLightingEffect::getLight(i32 index) {
+    if (index < 0 || index >= static_cast<i32>(m_lights.size())) {
         return nullptr;
     }
     return &m_lights[index];
 }
+
+}  // namespace NovaEngine
