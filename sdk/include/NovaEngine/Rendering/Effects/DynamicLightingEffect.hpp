@@ -31,6 +31,11 @@ public:
     void setAmbientDarkness(f32 darkness) { m_ambientDarkness = darkness; }
     f32 getAmbientDarkness() const { return m_ambientDarkness; }
 
+    // Camera management (for world → screen conversion)
+    void setCamera(const Vec2f& position, const Vec2f& viewportSize);
+    Vec2f getCameraPosition() const { return m_cameraPosition; }
+    Vec2f getViewportSize() const { return m_viewportSize; }
+
 private:
     void updateShaderUniforms();
 
@@ -40,6 +45,9 @@ private:
 
     std::vector<LightData> m_lights;
     f32 m_ambientDarkness;  // 0.01 = très sombre, 1.0 = pas d'obscurité
-};
+
+    // Camera for world → screen coordinate conversion
+    Vec2f m_cameraPosition;  // Camera center position in world coordinates
+    Vec2f m_viewportSize;    // Viewport size (1280x720)
 
 }

@@ -3,16 +3,16 @@
 #include "../../Backend/Core/BackendTypes.hpp"
 
 struct LightData {
-    NovaEngine::Vec2f position;     // Position normalisée (0-1)
+    NovaEngine::Vec2f position;     // Position monde (pixels)
     NovaEngine::Vec3f color;        // Couleur RGB (0-1)
-    NovaEngine::f32 radius;         // Rayon normalisé (0-1)
+    NovaEngine::f32 radius;         // Rayon monde (pixels)
     NovaEngine::f32 intensity;      // Intensité de teinte (0-1)
     bool enabled;                   // Lumière active ou non
 
     LightData()
-        : position(0.5f, 0.5f)
+        : position(640.0f, 360.0f)  // Centre écran par défaut
         , color(1.0f, 1.0f, 1.0f)
-        , radius(0.3f)
+        , radius(200.0f)             // 200 pixels
         , intensity(0.5f)
         , enabled(true)
     {}

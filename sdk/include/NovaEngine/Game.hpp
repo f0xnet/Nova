@@ -11,6 +11,7 @@
 #include "NovaEngine/Rendering/Effects/BloomEffect.hpp"
 #include "NovaEngine/Rendering/Effects/ColorGradingEffect.hpp"
 #include "NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp"
+#include "NovaEngine/Systems/LightingSystem.hpp"
 
 // Forward declarations for game modules
 namespace NovaEngine {
@@ -29,6 +30,7 @@ private:
     std::unique_ptr<NovaEngine::DialogueSystem> m_dialogueSystem;
     std::unique_ptr<NovaEngine::PlayerController> m_playerController;
     std::unique_ptr<NovaEngine::PostProcessPipeline> m_postProcessPipeline;
+    std::unique_ptr<NovaEngine::LightingSystem> m_lightingSystem;
 
     // Post-processing effects (owned by pipeline)
     NovaEngine::SSAOEffect* m_ssaoEffect;

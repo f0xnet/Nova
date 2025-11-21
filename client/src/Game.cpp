@@ -10,6 +10,7 @@ Game::Game()
     , m_dialogueSystem(std::make_unique<NovaEngine::DialogueSystem>())
     , m_playerController(std::make_unique<NovaEngine::PlayerController>())
     , m_postProcessPipeline(nullptr)
+    , m_lightingSystem(std::make_unique<NovaEngine::LightingSystem>())
     , m_ssaoEffect(nullptr)
     , m_bloomEffect(nullptr)
     , m_colorGradingEffect(nullptr)
@@ -146,23 +147,16 @@ bool Game::onInitialize() {
             LOG_INFO("Color grading effect added successfully");
         }
 
-        // 4. Dynamic Lighting - Multi-light system with colors
+        // 4. Dynamic Lighting - Multi-light system with colors (ECS-driven)
         m_dynamicLightingEffect = m_postProcessPipeline->addEffect<NovaEngine::DynamicLightingEffect>();
         if (m_dynamicLightingEffect) {
             m_dynamicLightingEffect->setEnabled(false);  // Désactivé par défaut
             m_dynamicLightingEffect->setAmbientDarkness(0.01f);  // Très sombre
 
-            // Ajouter quelques lumières de démonstration
-            LightData redLight(NovaEngine::Vec2f(0.3f, 0.3f), NovaEngine::Vec3f(1.0f, 0.0f, 0.0f), 0.25f, 0.3f);
-            m_dynamicLightingEffect->addLight(redLight);
+            // Configure lighting system to manage lights from ECS
+            m_lightingSystem->setLightingEffect(m_dynamicLightingEffect);
 
-            LightData whiteLight(NovaEngine::Vec2f(0.7f, 0.3f), NovaEngine::Vec3f(1.0f, 1.0f, 1.0f), 0.3f, 0.5f);
-            m_dynamicLightingEffect->addLight(whiteLight);
-
-            LightData greenLight(NovaEngine::Vec2f(0.5f, 0.7f), NovaEngine::Vec3f(0.0f, 1.0f, 0.0f), 0.2f, 0.4f);
-            m_dynamicLightingEffect->addLight(greenLight);
-
-            LOG_INFO("Dynamic lighting effect added successfully ({} lights)", m_dynamicLightingEffect->getLightCount());
+            LOG_INFO("Dynamic lighting effect added successfully (ECS-driven)");
         }
     }
 
@@ -193,6 +187,16 @@ void Game::onUpdate(float deltaTime) {
         // Update camera to follow player
         Vec2f playerPos = m_playerController->getPlayerPosition(scene);
         VIEWPORT().setViewCenter(playerPos);
+
+        // Update dynamic lighting system with ECS lights
+        if (m_dynamicLightingEffect && m_lightingSystem) {
+            // Update camera for world → screen coordinate conversion
+            const auto& viewportData = VIEWPORT().getView();
+            m_dynamicLightingEffect->setCamera(viewportData.center, viewportData.size);
+
+            // Collect and update all lights from entities
+            m_lightingSystem->update(deltaTime, scene->getEntityRegistry());
+        }
 
         // Show/hide NPC indicator
         Entity* nearestNPC = m_playerController->getNearestNPC();

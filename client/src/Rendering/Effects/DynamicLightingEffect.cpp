@@ -9,6 +9,8 @@ DynamicLightingEffect::DynamicLightingEffect()
     , m_width(0)
     , m_height(0)
     , m_ambientDarkness(0.01f)  // Très sombre par défaut
+    , m_cameraPosition(640.0f, 360.0f)  // Default camera center
+    , m_viewportSize(1280.0f, 720.0f)   // Default viewport size
 {
 }
 
@@ -73,6 +75,10 @@ void DynamicLightingEffect::updateShaderUniforms() {
 
     m_graphicsBackend->setShaderParameter(m_lightingShader, "numLights", activeLightCount);
     m_graphicsBackend->setShaderParameter(m_lightingShader, "ambientDarkness", m_ambientDarkness);
+
+    // Camera parameters for world → screen conversion
+    m_graphicsBackend->setShaderParameter(m_lightingShader, "cameraPosition", m_cameraPosition);
+    m_graphicsBackend->setShaderParameter(m_lightingShader, "viewportSize", m_viewportSize);
 
     // Préparer les tableaux pour les uniforms
     std::vector<Vec2f> positions;
@@ -151,6 +157,11 @@ LightData* DynamicLightingEffect::getLight(i32 index) {
         return nullptr;
     }
     return &m_lights[index];
+}
+
+void DynamicLightingEffect::setCamera(const Vec2f& position, const Vec2f& viewportSize) {
+    m_cameraPosition = position;
+    m_viewportSize = viewportSize;
 }
 
 }  // namespace NovaEngine
