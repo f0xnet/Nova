@@ -49,5 +49,6 @@ private:
     // Camera for world → screen coordinate conversion
     Vec2f m_cameraPosition;  // Camera center position in world coordinates
     Vec2f m_viewportSize;    // Viewport size (1280x720)
+};
 
-}
+} // namespace NovaEngine
