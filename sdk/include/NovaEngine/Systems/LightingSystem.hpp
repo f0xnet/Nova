@@ -20,9 +20,17 @@ namespace NovaEngine {
 class LightingSystem : public System {
 private:
     DynamicLightingEffect* m_lightingEffect;
+    f32 m_elapsedTime;      // Temps écoulé depuis le début du cycle (en secondes)
+    f32 m_dayDuration;      // Durée d'un cycle jour/nuit complet (en secondes)
+    bool m_enableDayNightCycle;  // Activer/désactiver le cycle automatique
 
 public:
-    LightingSystem() : m_lightingEffect(nullptr) {}
+    LightingSystem()
+        : m_lightingEffect(nullptr)
+        , m_elapsedTime(0.0f)
+        , m_dayDuration(120.0f)      // 2 minutes par défaut pour un cycle complet
+        , m_enableDayNightCycle(true)
+    {}
 
     /**
      * @brief Set the lighting effect to update
@@ -30,6 +38,36 @@ public:
      */
     void setLightingEffect(DynamicLightingEffect* effect) {
         m_lightingEffect = effect;
+    }
+
+    /**
+     * @brief Configure le cycle jour/nuit
+     * @param enabled Activer ou désactiver le cycle automatique
+     * @param duration Durée d'un cycle complet en secondes (défaut: 120s = 2min)
+     */
+    void setDayNightCycle(bool enabled, f32 duration = 120.0f) {
+        m_enableDayNightCycle = enabled;
+        m_dayDuration = duration;
+    }
+
+    /**
+     * @brief Définir manuellement l'heure de la journée
+     * @param timeOfDay Heure (0.0 = minuit, 0.5 = midi, 1.0 = minuit)
+     */
+    void setTimeOfDay(f32 timeOfDay) {
+        if (m_lightingEffect) {
+            m_lightingEffect->setTimeOfDay(timeOfDay);
+        }
+        // Synchroniser l'elapsed time avec le timeOfDay manuel
+        m_elapsedTime = timeOfDay * m_dayDuration;
+    }
+
+    /**
+     * @brief Obtenir l'heure actuelle de la journée
+     * @return Heure (0.0 = minuit, 0.5 = midi, 1.0 = minuit)
+     */
+    f32 getTimeOfDay() const {
+        return m_lightingEffect ? m_lightingEffect->getTimeOfDay() : 0.5f;
     }
 
     /**

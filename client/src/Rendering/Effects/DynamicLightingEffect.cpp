@@ -9,6 +9,7 @@ DynamicLightingEffect::DynamicLightingEffect()
     , m_width(0)
     , m_height(0)
     , m_ambientDarkness(0.01f)  // Très sombre par défaut
+    , m_timeOfDay(0.5f)         // Midi par défaut (0.5 = 12h00)
     , m_cameraPosition(640.0f, 360.0f)  // Default camera center
     , m_viewportSize(1280.0f, 720.0f)   // Default viewport size
 {
@@ -75,6 +76,7 @@ void DynamicLightingEffect::updateShaderUniforms() {
 
     m_graphicsBackend->setShaderParameter(m_lightingShader, "numLights", activeLightCount);
     m_graphicsBackend->setShaderParameter(m_lightingShader, "ambientDarkness", m_ambientDarkness);
+    m_graphicsBackend->setShaderParameter(m_lightingShader, "timeOfDay", m_timeOfDay);
 
     // Camera parameters for world → screen conversion
     m_graphicsBackend->setShaderParameter(m_lightingShader, "cameraPosition", m_cameraPosition);

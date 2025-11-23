@@ -9,6 +9,20 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
         return; // No lighting effect to update
     }
 
+    // Mettre à jour le cycle jour/nuit
+    if (m_enableDayNightCycle) {
+        m_elapsedTime += deltaTime;
+
+        // Boucler le temps (0 -> dayDuration -> 0)
+        if (m_elapsedTime >= m_dayDuration) {
+            m_elapsedTime -= m_dayDuration;
+        }
+
+        // Calculer timeOfDay (0.0 = minuit, 0.5 = midi, 1.0 = minuit)
+        f32 timeOfDay = m_elapsedTime / m_dayDuration;
+        m_lightingEffect->setTimeOfDay(timeOfDay);
+    }
+
     // Clear previous lights
     m_lightingEffect->clearLights();
 

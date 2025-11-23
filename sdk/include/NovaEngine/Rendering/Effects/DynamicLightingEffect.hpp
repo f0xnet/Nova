@@ -31,6 +31,10 @@ public:
     void setAmbientDarkness(f32 darkness) { m_ambientDarkness = darkness; }
     f32 getAmbientDarkness() const { return m_ambientDarkness; }
 
+    // Cycle jour/nuit (0.0 = minuit, 0.5 = midi, 1.0 = minuit)
+    void setTimeOfDay(f32 time) { m_timeOfDay = time; }
+    f32 getTimeOfDay() const { return m_timeOfDay; }
+
     // Camera management (for world → screen conversion)
     void setCamera(const Vec2f& position, const Vec2f& viewportSize);
     Vec2f getCameraPosition() const { return m_cameraPosition; }
@@ -45,6 +49,7 @@ private:
 
     std::vector<LightData> m_lights;
     f32 m_ambientDarkness;  // 0.01 = très sombre, 1.0 = pas d'obscurité
+    f32 m_timeOfDay;        // Cycle jour/nuit : 0.0 = minuit, 0.5 = midi, 1.0 = minuit
 
     // Camera for world → screen coordinate conversion
     Vec2f m_cameraPosition;  // Camera center position in world coordinates
