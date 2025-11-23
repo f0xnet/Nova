@@ -156,7 +156,11 @@ bool Game::onInitialize() {
             // Configure lighting system to manage lights from ECS
             m_lightingSystem->setLightingEffect(m_dynamicLightingEffect);
 
+            // Démarrer à 6h du matin (0.25 = 6h, car 0.0 = minuit, 0.5 = midi)
+            m_lightingSystem->setTimeOfDay(0.25f);
+
             LOG_INFO("Dynamic lighting effect added successfully (ECS-driven)");
+            LOG_INFO("Time of day initialized to 6:00 AM");
         }
     }
 
@@ -164,6 +168,7 @@ bool Game::onInitialize() {
     LOG_INFO("=== Controls ===");
     LOG_INFO("  WASD / Arrow Keys - Move");
     LOG_INFO("  E - Talk to NPCs / Advance dialogue");
+    LOG_INFO("  T - Advance time by 1 hour");
     LOG_INFO("  1 - Toggle SSAO");
     LOG_INFO("  2 - Toggle Bloom");
     LOG_INFO("  3 - Toggle Color Grading");
@@ -285,6 +290,26 @@ void Game::onEvent(const NovaEngine::Event& event) {
                 bool newState = !m_dynamicLightingEffect->isEnabled();
                 m_dynamicLightingEffect->setEnabled(newState);
                 LOG_INFO("Dynamic lighting effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::T) {
+            // Advance time by 1 hour
+            if (m_lightingSystem && m_dynamicLightingEffect) {
+                // 1 hour = 1/24 of a full day (1.0)
+                const float oneHour = 1.0f / 24.0f;
+                float currentTime = m_lightingSystem->getTimeOfDay();
+                float newTime = currentTime + oneHour;
+
+                // Wrap around if we exceed 1.0 (midnight)
+                if (newTime >= 1.0f) {
+                    newTime -= 1.0f;
+                }
+
+                m_lightingSystem->setTimeOfDay(newTime);
+
+                // Convert timeOfDay to hours (0.0 = 0h, 0.5 = 12h, 1.0 = 24h)
+                int hours = static_cast<int>(newTime * 24.0f);
+                LOG_INFO("Time advanced to {:02d}:00", hours);
             }
         }
     }
