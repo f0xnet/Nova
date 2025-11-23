@@ -15,7 +15,10 @@ uniform vec2 viewportSize;                  // Taille viewport (pixels)
 
 // Convertir position monde → position écran normalisée (0-1)
 vec2 worldToScreen(vec2 worldPos) {
-    return (worldPos - cameraPosition + viewportSize * 0.5) / viewportSize;
+    vec2 screenPos = (worldPos - cameraPosition + viewportSize * 0.5) / viewportSize;
+    // Flip Y pour correspondre au flip Y de uv
+    screenPos.y = 1.0 - screenPos.y;
+    return screenPos;
 }
 
 void main() {

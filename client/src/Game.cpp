@@ -151,7 +151,7 @@ bool Game::onInitialize() {
         m_dynamicLightingEffect = m_postProcessPipeline->addEffect<NovaEngine::DynamicLightingEffect>();
         if (m_dynamicLightingEffect) {
             m_dynamicLightingEffect->setEnabled(false);  // Désactivé par défaut
-            m_dynamicLightingEffect->setAmbientDarkness(0.01f);  // Très sombre
+            m_dynamicLightingEffect->setAmbientDarkness(0.2f);  // Obscurité ambiante visible
 
             // Configure lighting system to manage lights from ECS
             m_lightingSystem->setLightingEffect(m_dynamicLightingEffect);
