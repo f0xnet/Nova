@@ -313,6 +313,20 @@ private:
                 light->intensity = lightData["intensity"].get<f32>();
             }
 
+            // Direction
+            if (lightData.contains("direction")) {
+                auto& dir = lightData["direction"];
+                light->direction = Vec2f{
+                    dir[0].get<f32>(),
+                    dir[1].get<f32>()
+                };
+            }
+
+            // Angle
+            if (lightData.contains("angle")) {
+                light->angle = lightData["angle"].get<f32>();
+            }
+
             // Cast shadows
             if (lightData.contains("castShadows")) {
                 light->castShadows = lightData["castShadows"].get<bool>();
