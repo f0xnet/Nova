@@ -28,14 +28,16 @@ vec2 worldToScreen(vec2 worldPos) {
     return screenPos;
 }
 
-// Convertir direction monde → direction écran (sans flip Y pour la direction)
+// Convertir direction monde → direction écran (flip Y pour correspondre au système écran)
 vec2 worldDirectionToScreen(vec2 worldDir) {
-    // Normaliser la direction
+    // Normaliser la direction et flipper Y
     float len = length(worldDir);
     if (len > 0.0) {
-        return worldDir / len;
+        vec2 normalized = worldDir / len;
+        normalized.y = -normalized.y; // Flip Y pour correspondre au système écran
+        return normalized;
     }
-    return vec2(0.0, 1.0);
+    return vec2(0.0, -1.0); // Direction par défaut vers le bas (après flip)
 }
 
 // Calculer la teinte ambiante selon l'heure de la journée

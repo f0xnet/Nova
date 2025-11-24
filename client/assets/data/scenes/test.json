@@ -69,7 +69,7 @@
           "color": [255, 255, 255, 255],
           "radius": 600.0,
           "intensity": 0.8,
-          "direction": [0.0, -1.0],
+          "direction": [0.0, 1.0],
           "angle": 120.0,
           "castShadows": false,
           "enabled": true
