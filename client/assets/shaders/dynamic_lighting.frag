@@ -12,7 +12,7 @@ uniform vec2 lightPositions[MAX_LIGHTS];    // Positions monde (pixels)
 uniform vec3 lightColors[MAX_LIGHTS];       // Couleurs RGB (0-1)
 uniform float lightRadius[MAX_LIGHTS];      // Rayons monde (pixels)
 uniform float lightIntensity[MAX_LIGHTS];   // Intensité de teinte (0-1)
-uniform int lightTypes[MAX_LIGHTS];         // Type de lumière (0=Point, 1=Directional, 2=Spot)
+uniform float lightTypes[MAX_LIGHTS];       // Type de lumière (0=Point, 1=Directional, 2=Spot) - float for compatibility
 uniform vec2 lightDirections[MAX_LIGHTS];   // Direction pour Directional/Spot
 uniform float lightAngles[MAX_LIGHTS];      // Angle du cône pour Spot (degrés)
 uniform float ambientDarkness;              // Obscurité ambiante (0-1)

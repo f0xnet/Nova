@@ -87,7 +87,7 @@ void DynamicLightingEffect::updateShaderUniforms() {
     std::vector<Vec3f> colors;
     std::vector<f32> radii;
     std::vector<f32> intensities;
-    std::vector<i32> types;
+    std::vector<f32> types;           // f32 for shader compatibility (int arrays not supported)
     std::vector<Vec2f> directions;
     std::vector<f32> angles;
 
@@ -106,7 +106,7 @@ void DynamicLightingEffect::updateShaderUniforms() {
             colors.push_back(light.color);
             radii.push_back(light.radius);
             intensities.push_back(light.intensity);
-            types.push_back(static_cast<i32>(light.type));
+            types.push_back(static_cast<f32>(light.type));  // Convert enum to f32
             directions.push_back(light.direction);
             angles.push_back(light.angle);
         }
@@ -118,7 +118,7 @@ void DynamicLightingEffect::updateShaderUniforms() {
         colors.push_back(Vec3f(1.0f, 1.0f, 1.0f));
         radii.push_back(0.0f);
         intensities.push_back(0.0f);
-        types.push_back(0); // Point by default
+        types.push_back(0.0f); // Point by default
         directions.push_back(Vec2f(0.0f, 1.0f));
         angles.push_back(45.0f);
     }
