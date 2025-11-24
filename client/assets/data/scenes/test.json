@@ -42,8 +42,7 @@
           "radius": 520.0,
           "intensity": 0.8,
           "castShadows": false,
-          "enabled": true,
-          "zOrder": 5
+          "enabled": true
         }
       }
     }

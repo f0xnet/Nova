@@ -323,11 +323,6 @@ private:
                 light->enabled = lightData["enabled"].get<bool>();
             }
 
-            // zOrder
-            if (lightData.contains("zOrder")) {
-                light->zOrder = lightData["zOrder"].get<i32>();
-            }
-
             entity->addComponent(std::move(light));
             LOG_DEBUG("Created inline light component for entity {}", entity->getID());
         }
@@ -513,13 +508,6 @@ private:
 
         if (lightDef->contains("castShadows")) {
             light->castShadows = (*lightDef)["castShadows"].get<bool>();
-        }
-
-        // zOrder: Scene takes priority over definition
-        if (entityData.contains("zOrder")) {
-            light->zOrder = entityData["zOrder"].get<i32>();
-        } else if (lightDef->contains("zOrder")) {
-            light->zOrder = (*lightDef)["zOrder"].get<i32>();
         }
 
         entity->addComponent(std::move(light));
