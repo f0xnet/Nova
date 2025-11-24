@@ -87,11 +87,17 @@ void DynamicLightingEffect::updateShaderUniforms() {
     std::vector<Vec3f> colors;
     std::vector<f32> radii;
     std::vector<f32> intensities;
+    std::vector<i32> types;
+    std::vector<Vec2f> directions;
+    std::vector<f32> angles;
 
     positions.reserve(MAX_LIGHTS);
     colors.reserve(MAX_LIGHTS);
     radii.reserve(MAX_LIGHTS);
     intensities.reserve(MAX_LIGHTS);
+    types.reserve(MAX_LIGHTS);
+    directions.reserve(MAX_LIGHTS);
+    angles.reserve(MAX_LIGHTS);
 
     // Remplir les tableaux avec les lumières actives
     for (const auto& light : m_lights) {
@@ -100,6 +106,9 @@ void DynamicLightingEffect::updateShaderUniforms() {
             colors.push_back(light.color);
             radii.push_back(light.radius);
             intensities.push_back(light.intensity);
+            types.push_back(static_cast<i32>(light.type));
+            directions.push_back(light.direction);
+            angles.push_back(light.angle);
         }
     }
 
@@ -109,6 +118,9 @@ void DynamicLightingEffect::updateShaderUniforms() {
         colors.push_back(Vec3f(1.0f, 1.0f, 1.0f));
         radii.push_back(0.0f);
         intensities.push_back(0.0f);
+        types.push_back(0); // Point by default
+        directions.push_back(Vec2f(0.0f, 1.0f));
+        angles.push_back(45.0f);
     }
 
     // Envoyer les tableaux au shader
@@ -116,6 +128,9 @@ void DynamicLightingEffect::updateShaderUniforms() {
     m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightColors", colors.data(), MAX_LIGHTS);
     m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightRadius", radii.data(), MAX_LIGHTS);
     m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightIntensity", intensities.data(), MAX_LIGHTS);
+    m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightTypes", types.data(), MAX_LIGHTS);
+    m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightDirections", directions.data(), MAX_LIGHTS);
+    m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightAngles", angles.data(), MAX_LIGHTS);
 }
 
 i32 DynamicLightingEffect::addLight(const LightData& light) {

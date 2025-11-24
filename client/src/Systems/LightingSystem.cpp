@@ -44,18 +44,28 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
             continue;
         }
 
-        // Only support Point lights for now (can extend later)
-        if (lightComp->type != LightComponent::LightType::Point) {
-            continue;
-        }
-
         // Convert LightComponent + TransformComponent → LightData
         LightData lightData;
         lightData.position = transformComp->position;
         lightData.color = colorToVec3f(lightComp->color);
         lightData.radius = lightComp->radius;
         lightData.intensity = lightComp->intensity;
+        lightData.direction = lightComp->direction;
+        lightData.angle = lightComp->angle;
         lightData.enabled = lightComp->enabled;
+
+        // Convert LightComponent::LightType to LightData::LightType
+        switch (lightComp->type) {
+            case LightComponent::LightType::Point:
+                lightData.type = LightData::LightType::Point;
+                break;
+            case LightComponent::LightType::Directional:
+                lightData.type = LightData::LightType::Directional;
+                break;
+            case LightComponent::LightType::Spot:
+                lightData.type = LightData::LightType::Spot;
+                break;
+        }
 
         // Add light to effect
         m_lightingEffect->addLight(lightData);
