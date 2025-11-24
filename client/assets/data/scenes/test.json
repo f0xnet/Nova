@@ -46,17 +46,6 @@
           "zOrder": 5
         }
       }
-    },
-    {
-      "components": {
-        "transform": {
-          "position": [900, 800]
-        },
-        "occluder": {
-          "shape": "box",
-          "size": [80, 150]
-        }
-      }
     }
   ]
 }

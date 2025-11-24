@@ -174,12 +174,13 @@ private:
      * @brief Create an entity from JSON data
      */
     void createEntityFromJSON(const nlohmann::json& entityData, const DefinitionManager& defManager) {
-        if (!entityData.contains("type")) {
-            LOG_ERROR("Entity missing 'type' field");
+        // Check if entity has type (definition-based) or components (inline)
+        if (!entityData.contains("type") && !entityData.contains("components")) {
+            LOG_ERROR("Entity missing both 'type' and 'components' fields");
             return;
         }
 
-        std::string type = entityData["type"];
+        std::string type = entityData.contains("type") ? entityData["type"].get<std::string>() : "";
 
         // Create entity
         Entity* entity = m_entityRegistry.createEntity();
@@ -242,7 +243,7 @@ private:
         else if (type == "player") {
             createPlayerEntity(entity, entityData, defManager);
         }
-        else {
+        else if (!type.empty()) {
             LOG_WARN("Unknown entity type: {}", type);
         }
     }
