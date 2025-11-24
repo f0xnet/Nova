@@ -122,6 +122,7 @@ public:
     f32 angle = 45.0f;             // For Spot lights (in degrees)
     bool castShadows = false;
     bool enabled = true;
+    i32 zOrder = 0;                // Render order (for lighting effects that support layers)
 
     COMPONENT_TYPE_ID(LightComponent)
 
@@ -140,6 +141,7 @@ public:
         json["angle"] = angle;
         json["castShadows"] = castShadows;
         json["enabled"] = enabled;
+        json["zOrder"] = zOrder;
     }
 
     void deserialize(const nlohmann::json& json) override {
@@ -163,6 +165,7 @@ public:
         if (json.contains("angle")) angle = json["angle"];
         if (json.contains("castShadows")) castShadows = json["castShadows"];
         if (json.contains("enabled")) enabled = json["enabled"];
+        if (json.contains("zOrder")) zOrder = json["zOrder"];
     }
 };
 

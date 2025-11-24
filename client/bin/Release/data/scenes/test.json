@@ -7,27 +7,31 @@
       "type": "player",
       "spriteID": "player",
       "x": 1000,
-      "y": 1080
+      "y": 1080,
+      "zOrder": 10
     },
     {
       "type": "sprite",
       "spriteID": "floor",
       "x": 1000,
-      "y": 1300
+      "y": 1300,
+      "zOrder": 0
     },
     {
       "type": "light",
       "lightID": "candle",
       "position": [800, 400],
       "rotation": 0,
-      "scale": [1.0, 1.0]
+      "scale": [1.0, 1.0],
+      "zOrder": 5
     },
     {
       "type": "light",
       "lightID": "lamp",
       "position": [600, 200],
       "rotation": 0,
-      "scale": [1.0, 1.0]
+      "scale": [1.0, 1.0],
+      "zOrder": 5
     }
   ]
 }
