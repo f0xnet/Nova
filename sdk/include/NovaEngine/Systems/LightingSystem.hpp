@@ -27,7 +27,7 @@ private:
     bool m_enableDayNightCycle;  // Activer/désactiver le cycle automatique
 
     // Cache: Entity ID → Light Index in DynamicLightingEffect
-    std::unordered_map<EntityID, i32> m_entityToLightIndex;
+    std::unordered_map<u64, i32> m_entityToLightIndex;
 
 public:
     LightingSystem()

@@ -25,7 +25,7 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
     }
 
     // Track which entities currently have lights
-    std::unordered_set<EntityID> currentLightEntities;
+    std::unordered_set<u64> currentLightEntities;
 
     // Get all entities with LightComponent and TransformComponent
     auto entities = registry.getAllEntities();
@@ -40,7 +40,7 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
         auto* lightComp = entity->getComponent<LightComponent>();
         auto* transformComp = entity->getComponent<TransformComponent>();
 
-        EntityID entityID = entity->getID();
+        u64 entityID = entity->getID();
 
         // Skip disabled lights (but remove from effect if previously added)
         if (!lightComp->enabled) {
