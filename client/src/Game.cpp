@@ -309,7 +309,7 @@ void Game::onEvent(const NovaEngine::Event& event) {
 
                 // Convert timeOfDay to hours (0.0 = 0h, 0.5 = 12h, 1.0 = 24h)
                 int hours = static_cast<int>(newTime * 24.0f);
-                LOG_INFO("Time advanced to {:02d}:00", hours);
+                LOG_INFO("Time advanced to {}:00 ({}h)", hours < 10 ? "0" + std::to_string(hours) : std::to_string(hours), hours);
             }
         }
     }

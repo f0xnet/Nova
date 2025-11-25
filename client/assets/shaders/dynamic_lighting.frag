@@ -15,7 +15,6 @@ uniform float lightIntensity[MAX_LIGHTS];   // Intensité de teinte (0-1)
 uniform float lightTypes[MAX_LIGHTS];       // Type de lumière (0=Point, 1=Directional, 2=Spot) - float for compatibility
 uniform vec2 lightDirections[MAX_LIGHTS];   // Direction pour Directional/Spot
 uniform float lightAngles[MAX_LIGHTS];      // Angle du cône pour Spot (degrés)
-uniform float ambientDarkness;              // Obscurité ambiante (0-1)
 uniform vec2 cameraPosition;                // Position caméra monde (pixels)
 uniform vec2 viewportSize;                  // Taille viewport (pixels)
 uniform float timeOfDay;                    // Temps de la journée (0.0 = minuit, 0.5 = midi, 1.0 = minuit)

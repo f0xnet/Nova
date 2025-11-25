@@ -75,7 +75,6 @@ void DynamicLightingEffect::updateShaderUniforms() {
     }
 
     m_graphicsBackend->setShaderParameter(m_lightingShader, "numLights", activeLightCount);
-    m_graphicsBackend->setShaderParameter(m_lightingShader, "ambientDarkness", m_ambientDarkness);
     m_graphicsBackend->setShaderParameter(m_lightingShader, "timeOfDay", m_timeOfDay);
 
     // Camera parameters for world → screen conversion
