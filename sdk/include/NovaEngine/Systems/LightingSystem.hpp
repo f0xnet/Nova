@@ -6,6 +6,7 @@
 #include "../Rendering/Effects/DynamicLightingEffect.hpp"
 #include "../Rendering/Effects/LightData.hpp"
 #include <vector>
+#include <unordered_map>
 
 namespace NovaEngine {
 
@@ -16,6 +17,7 @@ namespace NovaEngine {
  * - Iterates all entities with LightComponent and TransformComponent
  * - Converts them to LightData for the DynamicLightingEffect
  * - Updates the lighting effect with all active lights
+ * - Uses caching to avoid rebuilding lights every frame
  */
 class LightingSystem : public System {
 private:
@@ -23,6 +25,9 @@ private:
     f32 m_elapsedTime;      // Temps écoulé depuis le début du cycle (en secondes)
     f32 m_dayDuration;      // Durée d'un cycle jour/nuit complet (en secondes)
     bool m_enableDayNightCycle;  // Activer/désactiver le cycle automatique
+
+    // Cache: Entity ID → Light Index in DynamicLightingEffect
+    std::unordered_map<EntityID, i32> m_entityToLightIndex;
 
 public:
     LightingSystem()

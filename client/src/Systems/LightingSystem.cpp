@@ -1,6 +1,7 @@
 #include <NovaEngine/Systems/LightingSystem.hpp>
 #include <NovaEngine/ECS/EntityRegistry.hpp>
 #include <NovaEngine/Core/Logger.hpp>
+#include <unordered_set>
 
 namespace NovaEngine {
 
@@ -23,8 +24,8 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
         m_lightingEffect->setTimeOfDay(timeOfDay);
     }
 
-    // Clear previous lights
-    m_lightingEffect->clearLights();
+    // Track which entities currently have lights
+    std::unordered_set<EntityID> currentLightEntities;
 
     // Get all entities with LightComponent and TransformComponent
     auto entities = registry.getAllEntities();
@@ -39,10 +40,21 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
         auto* lightComp = entity->getComponent<LightComponent>();
         auto* transformComp = entity->getComponent<TransformComponent>();
 
-        // Skip disabled lights
+        EntityID entityID = entity->getID();
+
+        // Skip disabled lights (but remove from effect if previously added)
         if (!lightComp->enabled) {
+            auto it = m_entityToLightIndex.find(entityID);
+            if (it != m_entityToLightIndex.end()) {
+                // Light was previously enabled, now disabled → remove it
+                m_lightingEffect->removeLight(it->second);
+                m_entityToLightIndex.erase(it);
+            }
             continue;
         }
+
+        // Mark this entity as having a light
+        currentLightEntities.insert(entityID);
 
         // Convert LightComponent + TransformComponent → LightData
         LightData lightData;
@@ -67,8 +79,27 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
                 break;
         }
 
-        // Add light to effect
-        m_lightingEffect->addLight(lightData);
+        // Check if light already exists in effect
+        auto it = m_entityToLightIndex.find(entityID);
+        if (it != m_entityToLightIndex.end()) {
+            // Light exists → update it
+            m_lightingEffect->updateLight(it->second, lightData);
+        } else {
+            // New light → add it
+            i32 lightIndex = m_lightingEffect->addLight(lightData);
+            m_entityToLightIndex[entityID] = lightIndex;
+        }
+    }
+
+    // Remove lights from entities that no longer exist or were deleted
+    for (auto it = m_entityToLightIndex.begin(); it != m_entityToLightIndex.end(); ) {
+        if (currentLightEntities.find(it->first) == currentLightEntities.end()) {
+            // Entity no longer has a light → remove from effect
+            m_lightingEffect->removeLight(it->second);
+            it = m_entityToLightIndex.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 

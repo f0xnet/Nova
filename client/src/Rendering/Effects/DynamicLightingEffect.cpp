@@ -140,7 +140,7 @@ i32 DynamicLightingEffect::addLight(const LightData& light) {
     }
 
     m_lights.push_back(light);
-    LOG_INFO("Light added (total: {})", m_lights.size());
+    LOG_DEBUG("Light added (total: {})", m_lights.size());
     return static_cast<i32>(m_lights.size() - 1);
 }
 
@@ -151,7 +151,7 @@ void DynamicLightingEffect::removeLight(i32 index) {
     }
 
     m_lights.erase(m_lights.begin() + index);
-    LOG_INFO("Light removed (remaining: {})", m_lights.size());
+    LOG_DEBUG("Light removed (remaining: {})", m_lights.size());
 }
 
 void DynamicLightingEffect::updateLight(i32 index, const LightData& light) {
@@ -166,7 +166,7 @@ void DynamicLightingEffect::updateLight(i32 index, const LightData& light) {
 void DynamicLightingEffect::clearLights() {
     i32 count = static_cast<i32>(m_lights.size());
     m_lights.clear();
-    LOG_INFO("All lights cleared (removed {} lights)", count);
+    LOG_DEBUG("All lights cleared (removed {} lights)", count);
 }
 
 LightData* DynamicLightingEffect::getLight(i32 index) {

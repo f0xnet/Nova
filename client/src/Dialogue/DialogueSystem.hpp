@@ -20,6 +20,7 @@ private:
     std::string m_currentNPCName;
     std::vector<std::string> m_currentDialogue;
     size_t m_currentDialogueLine = 0;
+    bool m_npcIndicatorVisible = false;  // Track indicator state to avoid redundant UI updates
 
     UIManager* m_uiManager = nullptr;
 
