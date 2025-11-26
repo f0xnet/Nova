@@ -1,6 +1,7 @@
 #pragma once
 
 #include <NovaEngine/Core/Types.hpp>
+#include <NovaEngine/Backend/Core/BackendTypes.hpp>
 #include <string>
 #include <vector>
 #include <map>
