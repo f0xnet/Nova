@@ -3,6 +3,9 @@
 #include "../include/EntityPalette.hpp"
 #include <NovaEngine/Core/Logger.hpp>
 #include <NovaEngine/ECS/Components.hpp>
+#include <NovaEngine/UI/Components/Panel.hpp>
+#include <NovaEngine/UI/Components/Button.hpp>
+#include <NovaEngine/UI/Components/Text.hpp>
 
 namespace NovaEditor {
 
@@ -117,53 +120,287 @@ void EditorUI::createMenuBar() {
 void EditorUI::createToolbar() {
     if (!m_showToolbar) return;
 
-    // TODO: Créer toolbar avec UIManager
-    // Boutons: Select, Place, Paint, Erase
-    // Outils: Move, Rotate, Scale
-    LOG_DEBUG("Toolbar created");
+    // Toolbar background panel
+    auto toolbarPanel = std::make_shared<NovaEngine::Panel>();
+    toolbarPanel->setID("editor_toolbar_panel");
+    toolbarPanel->setUIID("editor");
+    toolbarPanel->setGroupID("toolbar");
+    toolbarPanel->setLayer(10);
+    toolbarPanel->setPosition({0, 0});
+    toolbarPanel->setSize({1920, 50});
+    toolbarPanel->setColor({40, 40, 45, 255});
+    m_uiManager.addComponent(toolbarPanel);
+
+    // Create toolbar buttons
+    const float btnWidth = 80.0f;
+    const float btnHeight = 35.0f;
+    const float btnSpacing = 10.0f;
+    float xPos = 10.0f;
+
+    // Save button
+    auto saveBtn = std::make_shared<NovaEngine::Button>();
+    saveBtn->setID("btn_save");
+    saveBtn->setUIID("editor");
+    saveBtn->setGroupID("toolbar");
+    saveBtn->setLayer(11);
+    saveBtn->setPosition({xPos, 7.5f});
+    saveBtn->setSize({btnWidth, btnHeight});
+    saveBtn->setText("Save");
+    saveBtn->setAction("save_scene");
+    saveBtn->setHaveText(true);
+    m_uiManager.addComponent(saveBtn);
+    xPos += btnWidth + btnSpacing;
+
+    // Load button
+    auto loadBtn = std::make_shared<NovaEngine::Button>();
+    loadBtn->setID("btn_load");
+    loadBtn->setUIID("editor");
+    loadBtn->setGroupID("toolbar");
+    loadBtn->setLayer(11);
+    loadBtn->setPosition({xPos, 7.5f});
+    loadBtn->setSize({btnWidth, btnHeight});
+    loadBtn->setText("Load");
+    loadBtn->setAction("load_scene");
+    loadBtn->setHaveText(true);
+    m_uiManager.addComponent(loadBtn);
+    xPos += btnWidth + btnSpacing;
+
+    // Play button
+    auto playBtn = std::make_shared<NovaEngine::Button>();
+    playBtn->setID("btn_play");
+    playBtn->setUIID("editor");
+    playBtn->setGroupID("toolbar");
+    playBtn->setLayer(11);
+    playBtn->setPosition({xPos, 7.5f});
+    playBtn->setSize({btnWidth, btnHeight});
+    playBtn->setText("Play");
+    playBtn->setAction("play_mode");
+    playBtn->setHaveText(true);
+    m_uiManager.addComponent(playBtn);
+    xPos += btnWidth + btnSpacing;
+
+    // Grid toggle button
+    auto gridBtn = std::make_shared<NovaEngine::Button>();
+    gridBtn->setID("btn_grid");
+    gridBtn->setUIID("editor");
+    gridBtn->setGroupID("toolbar");
+    gridBtn->setLayer(11);
+    gridBtn->setPosition({xPos, 7.5f});
+    gridBtn->setSize({btnWidth, btnHeight});
+    gridBtn->setText("Grid");
+    gridBtn->setAction("toggle_grid");
+    gridBtn->setHaveText(true);
+    m_uiManager.addComponent(gridBtn);
+
+    LOG_INFO("Toolbar created with {} buttons", 4);
 }
 
 void EditorUI::createEntityPalettePanel() {
     if (!m_showEntityPalette) return;
 
-    // TODO: Créer panel palette avec UIManager
-    // Liste d'entités disponibles par catégorie
-    LOG_DEBUG("Entity palette panel created");
+    // Entity palette panel (left side)
+    auto palettePanel = std::make_shared<NovaEngine::Panel>();
+    palettePanel->setID("entity_palette_panel");
+    palettePanel->setUIID("editor");
+    palettePanel->setGroupID("palette");
+    palettePanel->setLayer(10);
+    palettePanel->setPosition({0, 50});
+    palettePanel->setSize({250, 500});
+    palettePanel->setColor({30, 30, 35, 255});
+    m_uiManager.addComponent(palettePanel);
+
+    // Title
+    auto titleText = std::make_shared<NovaEngine::Text>();
+    titleText->setID("palette_title");
+    titleText->setUIID("editor");
+    titleText->setGroupID("palette");
+    titleText->setLayer(11);
+    titleText->setPosition({10, 60});
+    titleText->setString("Entity Palette");
+    titleText->setCharacterSize(18);
+    titleText->setTextColor({255, 255, 255, 255});
+    m_uiManager.addComponent(titleText);
+
+    // Entity buttons
+    const float btnWidth = 230.0f;
+    const float btnHeight = 30.0f;
+    const float btnSpacing = 5.0f;
+    float yPos = 90.0f;
+
+    // Sprite button
+    auto spriteBtn = std::make_shared<NovaEngine::Button>();
+    spriteBtn->setID("btn_add_sprite");
+    spriteBtn->setUIID("editor");
+    spriteBtn->setGroupID("palette");
+    spriteBtn->setLayer(11);
+    spriteBtn->setPosition({10, yPos});
+    spriteBtn->setSize({btnWidth, btnHeight});
+    spriteBtn->setText("+ Sprite");
+    spriteBtn->setAction("add_entity");
+    spriteBtn->setValue("sprite");
+    spriteBtn->setHaveText(true);
+    m_uiManager.addComponent(spriteBtn);
+    yPos += btnHeight + btnSpacing;
+
+    // Light button
+    auto lightBtn = std::make_shared<NovaEngine::Button>();
+    lightBtn->setID("btn_add_light");
+    lightBtn->setUIID("editor");
+    lightBtn->setGroupID("palette");
+    lightBtn->setLayer(11);
+    lightBtn->setPosition({10, yPos});
+    lightBtn->setSize({btnWidth, btnHeight});
+    lightBtn->setText("+ Light");
+    lightBtn->setAction("add_entity");
+    lightBtn->setValue("light");
+    lightBtn->setHaveText(true);
+    m_uiManager.addComponent(lightBtn);
+    yPos += btnHeight + btnSpacing;
+
+    // Collider button
+    auto colliderBtn = std::make_shared<NovaEngine::Button>();
+    colliderBtn->setID("btn_add_collider");
+    colliderBtn->setUIID("editor");
+    colliderBtn->setGroupID("palette");
+    colliderBtn->setLayer(11);
+    colliderBtn->setPosition({10, yPos});
+    colliderBtn->setSize({btnWidth, btnHeight});
+    colliderBtn->setText("+ Collider");
+    colliderBtn->setAction("add_entity");
+    colliderBtn->setValue("collider");
+    colliderBtn->setHaveText(true);
+    m_uiManager.addComponent(colliderBtn);
+    yPos += btnHeight + btnSpacing;
+
+    // Activator button
+    auto activatorBtn = std::make_shared<NovaEngine::Button>();
+    activatorBtn->setID("btn_add_activator");
+    activatorBtn->setUIID("editor");
+    activatorBtn->setGroupID("palette");
+    activatorBtn->setLayer(11);
+    activatorBtn->setPosition({10, yPos});
+    activatorBtn->setSize({btnWidth, btnHeight});
+    activatorBtn->setText("+ Activator");
+    activatorBtn->setAction("add_entity");
+    activatorBtn->setValue("activator");
+    activatorBtn->setHaveText(true);
+    m_uiManager.addComponent(activatorBtn);
+
+    LOG_INFO("Entity palette panel created with {} entity types", 4);
 }
 
 void EditorUI::createInspectorPanel() {
     if (!m_showInspector) return;
 
-    // TODO: Créer panel inspecteur avec UIManager
-    // Propriétés de l'entité sélectionnée
-    LOG_DEBUG("Inspector panel created");
+    // Inspector panel (right side)
+    auto inspectorPanel = std::make_shared<NovaEngine::Panel>();
+    inspectorPanel->setID("inspector_panel");
+    inspectorPanel->setUIID("editor");
+    inspectorPanel->setGroupID("inspector");
+    inspectorPanel->setLayer(10);
+    inspectorPanel->setPosition({1920 - 300, 50});
+    inspectorPanel->setSize({300, 600});
+    inspectorPanel->setColor({30, 30, 35, 255});
+    m_uiManager.addComponent(inspectorPanel);
+
+    // Title
+    auto titleText = std::make_shared<NovaEngine::Text>();
+    titleText->setID("inspector_title");
+    titleText->setUIID("editor");
+    titleText->setGroupID("inspector");
+    titleText->setLayer(11);
+    titleText->setPosition({1920 - 290, 60});
+    titleText->setString("Inspector");
+    titleText->setCharacterSize(18);
+    titleText->setTextColor({255, 255, 255, 255});
+    m_uiManager.addComponent(titleText);
+
+    // Info text (when no selection)
+    auto infoText = std::make_shared<NovaEngine::Text>();
+    infoText->setID("inspector_info");
+    infoText->setUIID("editor");
+    infoText->setGroupID("inspector");
+    infoText->setLayer(11);
+    infoText->setPosition({1920 - 290, 100});
+    infoText->setString("Select an entity\nto view properties");
+    infoText->setCharacterSize(14);
+    infoText->setTextColor({180, 180, 180, 255});
+    m_uiManager.addComponent(infoText);
+
+    LOG_INFO("Inspector panel created");
 }
 
 void EditorUI::createSceneHierarchyPanel() {
     if (!m_showSceneHierarchy) return;
 
-    // TODO: Créer panel hiérarchie avec UIManager
-    // Liste de toutes les entités de la scène
-    LOG_DEBUG("Scene hierarchy panel created");
+    // Scene hierarchy panel (left side, below palette)
+    auto hierarchyPanel = std::make_shared<NovaEngine::Panel>();
+    hierarchyPanel->setID("hierarchy_panel");
+    hierarchyPanel->setUIID("editor");
+    hierarchyPanel->setGroupID("hierarchy");
+    hierarchyPanel->setLayer(10);
+    hierarchyPanel->setPosition({0, 550});
+    hierarchyPanel->setSize({250, 530});
+    hierarchyPanel->setColor({30, 30, 35, 255});
+    m_uiManager.addComponent(hierarchyPanel);
+
+    // Title
+    auto titleText = std::make_shared<NovaEngine::Text>();
+    titleText->setID("hierarchy_title");
+    titleText->setUIID("editor");
+    titleText->setGroupID("hierarchy");
+    titleText->setLayer(11);
+    titleText->setPosition({10, 560});
+    titleText->setString("Scene Hierarchy");
+    titleText->setCharacterSize(18);
+    titleText->setTextColor({255, 255, 255, 255});
+    m_uiManager.addComponent(titleText);
+
+    // Info text
+    auto infoText = std::make_shared<NovaEngine::Text>();
+    infoText->setID("hierarchy_info");
+    infoText->setUIID("editor");
+    infoText->setGroupID("hierarchy");
+    infoText->setLayer(11);
+    infoText->setPosition({10, 595});
+    infoText->setString("Entities will appear here");
+    infoText->setCharacterSize(12);
+    infoText->setTextColor({150, 150, 150, 255});
+    m_uiManager.addComponent(infoText);
+
+    LOG_INFO("Scene hierarchy panel created");
 }
 
 void EditorUI::createSettingsPanel() {
-    if (!m_showSettings) return;
-
-    // TODO: Créer panel paramètres avec UIManager
-    // Paramètres de l'éditeur (grid, snap, etc.)
-    LOG_DEBUG("Settings panel created");
+    // Settings panel is created on-demand when user opens it
+    // For now, settings are accessed via keyboard shortcuts
+    LOG_DEBUG("Settings panel system ready (opened via shortcuts)");
 }
 
 void EditorUI::updateInspectorForEntity(NovaEngine::Entity* entity) {
     if (!entity) {
+        // Clear inspector - show default info text
+        auto infoComp = m_uiManager.getComponent("inspector_info");
+        if (infoComp) {
+            auto info = std::dynamic_pointer_cast<NovaEngine::Text>(infoComp);
+            if (info) {
+                info->setString("Select an entity\nto view properties");
+                info->setVisible(true);
+            }
+        }
         LOG_DEBUG("Inspector cleared");
         return;
     }
 
-    LOG_DEBUG("Updating inspector for entity {}", entity->getID());
+    // Hide default info text
+    auto infoComp = m_uiManager.getComponent("inspector_info");
+    if (infoComp) {
+        infoComp->setVisible(false);
+    }
 
-    // Créer inspecteurs selon composants
+    LOG_INFO("Inspecting Entity ID: {}", entity->getID());
+
+    // Log component data to console
     if (entity->hasComponent<NovaEngine::TransformComponent>()) {
         createTransformInspector(entity);
     }
@@ -183,6 +420,9 @@ void EditorUI::updateInspectorForEntity(NovaEngine::Entity* entity) {
     if (entity->hasComponent<NovaEngine::ActivatorComponent>()) {
         createActivatorInspector(entity);
     }
+
+    // TODO: Create dynamic text fields for component editing
+    // For now, properties are logged to console
 }
 
 void EditorUI::createTransformInspector(NovaEngine::Entity* entity) {
