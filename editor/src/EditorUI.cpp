@@ -6,6 +6,7 @@
 #include <NovaEngine/UI/Components/Panel.hpp>
 #include <NovaEngine/UI/Components/Button.hpp>
 #include <NovaEngine/UI/Components/Text.hpp>
+#include <NovaEngine/Backend/BackendManager.hpp>
 
 namespace NovaEditor {
 
@@ -23,6 +24,18 @@ EditorUI::EditorUI(NovaEngine::UIManager& uiManager, EditorState* editorState)
 
 void EditorUI::initialize() {
     LOG_INFO("Initializing EditorUI...");
+
+    // Load default font (system font)
+    m_defaultFont = FONTS().loadFont("C:/Windows/Fonts/arial.ttf");
+    if (m_defaultFont == INVALID_HANDLE) {
+        LOG_WARN("Failed to load default font, trying alternative...");
+        m_defaultFont = FONTS().loadFont("C:/Windows/Fonts/segoeui.ttf");
+    }
+    if (m_defaultFont == INVALID_HANDLE) {
+        LOG_ERROR("CRITICAL: No font could be loaded! UI text will be invisible!");
+    } else {
+        LOG_INFO("Default font loaded successfully");
+    }
 
     createMenuBar();
     createToolbar();
@@ -148,6 +161,8 @@ void EditorUI::createToolbar() {
     saveBtn->setPosition({xPos, 7.5f});
     saveBtn->setSize({btnWidth, btnHeight});
     saveBtn->setText("Save");
+    saveBtn->setFont(m_defaultFont);
+    saveBtn->setFontSize(16);
     saveBtn->setAction("save_scene");
     saveBtn->setHaveText(true);
     m_uiManager.addComponent(saveBtn);
@@ -162,6 +177,8 @@ void EditorUI::createToolbar() {
     loadBtn->setPosition({xPos, 7.5f});
     loadBtn->setSize({btnWidth, btnHeight});
     loadBtn->setText("Load");
+    loadBtn->setFont(m_defaultFont);
+    loadBtn->setFontSize(16);
     loadBtn->setAction("load_scene");
     loadBtn->setHaveText(true);
     m_uiManager.addComponent(loadBtn);
@@ -176,6 +193,8 @@ void EditorUI::createToolbar() {
     playBtn->setPosition({xPos, 7.5f});
     playBtn->setSize({btnWidth, btnHeight});
     playBtn->setText("Play");
+    playBtn->setFont(m_defaultFont);
+    playBtn->setFontSize(16);
     playBtn->setAction("play_mode");
     playBtn->setHaveText(true);
     m_uiManager.addComponent(playBtn);
@@ -190,6 +209,8 @@ void EditorUI::createToolbar() {
     gridBtn->setPosition({xPos, 7.5f});
     gridBtn->setSize({btnWidth, btnHeight});
     gridBtn->setText("Grid");
+    gridBtn->setFont(m_defaultFont);
+    gridBtn->setFontSize(16);
     gridBtn->setAction("toggle_grid");
     gridBtn->setHaveText(true);
     m_uiManager.addComponent(gridBtn);

@@ -2,6 +2,7 @@
 
 #include <NovaEngine/UI/UIManager.hpp>
 #include <NovaEngine/ECS/Entity.hpp>
+#include <NovaEngine/Backend/Core/BackendTypes.hpp>
 #include <functional>
 #include <string>
 
@@ -74,6 +75,9 @@ private:
     EditorState* m_editorState;
 
     std::function<void(const std::string&, const std::string&)> m_actionCallback;
+
+    // Font
+    NovaEngine::FontHandle m_defaultFont;
 
     // Panneaux
     bool m_showToolbar;
