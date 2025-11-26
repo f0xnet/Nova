@@ -43,6 +43,8 @@ set "SOURCE_FILES=%SOURCE_FILES% src\EditorCamera.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\EditorUI.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\EntityPalette.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Gizmos.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\EditorHistory.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\SceneSerializer.cpp"
 
 :: Compile each source file with incremental compilation
 set COMPILED=0

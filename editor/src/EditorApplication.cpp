@@ -1,16 +1,19 @@
 #include "../include/EditorApplication.hpp"
 #include "../include/Gizmos.hpp"
+#include "../include/EditorHistory.hpp"
+#include "../include/SceneSerializer.hpp"
 #include <NovaEngine/Core/Logger.hpp>
 #include <NovaEngine/Core/ConfigManager.hpp>
 #include <NovaEngine/ECS/Components.hpp>
 #include <NovaEngine/Backend/BackendManager.hpp>
+#include <cmath>
 
 namespace NovaEditor {
 
 // Configuration par défaut pour l'éditeur
 static NovaEngine::Application::Config createDefaultConfig() {
     NovaEngine::Application::Config config;
-    config.windowTitle = "NovaEngine Editor";
+    config.windowTitle = "NovaEngine Editor v1.0";
     config.windowWidth = 1920;
     config.windowHeight = 1080;
     config.fullscreen = false;
@@ -46,23 +49,17 @@ bool EditorApplication::onInitialize() {
     newScene();
 
     LOG_INFO("Editor initialized successfully");
-    LOG_INFO("=== Editor Controls ===");
-    LOG_INFO("  WASD / Arrow Keys - Move camera");
-    LOG_INFO("  Mouse Wheel - Zoom");
-    LOG_INFO("  Left Click - Select entity");
-    LOG_INFO("  G - Toggle grid");
-    LOG_INFO("  Ctrl+S - Save scene");
-    LOG_INFO("  Ctrl+O - Open scene");
-    LOG_INFO("  Delete - Delete selected entity");
-    LOG_INFO("  ESC - Quit");
+    printControls();
 
     return true;
 }
 
 void EditorApplication::onUpdate(float deltaTime) {
     updateCamera(deltaTime);
+    updateHovering();
     updateSelection();
     updateEntityManipulation(deltaTime);
+    updatePlacement();
 
     // Update UI
     if (m_editorUI) {
@@ -78,6 +75,8 @@ void EditorApplication::onUpdate(float deltaTime) {
 void EditorApplication::onRender() {
     renderScene();
     renderGrid();
+    renderPlacementPreview();
+    renderHoverHighlight();
     renderGizmos();
     renderUI();
 }
@@ -90,10 +89,18 @@ void EditorApplication::onEvent(const NovaEngine::Event& event) {
 
 void EditorApplication::onShutdown() {
     LOG_INFO("Editor shutting down");
+
+    // Demander confirmation si scène modifiée
+    if (m_sceneModified) {
+        LOG_WARN("Scene has unsaved changes!");
+    }
+
     m_sceneManager.shutdown();
 }
 
-// === Private Methods ===
+// ============================================================================
+// PRIVATE METHODS - INITIALIZATION
+// ============================================================================
 
 void EditorApplication::initializeEditor() {
     // Initialiser état éditeur
@@ -115,6 +122,13 @@ void EditorApplication::initializeEditor() {
         onUIAction(action, value);
     });
 
+    // Initialiser historique
+    m_editorHistory = std::make_unique<EditorHistory>();
+    m_editorHistory->setMaxHistorySize(100);
+
+    // Initialiser serializer
+    m_sceneSerializer = std::make_unique<SceneSerializer>();
+
     LOG_INFO("Editor components initialized");
 }
 
@@ -133,19 +147,73 @@ void EditorApplication::loadDefinitions() {
     LOG_INFO("Definitions loaded");
 }
 
+void EditorApplication::printControls() {
+    LOG_INFO("=== Editor Controls ===");
+    LOG_INFO("  WASD / Arrows - Move camera");
+    LOG_INFO("  Mouse Wheel   - Zoom");
+    LOG_INFO("  Left Click    - Select entity");
+    LOG_INFO("  Right Click   - Place entity (Place mode)");
+    LOG_INFO("  G             - Toggle grid");
+    LOG_INFO("  Q             - Select tool");
+    LOG_INFO("  W             - Move tool");
+    LOG_INFO("  E             - Rotate tool");
+    LOG_INFO("  R             - Scale tool");
+    LOG_INFO("  Ctrl+S        - Save scene");
+    LOG_INFO("  Ctrl+O        - Open scene");
+    LOG_INFO("  Ctrl+N        - New scene");
+    LOG_INFO("  Ctrl+C        - Copy");
+    LOG_INFO("  Ctrl+V        - Paste");
+    LOG_INFO("  Ctrl+D        - Duplicate");
+    LOG_INFO("  Ctrl+Z        - Undo");
+    LOG_INFO("  Ctrl+Y        - Redo");
+    LOG_INFO("  Delete        - Delete selected");
+    LOG_INFO("  F             - Frame selected");
+    LOG_INFO("  ESC           - Quit");
+}
+
+// ============================================================================
+// PRIVATE METHODS - UPDATE
+// ============================================================================
+
 void EditorApplication::updateCamera(float deltaTime) {
     if (m_editorCamera) {
         m_editorCamera->update(deltaTime);
     }
 }
 
+void EditorApplication::updateHovering() {
+    if (!m_currentScene) return;
+
+    // Trouver entité sous la souris
+    NovaEngine::Vec2i mouseScreenPos = getMousePosition();
+    NovaEngine::Vec2f mouseWorldPos = m_editorCamera->screenToWorld(mouseScreenPos);
+
+    NovaEngine::Entity* hoveredEntity = findEntityAt(mouseWorldPos);
+    m_editorState->setHoveredEntity(hoveredEntity);
+}
+
 void EditorApplication::updateSelection() {
-    // TODO: Implémenter logique de sélection
+    // Géré par handleEditorInput lors des clics
 }
 
 void EditorApplication::updateEntityManipulation(float deltaTime) {
-    // TODO: Implémenter manipulation d'entités (drag, rotate, etc.)
+    if (!m_isDragging || !m_editorState->hasSelection()) return;
+
+    // Manipulation continue pendant le drag
+    NovaEngine::Vec2i mouseScreenPos = getMousePosition();
+    NovaEngine::Vec2f mouseWorldPos = m_editorCamera->screenToWorld(mouseScreenPos);
+
+    handleEntityDrag(mouseWorldPos);
 }
+
+void EditorApplication::updatePlacement() {
+    // Mise à jour de la preview de placement
+    // Géré dans renderPlacementPreview
+}
+
+// ============================================================================
+// PRIVATE METHODS - RENDERING
+// ============================================================================
 
 void EditorApplication::renderScene() {
     if (m_currentScene) {
@@ -154,41 +222,89 @@ void EditorApplication::renderScene() {
 }
 
 void EditorApplication::renderGrid() {
-    if (m_showGrid) {
+    if (!m_showGrid || !m_editorState->isGridVisible()) return;
+
+    Gizmos gizmos;
+    gizmos.renderGrid(m_gridSize, NovaEngine::Color{80, 80, 90, 100});
+}
+
+void EditorApplication::renderPlacementPreview() {
+    if (m_editorState->getMode() != EditorMode::Place) return;
+    if (!m_editorState->isPlacingEntity()) return;
+
+    NovaEngine::Vec2i mouseScreenPos = getMousePosition();
+    NovaEngine::Vec2f mouseWorldPos = m_editorCamera->screenToWorld(mouseScreenPos);
+
+    if (m_snapToGrid) {
+        mouseWorldPos = snapToGrid(mouseWorldPos);
+    }
+
+    // Dessiner preview semi-transparent à la position de la souris
+    // TODO: Utiliser sprite de l'entité si disponible
+    Gizmos gizmos;
+    gizmos.renderBounds(mouseWorldPos, NovaEngine::Vec2f{32, 32}, NovaEngine::Color{0, 255, 0, 100});
+}
+
+void EditorApplication::renderHoverHighlight() {
+    auto* hoveredEntity = m_editorState->getHoveredEntity();
+    if (!hoveredEntity || m_editorState->hasSelection() && hoveredEntity == m_editorState->getSelectedEntity()) {
+        return;
+    }
+
+    // Highlight l'entité survolée
+    auto* transform = hoveredEntity->getComponent<NovaEngine::TransformComponent>();
+    if (transform) {
         Gizmos gizmos;
-        gizmos.renderGrid(m_gridSize, NovaEngine::Color{100, 100, 100, 100});
+        NovaEngine::Vec2f size{32, 32}; // Taille par défaut
+
+        // Utiliser taille du sprite si disponible
+        if (hoveredEntity->hasComponent<NovaEngine::SpriteComponent>()) {
+            auto* sprite = hoveredEntity->getComponent<NovaEngine::SpriteComponent>();
+            if (sprite->size.x > 0 && sprite->size.y > 0) {
+                size = sprite->size;
+            }
+        }
+
+        gizmos.renderBounds(transform->position, size, NovaEngine::Color{255, 255, 0, 150});
     }
 }
 
 void EditorApplication::renderGizmos() {
-    if (!m_editorState || !m_editorState->hasSelection()) return;
+    if (!m_editorState->hasSelection() || !m_editorState->areGizmosVisible()) return;
 
     Gizmos gizmos;
     NovaEngine::Entity* selected = m_editorState->getSelectedEntity();
+    auto* transform = selected->getComponent<NovaEngine::TransformComponent>();
+    if (!transform) return;
 
-    if (m_editorState->getTool() == EditorTool::Move) {
-        gizmos.renderForEntity(selected, GizmoType::Move);
+    // Rendre le gizmo selon l'outil actif
+    switch (m_editorState->getTool()) {
+        case EditorTool::Move:
+            gizmos.renderForEntity(selected, GizmoType::Move);
+            break;
+        case EditorTool::Rotate:
+            gizmos.renderForEntity(selected, GizmoType::Rotate);
+            break;
+        case EditorTool::Scale:
+            gizmos.renderForEntity(selected, GizmoType::Scale);
+            break;
+        default:
+            break;
     }
 
     // Toujours afficher bounds de sélection
     gizmos.renderForEntity(selected, GizmoType::Bounds);
 
     // Afficher colliders si activé
-    if (m_editorState->areColliderBoundsVisible()) {
+    if (m_editorState->areColliderBoundsVisible() && selected->hasComponent<NovaEngine::ColliderComponent>()) {
         auto* collider = selected->getComponent<NovaEngine::ColliderComponent>();
-        auto* transform = selected->getComponent<NovaEngine::TransformComponent>();
-        if (collider && transform) {
-            gizmos.renderActivator(transform->position, collider->size, NovaEngine::Color{0, 255, 0, 150});
-        }
+        gizmos.renderActivator(transform->position, collider->size, NovaEngine::Color{0, 255, 0, 150});
     }
 
     // Afficher rayon lumière si activé
-    if (m_editorState->areLightRadiiVisible()) {
+    if (m_editorState->areLightRadiiVisible() && selected->hasComponent<NovaEngine::LightComponent>()) {
         auto* light = selected->getComponent<NovaEngine::LightComponent>();
-        auto* transform = selected->getComponent<NovaEngine::TransformComponent>();
-        if (light && transform) {
-            gizmos.renderLight(transform->position, light->radius, light->color);
-        }
+        gizmos.renderLight(transform->position, light->radius, light->color);
     }
 }
 
@@ -198,75 +314,182 @@ void EditorApplication::renderUI() {
     }
 }
 
+// ============================================================================
+// PRIVATE METHODS - INPUT HANDLING
+// ============================================================================
+
 void EditorApplication::handleEditorInput(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
     if (input.type == InputEventType::KeyPressed) {
-        // Toggle grid
-        if (input.key.code == KeyCode::G) {
-            m_showGrid = !m_showGrid;
-            LOG_INFO("Grid {}", m_showGrid ? "enabled" : "disabled");
-        }
+        handleKeyPress(input.key);
+    }
 
-        // Save scene
-        if (input.key.code == KeyCode::S && input.key.control) {
-            if (!m_currentScenePath.empty()) {
-                saveScene(m_currentScenePath);
-            } else {
-                LOG_WARN("No scene path set, cannot save");
-            }
-        }
+    if (input.type == InputEventType::MouseButtonPressed) {
+        handleMouseClick(input.mouseButton);
+    }
 
-        // Delete selected entity
-        if (input.key.code == KeyCode::Backspace && m_editorState->hasSelection()) {
-            deleteSelectedEntity();
+    if (input.type == InputEventType::MouseButtonReleased) {
+        if (input.mouseButton.button == MouseButton::Left) {
+            m_isDragging = false;
         }
     }
 
-    // Mouse wheel pour zoom
-    // TODO: Gérer événement molette
+    if (input.type == InputEventType::MouseWheelScrolled) {
+        m_editorCamera->zoom(input.mouseWheel.delta * 0.1f);
+    }
+}
 
-    // Clic souris pour sélection
-    if (input.type == InputEventType::MouseButtonPressed) {
-        if (input.mouseButton.button == MouseButton::Left) {
-            Vec2i screenPos{input.mouseButton.x, input.mouseButton.y};
-            Vec2f worldPos = m_editorCamera->screenToWorld(screenPos);
+void EditorApplication::handleKeyPress(const NovaEngine::KeyEvent& key) {
+    using namespace NovaEngine;
+
+    // Toggle grid
+    if (key.code == KeyCode::G && !key.control) {
+        m_showGrid = !m_showGrid;
+        m_editorState->setGridVisible(m_showGrid);
+        LOG_INFO("Grid {}", m_showGrid ? "enabled" : "disabled");
+    }
+
+    // Tool shortcuts
+    if (key.code == KeyCode::Q) {
+        m_editorState->setTool(EditorTool::Move);
+        LOG_INFO("Tool: Move");
+    }
+    if (key.code == KeyCode::W && !key.control) {
+        m_editorState->setTool(EditorTool::Move);
+        LOG_INFO("Tool: Move");
+    }
+    if (key.code == KeyCode::E && !key.control) {
+        m_editorState->setTool(EditorTool::Rotate);
+        LOG_INFO("Tool: Rotate");
+    }
+    if (key.code == KeyCode::R && !key.control) {
+        m_editorState->setTool(EditorTool::Scale);
+        LOG_INFO("Tool: Scale");
+    }
+
+    // Save scene
+    if (key.code == KeyCode::S && key.control) {
+        if (!m_currentScenePath.empty()) {
+            saveScene(m_currentScenePath);
+        } else {
+            // TODO: Open save dialog
+            saveScene("data/scenes/untitled.json");
+        }
+    }
+
+    // Open scene
+    if (key.code == KeyCode::O && key.control) {
+        // TODO: Open file dialog
+        LOG_INFO("Open scene dialog");
+    }
+
+    // New scene
+    if (key.code == KeyCode::N && key.control) {
+        newScene();
+    }
+
+    // Copy
+    if (key.code == KeyCode::C && key.control) {
+        copySelectedEntities();
+    }
+
+    // Paste
+    if (key.code == KeyCode::V && key.control) {
+        pasteEntities();
+    }
+
+    // Duplicate
+    if (key.code == KeyCode::D && key.control) {
+        duplicateSelectedEntity();
+    }
+
+    // Undo
+    if (key.code == KeyCode::Z && key.control) {
+        undo();
+    }
+
+    // Redo
+    if (key.code == KeyCode::Y && key.control) {
+        redo();
+    }
+
+    // Frame selected
+    if (key.code == KeyCode::F) {
+        frameSelected();
+    }
+
+    // Delete selected
+    if (key.code == KeyCode::Backspace || key.code == KeyCode::Delete) {
+        if (m_editorState->hasSelection()) {
+            deleteSelectedEntity();
+        }
+    }
+}
+
+void EditorApplication::handleMouseClick(const NovaEngine::MouseButtonEvent& mouse) {
+    using namespace NovaEngine;
+
+    Vec2i screenPos{mouse.x, mouse.y};
+    Vec2f worldPos = m_editorCamera->screenToWorld(screenPos);
+
+    if (mouse.button == MouseButton::Left) {
+        if (m_editorState->getMode() == EditorMode::Place) {
+            // Placer entité
+            handleEntityPlacement(worldPos);
+        } else {
+            // Sélectionner entité
             handleEntitySelection(worldPos);
+
+            // Commencer drag si sélection
+            if (m_editorState->hasSelection()) {
+                m_isDragging = true;
+                m_dragStartPos = worldPos;
+
+                auto* transform = m_editorState->getSelectedEntity()->getComponent<TransformComponent>();
+                if (transform) {
+                    m_dragOffset = transform->position - worldPos;
+                }
+            }
+        }
+    }
+
+    if (mouse.button == MouseButton::Right) {
+        // Cancel placement/selection
+        if (m_editorState->getMode() == EditorMode::Place) {
+            m_editorState->setPlacingEntityType("");
+            LOG_INFO("Cancelled placement");
         }
     }
 }
 
 void EditorApplication::handleEntityPlacement(const NovaEngine::Vec2f& worldPos) {
-    // TODO: Implémenter placement d'entité
-    LOG_DEBUG("Place entity at ({}, {})", worldPos.x, worldPos.y);
+    if (!m_editorState->isPlacingEntity() || !m_currentScene) return;
+
+    NovaEngine::Vec2f placePos = worldPos;
+    if (m_snapToGrid) {
+        placePos = snapToGrid(worldPos);
+    }
+
+    createEntity(m_editorState->getPlacingEntityType(), placePos);
+
+    // Ne pas clear le type de placement pour permettre le multi-placement
+    LOG_INFO("Entity placed at ({}, {})", placePos.x, placePos.y);
 }
 
 void EditorApplication::handleEntitySelection(const NovaEngine::Vec2f& worldPos) {
     if (!m_currentScene) return;
 
-    // Trouver entité la plus proche du clic
-    auto entities = m_currentScene->getEntityRegistry().getAllEntities();
+    NovaEngine::Entity* clickedEntity = findEntityAt(worldPos);
 
-    NovaEngine::Entity* closest = nullptr;
-    float closestDist = 50.0f;  // Distance maximale pour sélection
+    if (clickedEntity) {
+        m_editorState->setSelectedEntity(clickedEntity);
+        LOG_INFO("Selected entity {}", clickedEntity->getID());
 
-    for (auto* entity : entities) {
-        auto* transform = entity->getComponent<NovaEngine::TransformComponent>();
-        if (!transform) continue;
-
-        float dx = worldPos.x - transform->position.x;
-        float dy = worldPos.y - transform->position.y;
-        float dist = std::sqrt(dx * dx + dy * dy);
-
-        if (dist < closestDist) {
-            closest = entity;
-            closestDist = dist;
+        // Rafraîchir l'inspecteur
+        if (m_editorUI) {
+            m_editorUI->refreshEntityInspector(clickedEntity);
         }
-    }
-
-    if (closest) {
-        m_editorState->setSelectedEntity(closest);
-        LOG_INFO("Selected entity {}", closest->getID());
     } else {
         m_editorState->clearSelection();
         LOG_INFO("Selection cleared");
@@ -274,66 +497,68 @@ void EditorApplication::handleEntitySelection(const NovaEngine::Vec2f& worldPos)
 }
 
 void EditorApplication::handleEntityDrag(const NovaEngine::Vec2f& worldPos) {
-    // TODO: Implémenter drag d'entité
-}
+    if (!m_editorState->hasSelection()) return;
 
-void EditorApplication::newScene() {
-    LOG_INFO("Creating new scene...");
+    auto* entity = m_editorState->getSelectedEntity();
+    auto* transform = entity->getComponent<NovaEngine::TransformComponent>();
+    if (!transform) return;
 
-    // Créer scène vide
-    if (!m_sceneManager.loadScene("data/scenes/empty.json", "editor_scene")) {
-        // Si pas de scène vide, en créer une manuellement
-        LOG_WARN("No empty scene found, creating temporary scene");
+    NovaEngine::Vec2f oldPos = transform->position;
+    NovaEngine::Vec2f newPos = worldPos + m_dragOffset;
+
+    if (m_snapToGrid) {
+        newPos = snapToGrid(newPos);
     }
 
-    m_sceneManager.setActiveScene("editor_scene");
-    m_currentScene = m_sceneManager.getActiveScene();
-    m_currentScenePath = "";
-    m_sceneModified = false;
-
-    LOG_INFO("New scene created");
-}
-
-void EditorApplication::loadScene(const std::string& path) {
-    LOG_INFO("Loading scene from: {}", path);
-
-    if (m_sceneManager.loadScene(path, "editor_scene")) {
-        m_sceneManager.setActiveScene("editor_scene");
-        m_currentScene = m_sceneManager.getActiveScene();
-        m_currentScenePath = path;
-        m_sceneModified = false;
-        LOG_INFO("Scene loaded successfully");
-    } else {
-        LOG_ERROR("Failed to load scene from: {}", path);
+    // Seulement si position a changé
+    if (oldPos.x != newPos.x || oldPos.y != newPos.y) {
+        transform->position = newPos;
+        m_sceneModified = true;
     }
 }
 
-void EditorApplication::saveScene(const std::string& path) {
-    LOG_INFO("Saving scene to: {}", path);
-
-    // TODO: Implémenter sauvegarde JSON
-    // Pour l'instant juste logger
-    LOG_WARN("Scene save not yet implemented");
-
-    m_sceneModified = false;
-}
+// ============================================================================
+// PRIVATE METHODS - ENTITY OPERATIONS
+// ============================================================================
 
 void EditorApplication::createEntity(const std::string& type, const NovaEngine::Vec2f& position) {
     if (!m_currentScene) return;
 
     LOG_INFO("Creating entity of type '{}' at ({}, {})", type, position.x, position.y);
 
-    // TODO: Utiliser DefinitionManager pour créer entité depuis définition
+    // Créer entité via DefinitionManager si type existe
     auto& registry = m_currentScene->getEntityRegistry();
-    NovaEngine::Entity* entity = registry.createEntity();
+    auto& defManager = m_sceneManager.getDefinitionManager();
 
-    // Ajouter transform
-    auto transform = std::make_unique<NovaEngine::TransformComponent>();
-    transform->position = position;
-    entity->addComponent(std::move(transform));
+    NovaEngine::Entity* entity = nullptr;
+
+    if (defManager.hasDefinition(type)) {
+        entity = defManager.createEntityFromDefinition(type, registry);
+    } else {
+        // Créer entité vide
+        entity = registry.createEntity();
+    }
+
+    if (!entity) {
+        LOG_ERROR("Failed to create entity");
+        return;
+    }
+
+    // Définir position
+    auto* transform = entity->getComponent<NovaEngine::TransformComponent>();
+    if (!transform) {
+        auto comp = std::make_unique<NovaEngine::TransformComponent>();
+        comp->position = position;
+        entity->addComponent(std::move(comp));
+    } else {
+        transform->position = position;
+    }
 
     m_sceneModified = true;
     LOG_INFO("Entity {} created", entity->getID());
+
+    // Sélectionner l'entité créée
+    m_editorState->setSelectedEntity(entity);
 }
 
 void EditorApplication::deleteSelectedEntity() {
@@ -341,6 +566,10 @@ void EditorApplication::deleteSelectedEntity() {
 
     NovaEngine::Entity* selected = m_editorState->getSelectedEntity();
     NovaEngine::u64 id = selected->getID();
+
+    // TODO: Ajouter command pour undo
+    // auto cmd = std::make_unique<DeleteEntityCommand>(selected);
+    // m_editorHistory->executeCommand(std::move(cmd));
 
     m_currentScene->getEntityRegistry().destroyEntity(id);
     m_editorState->clearSelection();
@@ -350,14 +579,227 @@ void EditorApplication::deleteSelectedEntity() {
 }
 
 void EditorApplication::duplicateSelectedEntity() {
-    // TODO: Implémenter duplication d'entité
-    LOG_WARN("Entity duplication not yet implemented");
+    if (!m_currentScene || !m_editorState->hasSelection()) return;
+
+    auto* original = m_editorState->getSelectedEntity();
+    auto& registry = m_currentScene->getEntityRegistry();
+
+    // Créer nouvelle entité
+    auto* duplicate = registry.createEntity();
+
+    // Copier tous les composants
+    // TODO: Implémenter clone de composants
+
+    // Pour l'instant, juste copier Transform avec offset
+    if (original->hasComponent<NovaEngine::TransformComponent>()) {
+        auto* origTransform = original->getComponent<NovaEngine::TransformComponent>();
+        auto dupTransform = std::make_unique<NovaEngine::TransformComponent>();
+        dupTransform->position = origTransform->position + NovaEngine::Vec2f{20, 20}; // Offset
+        dupTransform->rotation = origTransform->rotation;
+        dupTransform->scale = origTransform->scale;
+        duplicate->addComponent(std::move(dupTransform));
+    }
+
+    m_sceneModified = true;
+    m_editorState->setSelectedEntity(duplicate);
+    LOG_INFO("Entity duplicated");
+}
+
+void EditorApplication::copySelectedEntities() {
+    if (!m_editorState->hasSelection()) {
+        LOG_WARN("No entity selected to copy");
+        return;
+    }
+
+    m_editorState->copySelection();
+}
+
+void EditorApplication::pasteEntities() {
+    if (!m_editorState->hasClipboard() || !m_currentScene) {
+        LOG_WARN("Clipboard is empty");
+        return;
+    }
+
+    // TODO: Implémenter paste propre avec clonage de composants
+    LOG_INFO("Paste functionality - TODO: implement entity cloning");
+}
+
+NovaEngine::Entity* EditorApplication::findEntityAt(const NovaEngine::Vec2f& worldPos) {
+    if (!m_currentScene) return nullptr;
+
+    auto entities = m_currentScene->getEntityRegistry().getAllEntities();
+
+    NovaEngine::Entity* closest = nullptr;
+    float closestDist = 50.0f;  // Distance maximale pour sélection
+
+    for (auto* entity : entities) {
+        auto* transform = entity->getComponent<NovaEngine::TransformComponent>();
+        if (!transform) continue;
+
+        // Calculer distance au centre de l'entité
+        float dx = worldPos.x - transform->position.x;
+        float dy = worldPos.y - transform->position.y;
+        float dist = std::sqrt(dx * dx + dy * dy);
+
+        // TODO: Utiliser bounds réels du sprite si disponible
+        if (dist < closestDist) {
+            closest = entity;
+            closestDist = dist;
+        }
+    }
+
+    return closest;
+}
+
+// ============================================================================
+// PRIVATE METHODS - SCENE MANAGEMENT
+// ============================================================================
+
+void EditorApplication::newScene() {
+    LOG_INFO("Creating new scene...");
+
+    // TODO: Demander confirmation si scène modifiée
+    if (m_sceneModified) {
+        LOG_WARN("Current scene has unsaved changes!");
+    }
+
+    // Créer scène vide
+    m_sceneManager.createScene("editor_scene");
+    m_sceneManager.setActiveScene("editor_scene");
+    m_currentScene = m_sceneManager.getActiveScene();
+    m_currentScenePath = "";
+    m_sceneModified = false;
+
+    // Clear selection
+    m_editorState->clearSelection();
+    m_editorHistory->clear();
+
+    LOG_INFO("New scene created");
+}
+
+void EditorApplication::loadScene(const std::string& path) {
+    LOG_INFO("Loading scene from: {}", path);
+
+    if (!m_currentScene) {
+        LOG_ERROR("No active scene");
+        return;
+    }
+
+    if (m_sceneSerializer->loadScene(m_currentScene, path)) {
+        m_currentScenePath = path;
+        m_sceneModified = false;
+        m_editorState->addRecentScene(path);
+        m_editorHistory->clear();
+        LOG_INFO("Scene loaded successfully");
+    } else {
+        LOG_ERROR("Failed to load scene from: {}", path);
+    }
+}
+
+void EditorApplication::saveScene(const std::string& path) {
+    LOG_INFO("Saving scene to: {}", path);
+
+    if (!m_currentScene) {
+        LOG_ERROR("No active scene to save");
+        return;
+    }
+
+    // Valider la scène avant sauvegarde
+    auto issues = m_sceneSerializer->validateScene(m_currentScene);
+    for (const auto& issue : issues) {
+        LOG_WARN("Validation: {}", issue);
+    }
+
+    if (m_sceneSerializer->saveScene(m_currentScene, path)) {
+        m_currentScenePath = path;
+        m_sceneModified = false;
+        m_editorState->addRecentScene(path);
+        LOG_INFO("Scene saved successfully");
+
+        if (m_editorUI) {
+            m_editorUI->showSuccess("Scene saved");
+        }
+    } else {
+        LOG_ERROR("Failed to save scene");
+
+        if (m_editorUI) {
+            m_editorUI->showError("Failed to save scene");
+        }
+    }
+}
+
+// ============================================================================
+// PRIVATE METHODS - HISTORY
+// ============================================================================
+
+void EditorApplication::undo() {
+    if (m_editorHistory->canUndo()) {
+        m_editorHistory->undo();
+        m_sceneModified = true;
+        LOG_INFO("Undo: {}", m_editorHistory->getUndoCommandName());
+    } else {
+        LOG_INFO("Nothing to undo");
+    }
+}
+
+void EditorApplication::redo() {
+    if (m_editorHistory->canRedo()) {
+        m_editorHistory->redo();
+        m_sceneModified = true;
+        LOG_INFO("Redo: {}", m_editorHistory->getRedoCommandName());
+    } else {
+        LOG_INFO("Nothing to redo");
+    }
+}
+
+// ============================================================================
+// PRIVATE METHODS - CAMERA
+// ============================================================================
+
+void EditorApplication::frameSelected() {
+    if (!m_editorState->hasSelection() || !m_editorCamera) return;
+
+    auto* entity = m_editorState->getSelectedEntity();
+    auto* transform = entity->getComponent<NovaEngine::TransformComponent>();
+
+    if (transform) {
+        m_editorCamera->setPosition(transform->position);
+        m_editorCamera->setZoom(1.0f);
+        LOG_INFO("Framed selected entity");
+    }
+}
+
+// ============================================================================
+// PRIVATE METHODS - UTILITIES
+// ============================================================================
+
+NovaEngine::Vec2f EditorApplication::snapToGrid(const NovaEngine::Vec2f& position) const {
+    float gridSize = m_editorState->getGridSize();
+    return NovaEngine::Vec2f{
+        std::round(position.x / gridSize) * gridSize,
+        std::round(position.y / gridSize) * gridSize
+    };
+}
+
+NovaEngine::Vec2i EditorApplication::getMousePosition() const {
+    // TODO: Récupérer vraie position souris depuis backend
+    return NovaEngine::Vec2i{0, 0};
 }
 
 void EditorApplication::onUIAction(const std::string& action, const std::string& value) {
     LOG_DEBUG("UI Action: '{}' = '{}'", action, value);
 
-    // TODO: Gérer actions UI
+    if (action == "place_entity") {
+        m_editorState->setMode(EditorMode::Place);
+        m_editorState->setPlacingEntityType(value);
+        LOG_INFO("Placing entity: {}", value);
+    }
+    else if (action == "set_mode") {
+        // TODO: Parser value vers EditorMode
+    }
+    else if (action == "set_tool") {
+        // TODO: Parser value vers EditorTool
+    }
 }
 
 } // namespace NovaEditor

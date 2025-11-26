@@ -7,6 +7,8 @@
 #include "EditorCamera.hpp"
 #include "EditorUI.hpp"
 #include "EntityPalette.hpp"
+#include "EditorHistory.hpp"
+#include "SceneSerializer.hpp"
 
 namespace NovaEditor {
 
@@ -37,20 +39,27 @@ private:
     // Initialisation
     void initializeEditor();
     void loadDefinitions();
+    void printControls();
 
     // Update
     void updateCamera(float deltaTime);
+    void updateHovering();
     void updateSelection();
     void updateEntityManipulation(float deltaTime);
+    void updatePlacement();
 
     // Render
     void renderScene();
     void renderGrid();
+    void renderPlacementPreview();
+    void renderHoverHighlight();
     void renderGizmos();
     void renderUI();
 
     // Input handling
     void handleEditorInput(const NovaEngine::InputEvent& input);
+    void handleKeyPress(const NovaEngine::KeyEvent& key);
+    void handleMouseClick(const NovaEngine::MouseButtonEvent& mouse);
     void handleEntityPlacement(const NovaEngine::Vec2f& worldPos);
     void handleEntitySelection(const NovaEngine::Vec2f& worldPos);
     void handleEntityDrag(const NovaEngine::Vec2f& worldPos);
@@ -64,6 +73,20 @@ private:
     void createEntity(const std::string& type, const NovaEngine::Vec2f& position);
     void deleteSelectedEntity();
     void duplicateSelectedEntity();
+    void copySelectedEntities();
+    void pasteEntities();
+    NovaEngine::Entity* findEntityAt(const NovaEngine::Vec2f& worldPos);
+
+    // History
+    void undo();
+    void redo();
+
+    // Camera
+    void frameSelected();
+
+    // Utilities
+    NovaEngine::Vec2f snapToGrid(const NovaEngine::Vec2f& position) const;
+    NovaEngine::Vec2i getMousePosition() const;
 
     // UI callbacks
     void onUIAction(const std::string& action, const std::string& value);
@@ -78,6 +101,8 @@ private:
     std::unique_ptr<EditorCamera> m_editorCamera;
     std::unique_ptr<EditorUI> m_editorUI;
     std::unique_ptr<EntityPalette> m_entityPalette;
+    std::unique_ptr<EditorHistory> m_editorHistory;
+    std::unique_ptr<SceneSerializer> m_sceneSerializer;
 
     // Current scene
     NovaEngine::Scene* m_currentScene;

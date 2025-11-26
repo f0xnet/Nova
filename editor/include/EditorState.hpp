@@ -55,11 +55,23 @@ public:
     void clearSelection() { m_selectedEntity = nullptr; }
     bool hasSelection() const { return m_selectedEntity != nullptr; }
 
-    // Multi-sélection (pour futur)
+    // Multi-sélection
     const std::vector<NovaEngine::Entity*>& getSelectedEntities() const { return m_selectedEntities; }
     void addToSelection(NovaEngine::Entity* entity);
     void removeFromSelection(NovaEngine::Entity* entity);
     void clearMultiSelection();
+    bool isInSelection(NovaEngine::Entity* entity) const;
+    size_t getSelectionCount() const { return m_selectedEntities.size(); }
+
+    // Entité survolée
+    NovaEngine::Entity* getHoveredEntity() const { return m_hoveredEntity; }
+    void setHoveredEntity(NovaEngine::Entity* entity) { m_hoveredEntity = entity; }
+
+    // Clipboard pour copier/coller
+    void copySelection();
+    bool hasClipboard() const { return !m_clipboard.empty(); }
+    const std::vector<NovaEngine::u64>& getClipboard() const { return m_clipboard; }
+    void clearClipboard() { m_clipboard.clear(); }
 
     // Entité en cours de placement
     const std::string& getPlacingEntityType() const { return m_placingEntityType; }
@@ -90,10 +102,21 @@ public:
     bool areLightRadiiVisible() const { return m_showLightRadii; }
     void setLightRadiiVisible(bool visible) { m_showLightRadii = visible; }
 
-    // Historique (undo/redo - pour futur)
-    void pushHistory(const std::string& action);
-    bool canUndo() const { return !m_undoStack.empty(); }
-    bool canRedo() const { return !m_redoStack.empty(); }
+    // Scènes récentes
+    void addRecentScene(const std::string& path);
+    const std::vector<std::string>& getRecentScenes() const { return m_recentScenes; }
+    void clearRecentScenes() { m_recentScenes.clear(); }
+
+    // Camera bookmarks
+    struct CameraBookmark {
+        NovaEngine::Vec2f position;
+        float zoom;
+        std::string name;
+    };
+
+    void addCameraBookmark(const NovaEngine::Vec2f& pos, float zoom, const std::string& name);
+    const std::vector<CameraBookmark>& getCameraBookmarks() const { return m_cameraBookmarks; }
+    void clearCameraBookmarks() { m_cameraBookmarks.clear(); }
 
 private:
     // Mode et outils
@@ -103,6 +126,10 @@ private:
     // Sélection
     NovaEngine::Entity* m_selectedEntity;
     std::vector<NovaEngine::Entity*> m_selectedEntities;
+    NovaEngine::Entity* m_hoveredEntity;
+
+    // Clipboard (stocke les IDs d'entités copiées)
+    std::vector<NovaEngine::u64> m_clipboard;
 
     // Placement
     std::string m_placingEntityType;
@@ -118,9 +145,11 @@ private:
     bool m_showColliderBounds;
     bool m_showLightRadii;
 
-    // Historique (pour undo/redo futur)
-    std::vector<std::string> m_undoStack;
-    std::vector<std::string> m_redoStack;
+    // Scènes récentes
+    std::vector<std::string> m_recentScenes;
+
+    // Camera bookmarks
+    std::vector<CameraBookmark> m_cameraBookmarks;
 };
 
 } // namespace NovaEditor
