@@ -36,6 +36,12 @@ EditorApplication::EditorApplication()
 }
 
 EditorApplication::~EditorApplication() {
+    // Cleanup current scene
+    if (m_currentScene) {
+        delete m_currentScene;
+        m_currentScene = nullptr;
+    }
+
     LOG_INFO("EditorApplication destroyed");
 }
 
@@ -252,12 +258,13 @@ void EditorApplication::renderPlacementPreview() {
     // Dessiner preview semi-transparent à la position de la souris
     // TODO: Utiliser sprite de l'entité si disponible
     Gizmos gizmos;
-    gizmos.renderBounds(mouseWorldPos, NovaEngine::Vec2f{32, 32}, NovaEngine::Color{0, 255, 0, 100});
+    NovaEngine::Rect previewRect{mouseWorldPos.x - 16, mouseWorldPos.y - 16, 32, 32};
+    gizmos.renderBounds(previewRect, NovaEngine::Color{0, 255, 0, 100});
 }
 
 void EditorApplication::renderHoverHighlight() {
     auto* hoveredEntity = m_editorState->getHoveredEntity();
-    if (!hoveredEntity || m_editorState->hasSelection() && hoveredEntity == m_editorState->getSelectedEntity()) {
+    if (!hoveredEntity || (m_editorState->hasSelection() && hoveredEntity == m_editorState->getSelectedEntity())) {
         return;
     }
 
@@ -275,7 +282,8 @@ void EditorApplication::renderHoverHighlight() {
             }
         }
 
-        gizmos.renderBounds(transform->position, size, NovaEngine::Color{255, 255, 0, 150});
+        NovaEngine::Rect hoverRect{transform->position.x - size.x / 2, transform->position.y - size.y / 2, size.x, size.y};
+        gizmos.renderBounds(hoverRect, NovaEngine::Color{255, 255, 0, 150});
     }
 }
 
@@ -332,11 +340,11 @@ void EditorApplication::handleEditorInput(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
     if (input.type == InputEventType::KeyPressed) {
-        handleKeyPress(input.key);
+        handleKeyPress(input);
     }
 
     if (input.type == InputEventType::MouseButtonPressed) {
-        handleMouseClick(input.mouseButton);
+        handleMouseClick(input);
     }
 
     if (input.type == InputEventType::MouseButtonReleased) {
@@ -345,9 +353,8 @@ void EditorApplication::handleEditorInput(const NovaEngine::InputEvent& input) {
         }
     }
 
-    if (input.type == InputEventType::MouseWheelScrolled) {
-        m_editorCamera->zoom(input.mouseWheel.delta * 0.1f);
-    }
+    // Mouse wheel scrolling not supported in current InputEvent
+    // TODO: Add zoom with keyboard shortcuts instead
 }
 
 void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
@@ -536,36 +543,51 @@ void EditorApplication::createEntity(const std::string& type, const NovaEngine::
 
     LOG_INFO("Creating entity of type '{}' at ({}, {})", type, position.x, position.y);
 
-    // Créer entité via DefinitionManager si type existe
     auto& registry = m_currentScene->getEntityRegistry();
-    auto& defManager = m_sceneManager.getDefinitionManager();
-
-    NovaEngine::Entity* entity = nullptr;
-
-    if (defManager.hasDefinition(type)) {
-        entity = defManager.createEntityFromDefinition(type, registry);
-    } else {
-        // Créer entité vide
-        entity = registry.createEntity();
-    }
+    NovaEngine::Entity* entity = registry.createEntity();
 
     if (!entity) {
         LOG_ERROR("Failed to create entity");
         return;
     }
 
-    // Définir position
-    auto* transform = entity->getComponent<NovaEngine::TransformComponent>();
-    if (!transform) {
-        auto comp = std::make_unique<NovaEngine::TransformComponent>();
-        comp->position = position;
-        entity->addComponent(std::move(comp));
-    } else {
-        transform->position = position;
+    // Add Transform component
+    auto transform = std::make_unique<NovaEngine::TransformComponent>();
+    transform->position = position;
+    transform->rotation = 0.0f;
+    transform->scale = {1.0f, 1.0f};
+    entity->addComponent(std::move(transform));
+
+    // Add type-specific components
+    if (type == "sprite") {
+        auto sprite = std::make_unique<NovaEngine::SpriteComponent>();
+        sprite->size = {32, 32};
+        sprite->zOrder = 0;
+        entity->addComponent(std::move(sprite));
+    }
+    else if (type == "light") {
+        auto light = std::make_unique<NovaEngine::LightComponent>();
+        light->color = {255, 255, 200, 255};
+        light->radius = 200.0f;
+        light->intensity = 1.0f;
+        entity->addComponent(std::move(light));
+    }
+    else if (type == "collider") {
+        auto collider = std::make_unique<NovaEngine::ColliderComponent>();
+        collider->size = {32, 32};
+        collider->isTrigger = false;
+        entity->addComponent(std::move(collider));
+    }
+    else if (type == "activator") {
+        auto activator = std::make_unique<NovaEngine::ActivatorComponent>();
+        activator->size = {32, 32};
+        activator->radius = 50.0f;
+        activator->isActive = true;
+        entity->addComponent(std::move(activator));
     }
 
     m_sceneModified = true;
-    LOG_INFO("Entity {} created", entity->getID());
+    LOG_INFO("Entity {} created with type '{}'", entity->getID(), type);
 
     // Sélectionner l'entité créée
     m_editorState->setSelectedEntity(entity);
@@ -673,10 +695,14 @@ void EditorApplication::newScene() {
         LOG_WARN("Current scene has unsaved changes!");
     }
 
+    // Delete old scene if it exists
+    if (m_currentScene) {
+        delete m_currentScene;
+        m_currentScene = nullptr;
+    }
+
     // Créer scène vide
-    m_sceneManager.createScene("editor_scene");
-    m_sceneManager.setActiveScene("editor_scene");
-    m_currentScene = m_sceneManager.getActiveScene();
+    m_currentScene = new NovaEngine::Scene("editor_scene");
     m_currentScenePath = "";
     m_sceneModified = false;
 
