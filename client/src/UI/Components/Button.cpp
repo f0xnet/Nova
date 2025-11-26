@@ -1,5 +1,6 @@
 #include "NovaEngine/UI/Components/Button.hpp"
 #include "NovaEngine/Backend/BackendManager.hpp"
+#include "NovaEngine/Core/Logger.hpp"
 
 namespace NovaEngine {
 
@@ -138,15 +139,19 @@ ButtonState Button::getStateFromMouse(const Vec2f& mousePos) const {
 
 void Button::checkMouseEvent(const InputEvent& inputEvent) {
     if(inputEvent.type == InputEventType::MouseMoved) {
-        Vec2f mousePos(static_cast<f32>(inputEvent.mouseMove.x), 
+        Vec2f mousePos(static_cast<f32>(inputEvent.mouseMove.x),
                       static_cast<f32>(inputEvent.mouseMove.y));
         m_currentState = getStateFromMouse(mousePos);
     }
     else if(inputEvent.type == InputEventType::MouseButtonPressed) {
         if(inputEvent.mouseButton.button == MouseButton::Left) {
-            Vec2f mousePos(static_cast<f32>(inputEvent.mouseButton.x), 
+            Vec2f mousePos(static_cast<f32>(inputEvent.mouseButton.x),
                           static_cast<f32>(inputEvent.mouseButton.y));
-            if(getBounds().contains(mousePos.x, mousePos.y)) {
+            Rect bounds = getBounds();
+            LOG_DEBUG("[Button '{}'] Click at ({}, {}) - Bounds: ({}, {}, {}, {})",
+                m_id, mousePos.x, mousePos.y, bounds.left, bounds.top, bounds.width, bounds.height);
+            if(bounds.contains(mousePos.x, mousePos.y)) {
+                LOG_INFO("[Button '{}'] CLICKED! Action: '{}'", m_id, m_action);
                 m_buttonPressed = true;
                 m_currentState = ButtonState::PRESSED;
             }
@@ -155,9 +160,10 @@ void Button::checkMouseEvent(const InputEvent& inputEvent) {
     else if(inputEvent.type == InputEventType::MouseButtonReleased) {
         if(inputEvent.mouseButton.button == MouseButton::Left && m_buttonPressed) {
             m_buttonPressed = false;
-            Vec2f mousePos(static_cast<f32>(inputEvent.mouseButton.x), 
+            Vec2f mousePos(static_cast<f32>(inputEvent.mouseButton.x),
                           static_cast<f32>(inputEvent.mouseButton.y));
             if(getBounds().contains(mousePos.x, mousePos.y)) {
+                LOG_INFO("[Button '{}'] RELEASED - Triggering action: '{}'", m_id, m_action);
                 if(m_callback) m_callback();
                 if(m_actionCallback) m_actionCallback(m_action, m_value, m_id);
             }
