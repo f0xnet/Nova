@@ -240,6 +240,7 @@ void EditorUI::createEntityPalettePanel() {
     titleText->setLayer(11);
     titleText->setPosition({10, 60});
     titleText->setString("Entity Palette");
+    titleText->setFont(m_defaultFont);
     titleText->setCharacterSize(18);
     titleText->setTextColor({255, 255, 255, 255});
     m_uiManager.addComponent(titleText);
@@ -259,6 +260,8 @@ void EditorUI::createEntityPalettePanel() {
     spriteBtn->setPosition({10, yPos});
     spriteBtn->setSize({btnWidth, btnHeight});
     spriteBtn->setText("+ Sprite");
+    spriteBtn->setFont(m_defaultFont);
+    spriteBtn->setFontSize(14);
     spriteBtn->setAction("add_entity");
     spriteBtn->setValue("sprite");
     spriteBtn->setHaveText(true);
@@ -274,6 +277,8 @@ void EditorUI::createEntityPalettePanel() {
     lightBtn->setPosition({10, yPos});
     lightBtn->setSize({btnWidth, btnHeight});
     lightBtn->setText("+ Light");
+    lightBtn->setFont(m_defaultFont);
+    lightBtn->setFontSize(14);
     lightBtn->setAction("add_entity");
     lightBtn->setValue("light");
     lightBtn->setHaveText(true);
@@ -289,6 +294,8 @@ void EditorUI::createEntityPalettePanel() {
     colliderBtn->setPosition({10, yPos});
     colliderBtn->setSize({btnWidth, btnHeight});
     colliderBtn->setText("+ Collider");
+    colliderBtn->setFont(m_defaultFont);
+    colliderBtn->setFontSize(14);
     colliderBtn->setAction("add_entity");
     colliderBtn->setValue("collider");
     colliderBtn->setHaveText(true);
@@ -304,6 +311,8 @@ void EditorUI::createEntityPalettePanel() {
     activatorBtn->setPosition({10, yPos});
     activatorBtn->setSize({btnWidth, btnHeight});
     activatorBtn->setText("+ Activator");
+    activatorBtn->setFont(m_defaultFont);
+    activatorBtn->setFontSize(14);
     activatorBtn->setAction("add_entity");
     activatorBtn->setValue("activator");
     activatorBtn->setHaveText(true);
@@ -334,6 +343,7 @@ void EditorUI::createInspectorPanel() {
     titleText->setLayer(11);
     titleText->setPosition({1920 - 290, 60});
     titleText->setString("Inspector");
+    titleText->setFont(m_defaultFont);
     titleText->setCharacterSize(18);
     titleText->setTextColor({255, 255, 255, 255});
     m_uiManager.addComponent(titleText);
@@ -346,6 +356,7 @@ void EditorUI::createInspectorPanel() {
     infoText->setLayer(11);
     infoText->setPosition({1920 - 290, 100});
     infoText->setString("Select an entity\nto view properties");
+    infoText->setFont(m_defaultFont);
     infoText->setCharacterSize(14);
     infoText->setTextColor({180, 180, 180, 255});
     m_uiManager.addComponent(infoText);
@@ -375,6 +386,7 @@ void EditorUI::createSceneHierarchyPanel() {
     titleText->setLayer(11);
     titleText->setPosition({10, 560});
     titleText->setString("Scene Hierarchy");
+    titleText->setFont(m_defaultFont);
     titleText->setCharacterSize(18);
     titleText->setTextColor({255, 255, 255, 255});
     m_uiManager.addComponent(titleText);
@@ -387,6 +399,7 @@ void EditorUI::createSceneHierarchyPanel() {
     infoText->setLayer(11);
     infoText->setPosition({10, 595});
     infoText->setString("Entities will appear here");
+    infoText->setFont(m_defaultFont);
     infoText->setCharacterSize(12);
     infoText->setTextColor({150, 150, 150, 255});
     m_uiManager.addComponent(infoText);
