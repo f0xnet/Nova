@@ -45,6 +45,12 @@ set "SOURCE_FILES=%SOURCE_FILES% src\EntityPalette.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Gizmos.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\EditorHistory.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\SceneSerializer.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\PlayModeManager.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\AssetBrowser.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\TileBrush.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\DebugRenderer.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\EditorConsole.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\EditorProfiler.cpp"
 
 :: Compile each source file with incremental compilation
 set COMPILED=0
