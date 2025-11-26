@@ -327,6 +327,9 @@ void EditorApplication::renderGizmos() {
 }
 
 void EditorApplication::renderUI() {
+    // Reset view to screen space (UI should not be affected by camera)
+    VIEWPORT().resetView();
+
     if (m_editorUI) {
         m_editorUI->render();
     }
