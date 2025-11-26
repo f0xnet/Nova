@@ -24,11 +24,17 @@ void DebugRenderer::renderColliders(NovaEngine::Scene* scene) {
         auto* transform = entity->getComponent<NovaEngine::TransformComponent>();
         if (!transform) continue;
         
-        NovaEngine::Color color = collider->isTrigger ? 
-            NovaEngine::Color{255, 255, 0, 100} : 
+        NovaEngine::Color color = collider->isTrigger ?
+            NovaEngine::Color{255, 255, 0, 100} :
             NovaEngine::Color{0, 255, 0, 100};
-        
-        gizmos.renderBounds(transform->position, collider->size, color);
+
+        NovaEngine::Rect bounds{
+            transform->position.x - collider->size.x / 2,
+            transform->position.y - collider->size.y / 2,
+            collider->size.x,
+            collider->size.y
+        };
+        gizmos.renderBounds(bounds, color);
     }
 }
 
