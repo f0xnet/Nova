@@ -165,6 +165,9 @@ void EditorUI::createToolbar() {
     saveBtn->setFontSize(16);
     saveBtn->setAction("save_scene");
     saveBtn->setHaveText(true);
+    saveBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(saveBtn);
     xPos += btnWidth + btnSpacing;
 
@@ -181,6 +184,9 @@ void EditorUI::createToolbar() {
     loadBtn->setFontSize(16);
     loadBtn->setAction("load_scene");
     loadBtn->setHaveText(true);
+    loadBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(loadBtn);
     xPos += btnWidth + btnSpacing;
 
@@ -197,6 +203,9 @@ void EditorUI::createToolbar() {
     playBtn->setFontSize(16);
     playBtn->setAction("play_mode");
     playBtn->setHaveText(true);
+    playBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(playBtn);
     xPos += btnWidth + btnSpacing;
 
@@ -213,6 +222,9 @@ void EditorUI::createToolbar() {
     gridBtn->setFontSize(16);
     gridBtn->setAction("toggle_grid");
     gridBtn->setHaveText(true);
+    gridBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(gridBtn);
 
     LOG_INFO("Toolbar created with {} buttons", 4);
@@ -265,6 +277,9 @@ void EditorUI::createEntityPalettePanel() {
     spriteBtn->setAction("add_entity");
     spriteBtn->setValue("sprite");
     spriteBtn->setHaveText(true);
+    spriteBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(spriteBtn);
     yPos += btnHeight + btnSpacing;
 
@@ -282,6 +297,9 @@ void EditorUI::createEntityPalettePanel() {
     lightBtn->setAction("add_entity");
     lightBtn->setValue("light");
     lightBtn->setHaveText(true);
+    lightBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(lightBtn);
     yPos += btnHeight + btnSpacing;
 
@@ -299,6 +317,9 @@ void EditorUI::createEntityPalettePanel() {
     colliderBtn->setAction("add_entity");
     colliderBtn->setValue("collider");
     colliderBtn->setHaveText(true);
+    colliderBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(colliderBtn);
     yPos += btnHeight + btnSpacing;
 
@@ -316,6 +337,9 @@ void EditorUI::createEntityPalettePanel() {
     activatorBtn->setAction("add_entity");
     activatorBtn->setValue("activator");
     activatorBtn->setHaveText(true);
+    activatorBtn->setOnClickWithAction([this](const std::string& action, const std::string& value, const NovaEngine::ID& id) {
+        m_uiManager.handleAction(action, value, id);
+    });
     m_uiManager.addComponent(activatorBtn);
 
     LOG_INFO("Entity palette panel created with {} entity types", 4);
