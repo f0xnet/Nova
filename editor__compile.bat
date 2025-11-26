@@ -36,27 +36,43 @@ if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"
 if not exist "%OBJ_DIR%" mkdir "%OBJ_DIR%"
 
 :: Editor source files
-set "SOURCE_FILES=main.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EditorApplication.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EditorState.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EditorCamera.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EditorUI.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EntityPalette.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\Gizmos.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EditorHistory.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\SceneSerializer.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\PlayModeManager.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\AssetBrowser.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\TileBrush.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\DebugRenderer.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EditorConsole.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\EditorProfiler.cpp"
+set "EDITOR_FILES=main.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EditorApplication.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EditorState.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EditorCamera.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EditorUI.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EntityPalette.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\Gizmos.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EditorHistory.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\SceneSerializer.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\PlayModeManager.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\AssetBrowser.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\TileBrush.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\DebugRenderer.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EditorConsole.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\EditorProfiler.cpp"
 
-:: Compile each source file with incremental compilation
+:: Engine source files (from client)
+set "ENGINE_DIR=%PROJECT_DIR%\client"
+set "ENGINE_FILES=src\Backend\BackendManager.cpp src\Backend\Core\BackendTypes.cpp src\Backend\SFML\SFMLAudioBackend.cpp src\Backend\SFML\SFMLFontBackend.cpp src\Backend\SFML\SFMLGraphicsBackend.cpp src\Backend\SFML\SFMLInputBackend.cpp src\Backend\SFML\SFMLResourceBackend.cpp src\Backend\SFML\SFMLViewportBackend.cpp src\Backend\SFML\SFMLWindowBackend.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\UI\UIManager.cpp src\UI\UIComponent.cpp src\UI\UILoader.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\UI\Components\Button.cpp src\UI\Components\Image.cpp src\UI\Components\Text.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\UI\Components\Panel.cpp src\UI\Components\Animation.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\UI\Components\TextInput.cpp src\UI\Components\Slider.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\Core\NovaEngine.cpp src\Core\ConfigManager.cpp src\Core\Logger.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\Resources\ResourceTypes.cpp src\Resources\ResourceManager.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\Audio\SoundPlayer.cpp src\Audio\MusicPlayer.cpp src\Audio\AudioManager.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\Events\EventDispatcher.cpp src\Events\Event.cpp src\Events\EventHandler.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\Rendering\PostProcessManager.cpp src\Rendering\PostProcessPipeline.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\Rendering\Effects\CRTEffect.cpp src\Rendering\Effects\SSAOEffect.cpp src\Rendering\Effects\BloomEffect.cpp src\Rendering\Effects\ColorGradingEffect.cpp src\Rendering\Effects\DynamicLightingEffect.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\Systems\LightingSystem.cpp"
+
+:: Compile editor source files with incremental compilation
 set COMPILED=0
 set SKIPPED=0
 
-for %%f in (%SOURCE_FILES%) do (
+echo    Compiling editor files...
+for %%f in (%EDITOR_FILES%) do (
     set "SOURCE_PATH=%EDITOR_DIR%\%%f"
     for %%n in ("%%f") do set "BASE_NAME=%%~nxn"
     set "OBJ_FILE=!BASE_NAME:.cpp=.o!"
@@ -73,8 +89,39 @@ for %%f in (%SOURCE_FILES%) do (
     )
 
     if "!NEEDS_COMPILE!"=="1" (
-        echo    Compiling %%f...
+        echo       [Editor] %%f
         g++ -o "!OBJ_PATH!" -O2 -DNDEBUG -I "%SDK_DIR%" -I "%EDITOR_DIR%\include" -c "!SOURCE_PATH!" -Wall -DSFML_STATIC -std=c++17
+
+        if !ERRORLEVEL! NEQ 0 (
+            echo    [ERROR] Compilation failed for %%f
+            goto :build_failed
+        )
+        set /a COMPILED+=1
+    ) else (
+        set /a SKIPPED+=1
+    )
+)
+
+echo    Compiling engine files...
+for %%f in (%ENGINE_FILES%) do (
+    set "SOURCE_PATH=%ENGINE_DIR%\%%f"
+    for %%n in ("%%f") do set "BASE_NAME=%%~nxn"
+    set "OBJ_FILE=!BASE_NAME:.cpp=.o!"
+    set "OBJ_PATH=%OBJ_DIR%\!OBJ_FILE!"
+
+    set "NEEDS_COMPILE=0"
+
+    if not exist "!OBJ_PATH!" (
+        set "NEEDS_COMPILE=1"
+    ) else (
+        for %%s in ("!SOURCE_PATH!") do set "SOURCE_TIME=%%~ts"
+        for %%o in ("!OBJ_PATH!") do set "OBJ_TIME=%%~to"
+        if "!SOURCE_TIME!" gtr "!OBJ_TIME!" set "NEEDS_COMPILE=1"
+    )
+
+    if "!NEEDS_COMPILE!"=="1" (
+        echo       [Engine] %%f
+        g++ -o "!OBJ_PATH!" -O2 -DNDEBUG -I "%SDK_DIR%" -c "!SOURCE_PATH!" -Wall -DSFML_STATIC -std=c++17
 
         if !ERRORLEVEL! NEQ 0 (
             echo    [ERROR] Compilation failed for %%f
