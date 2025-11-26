@@ -27,11 +27,11 @@ void EditorUI::initialize() {
 
     // Load default font (system font)
     m_defaultFont = FONTS().loadFont("C:/Windows/Fonts/arial.ttf");
-    if (m_defaultFont == INVALID_HANDLE) {
+    if (m_defaultFont == NovaEngine::INVALID_HANDLE) {
         LOG_WARN("Failed to load default font, trying alternative...");
         m_defaultFont = FONTS().loadFont("C:/Windows/Fonts/segoeui.ttf");
     }
-    if (m_defaultFont == INVALID_HANDLE) {
+    if (m_defaultFont == NovaEngine::INVALID_HANDLE) {
         LOG_ERROR("CRITICAL: No font could be loaded! UI text will be invisible!");
     } else {
         LOG_INFO("Default font loaded successfully");
