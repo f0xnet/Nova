@@ -248,14 +248,17 @@ i32 UIManager::getMaxLayers() const {
 }
 
 bool UIManager::isMouseOverUI(const Vec2i& mousePos) const {
+    LOG_DEBUG("[UIManager] Checking if mouse ({}, {}) is over UI...", mousePos.x, mousePos.y);
     for (const auto& [id, info] : m_components) {
         if (info.component->isActive() && info.component->isVisible()) {
             Rect bounds = info.component->getBounds();
             if (bounds.contains(static_cast<f32>(mousePos.x), static_cast<f32>(mousePos.y))) {
+                LOG_INFO("[UIManager] Mouse IS over component '{}' - blocking editor input!", id);
                 return true;
             }
         }
     }
+    LOG_DEBUG("[UIManager] Mouse NOT over any UI - allowing editor input");
     return false;
 }
 
