@@ -450,6 +450,8 @@ void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
 void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
+    LOG_INFO("=== HANDLECLICK CALLED === Mouse: ({}, {})", input.mouseButton.x, input.mouseButton.y);
+
     Vec2i screenPos{input.mouseButton.x, input.mouseButton.y};
 
     // Don't process editor clicks if mouse is over UI
