@@ -35,7 +35,10 @@ void EditorUI::initialize() {
 }
 
 void EditorUI::update(float deltaTime) {
-    // Mise à jour du timer de message
+    // Update UIManager (updates all UI components)
+    m_uiManager.update(deltaTime);
+
+    // Update message timer
     if (m_messageTimer > 0.0f) {
         m_messageTimer -= deltaTime;
         if (m_messageTimer <= 0.0f) {
@@ -45,12 +48,11 @@ void EditorUI::update(float deltaTime) {
 }
 
 void EditorUI::render() {
-    // Les panels seront rendus par le UIManager
-    // Afficher message temporaire s'il existe
-    if (!m_currentMessage.empty() && m_messageTimer > 0.0f) {
-        // TODO: Renderer message avec UIManager
-        // Pour l'instant on utilise le logger
-    }
+    // Render all UI components via UIManager
+    m_uiManager.render();
+
+    // TODO: Render temporary messages if needed
+    // For now, messages are logged to console
 }
 
 void EditorUI::setActionCallback(std::function<void(const std::string&, const std::string&)> callback) {

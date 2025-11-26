@@ -82,6 +82,10 @@ void EditorApplication::onRender() {
 }
 
 void EditorApplication::onEvent(const NovaEngine::Event& event) {
+    // Dispatch event to UI first (so buttons can handle clicks)
+    m_uiManager.dispatchEvent(event);
+
+    // Then handle editor input
     if (event.type == NovaEngine::EventType::Input) {
         handleEditorInput(event.inputEvent);
     }
@@ -119,6 +123,12 @@ void EditorApplication::initializeEditor() {
     m_editorUI = std::make_unique<EditorUI>(m_uiManager, m_editorState.get());
     m_editorUI->initialize();
     m_editorUI->setActionCallback([this](const std::string& action, const std::string& value) {
+        onUIAction(action, value);
+    });
+
+    // Set UIManager action callback to forward button actions
+    m_uiManager.setActionCallback([this](const std::string& action, const std::string& value, const NovaEngine::ID& componentID) {
+        (void)componentID;  // Unused for now
         onUIAction(action, value);
     });
 
@@ -787,18 +797,38 @@ NovaEngine::Vec2i EditorApplication::getMousePosition() const {
 }
 
 void EditorApplication::onUIAction(const std::string& action, const std::string& value) {
-    LOG_DEBUG("UI Action: '{}' = '{}'", action, value);
+    LOG_INFO("UI Action: '{}' = '{}'", action, value);
 
-    if (action == "place_entity") {
+    if (action == "save_scene") {
+        saveScene("editor_scene.json");
+    }
+    else if (action == "load_scene") {
+        loadScene("editor_scene.json");
+    }
+    else if (action == "play_mode") {
+        LOG_INFO("Play mode not yet implemented");
+        // TODO: Enter play mode
+    }
+    else if (action == "toggle_grid") {
+        m_showGrid = !m_showGrid;
+        LOG_INFO("Grid: {}", m_showGrid ? "ON" : "OFF");
+    }
+    else if (action == "add_entity") {
+        // Set mode to place entity of specified type
+        m_editorState->setMode(EditorMode::Place);
+        m_editorState->setPlacingEntityType(value);
+        LOG_INFO("Click to place: {}", value);
+    }
+    else if (action == "place_entity") {
         m_editorState->setMode(EditorMode::Place);
         m_editorState->setPlacingEntityType(value);
         LOG_INFO("Placing entity: {}", value);
     }
     else if (action == "set_mode") {
-        // TODO: Parser value vers EditorMode
+        // TODO: Parse value to EditorMode
     }
     else if (action == "set_tool") {
-        // TODO: Parser value vers EditorTool
+        // TODO: Parse value to EditorTool
     }
 }
 
