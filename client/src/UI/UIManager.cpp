@@ -106,8 +106,8 @@ void UIManager::setGroupActive(const ID& groupID, bool active) {
             affectedCount++;
         }
     }
-    
-    LOG_INFO("Set {} components in group '{}' to active: {}", affectedCount, groupID, active);
+
+    LOG_DEBUG("Set {} components in group '{}' to active: {}", affectedCount, groupID, active);
 }
 
 void UIManager::setUIActive(const ID& uiID, bool active) {

@@ -74,7 +74,11 @@ void DialogueSystem::reset() {
 void DialogueSystem::showNPCIndicator(bool show) {
     if (!m_uiManager) return;
 
-    m_uiManager->setGroupActive("npc_nearby", show);
+    // Only update if state has changed to avoid redundant UI updates
+    if (m_npcIndicatorVisible != show) {
+        m_npcIndicatorVisible = show;
+        m_uiManager->setGroupActive("npc_nearby", show);
+    }
 }
 
 void DialogueSystem::updateDialogueUI() {

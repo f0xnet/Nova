@@ -1,0 +1,45 @@
+#pragma once
+#include "../PostProcessEffect.hpp"
+
+namespace NovaEngine {
+
+/**
+ * @brief Screen-Space Ambient Occlusion effect
+ *
+ * Détecte les bords des objets et applique des ombres qui s'estompent
+ * pour créer de la profondeur autour des objets.
+ */
+class SSAOEffect : public PostProcessEffect {
+public:
+    SSAOEffect();
+    ~SSAOEffect() override;
+
+    bool initialize(IGraphicsBackend* graphicsBackend, u32 width, u32 height) override;
+    void shutdown() override;
+    void apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) override;
+    const char* getName() const override { return "SSAO"; }
+
+    // Paramètres ajustables
+    void setStrength(f32 strength) { m_strength = strength; updateParameters(); }
+    void setRadius(f32 radius) { m_radius = radius; updateParameters(); }
+
+    f32 getStrength() const { return m_strength; }
+    f32 getRadius() const { return m_radius; }
+
+private:
+    void updateParameters();
+
+    ShaderHandle m_ssaoShader;
+    ShaderHandle m_blurShader;           // Non utilisé en single-pass
+    RenderTextureHandle m_aoTexture;      // Non utilisé en single-pass
+    RenderTextureHandle m_blurredAOTexture; // Non utilisé en single-pass
+
+    u32 m_width;
+    u32 m_height;
+    u32 m_downsampleFactor;  // Non utilisé en single-pass
+
+    f32 m_strength;
+    f32 m_radius;
+};
+
+}

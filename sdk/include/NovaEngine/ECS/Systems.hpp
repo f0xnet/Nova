@@ -50,6 +50,12 @@ public:
             spriteData.color = sprite->tint;
             spriteData.blendMode = sprite->blendMode;
 
+            // Check for custom shader
+            auto* shaderComp = entity->getComponent<ShaderComponent>();
+            if (shaderComp && shaderComp->enabled && shaderComp->shader != INVALID_HANDLE) {
+                spriteData.shader = shaderComp->shader;
+            }
+
             // Draw
             GRAPHICS().drawSprite(spriteData);
         }

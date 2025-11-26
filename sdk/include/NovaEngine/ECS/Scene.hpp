@@ -174,12 +174,13 @@ private:
      * @brief Create an entity from JSON data
      */
     void createEntityFromJSON(const nlohmann::json& entityData, const DefinitionManager& defManager) {
-        if (!entityData.contains("type")) {
-            LOG_ERROR("Entity missing 'type' field");
+        // Check if entity has type (definition-based) or components (inline)
+        if (!entityData.contains("type") && !entityData.contains("components")) {
+            LOG_ERROR("Entity missing both 'type' and 'components' fields");
             return;
         }
 
-        std::string type = entityData["type"];
+        std::string type = entityData.contains("type") ? entityData["type"].get<std::string>() : "";
 
         // Create entity
         Entity* entity = m_entityRegistry.createEntity();
@@ -219,11 +220,15 @@ private:
 
         entity->addComponent(std::move(transform));
 
-        // Create type-specific components
-        if (type == "sprite") {
+        // Support inline component definitions
+        if (entityData.contains("components")) {
+            createComponentsFromInlineJSON(entity, entityData["components"]);
+        }
+        // Create type-specific components from definitions
+        else if (type == "sprite") {
             createSpriteEntity(entity, entityData, defManager);
         }
-        else if (type == "light") {
+        else if (type == "light" || type == "torch") {
             createLightEntity(entity, entityData, defManager);
         }
         else if (type == "animated_sprite") {
@@ -238,9 +243,105 @@ private:
         else if (type == "player") {
             createPlayerEntity(entity, entityData, defManager);
         }
-        else {
+        else if (!type.empty()) {
             LOG_WARN("Unknown entity type: {}", type);
         }
+    }
+
+    /**
+     * @brief Create components from inline JSON (no definition references)
+     */
+    void createComponentsFromInlineJSON(Entity* entity, const nlohmann::json& components) {
+        // Update transform if specified
+        if (components.contains("transform")) {
+            auto* transform = entity->getComponent<TransformComponent>();
+            const auto& transformData = components["transform"];
+
+            if (transformData.contains("position")) {
+                transform->position = Vec2f{
+                    transformData["position"][0].get<f32>(),
+                    transformData["position"][1].get<f32>()
+                };
+            }
+            if (transformData.contains("rotation")) {
+                transform->rotation = transformData["rotation"].get<f32>();
+            }
+            if (transformData.contains("scale")) {
+                if (transformData["scale"].is_array()) {
+                    transform->scale = Vec2f{
+                        transformData["scale"][0].get<f32>(),
+                        transformData["scale"][1].get<f32>()
+                    };
+                } else {
+                    f32 s = transformData["scale"].get<f32>();
+                    transform->scale = Vec2f{s, s};
+                }
+            }
+        }
+
+        // Create light component
+        if (components.contains("light")) {
+            const auto& lightData = components["light"];
+            auto light = std::make_unique<LightComponent>();
+
+            // Type
+            if (lightData.contains("type")) {
+                std::string typeStr = lightData["type"];
+                if (typeStr == "point") light->type = LightComponent::LightType::Point;
+                else if (typeStr == "directional") light->type = LightComponent::LightType::Directional;
+                else if (typeStr == "spot") light->type = LightComponent::LightType::Spot;
+            }
+
+            // Color
+            if (lightData.contains("color")) {
+                auto& color = lightData["color"];
+                light->color = Color{
+                    static_cast<u8>(color[0].get<int>()),
+                    static_cast<u8>(color[1].get<int>()),
+                    static_cast<u8>(color[2].get<int>()),
+                    static_cast<u8>(color[3].get<int>())
+                };
+            }
+
+            // Radius
+            if (lightData.contains("radius")) {
+                light->radius = lightData["radius"].get<f32>();
+            }
+
+            // Intensity
+            if (lightData.contains("intensity")) {
+                light->intensity = lightData["intensity"].get<f32>();
+            }
+
+            // Direction
+            if (lightData.contains("direction")) {
+                auto& dir = lightData["direction"];
+                light->direction = Vec2f{
+                    dir[0].get<f32>(),
+                    dir[1].get<f32>()
+                };
+            }
+
+            // Angle
+            if (lightData.contains("angle")) {
+                light->angle = lightData["angle"].get<f32>();
+            }
+
+            // Cast shadows
+            if (lightData.contains("castShadows")) {
+                light->castShadows = lightData["castShadows"].get<bool>();
+            }
+
+            // Enabled
+            if (lightData.contains("enabled")) {
+                light->enabled = lightData["enabled"].get<bool>();
+            }
+
+            entity->addComponent(std::move(light));
+            LOG_DEBUG("Created inline light component for entity {}", entity->getID());
+        }
+
+        // Other components can be added here (sprite, animation, etc.)
     }
 
     /**
@@ -337,13 +438,11 @@ private:
             transform->origin = Vec2f{sprite->size.x / 2.0f, sprite->size.y / 2.0f};
         }
 
-        if (spriteDef->contains("zOrder")) {
-            sprite->zOrder = (*spriteDef)["zOrder"].get<i32>();
-        }
-
-        // Scene-specific overrides
+        // zOrder: Scene takes priority over definition
         if (entityData.contains("zOrder")) {
             sprite->zOrder = entityData["zOrder"].get<i32>();
+        } else if (spriteDef->contains("zOrder")) {
+            sprite->zOrder = (*spriteDef)["zOrder"].get<i32>();
         }
         if (entityData.contains("size")) {
             auto& size = entityData["size"];

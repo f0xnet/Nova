@@ -465,6 +465,28 @@ public:
 };
 
 // ============================================================================
+// ShaderComponent - Custom shader per entity
+// ============================================================================
+/**
+ * @brief Shader component - applies custom shader to entity sprite
+ */
+class ShaderComponent : public Component {
+public:
+    ShaderHandle shader = INVALID_HANDLE;
+    bool enabled = true;
+
+    COMPONENT_TYPE_ID(ShaderComponent)
+
+    void serialize(nlohmann::json& json) const override {
+        json["enabled"] = enabled;
+    }
+
+    void deserialize(const nlohmann::json& json) override {
+        if (json.contains("enabled")) enabled = json["enabled"];
+    }
+};
+
+// ============================================================================
 // JourneyComponent - Multi-scene travel management
 // ============================================================================
 

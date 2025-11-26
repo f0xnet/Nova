@@ -83,7 +83,9 @@ public:
     }
 
     void quit() {
-        BACKEND().shutdown();
+        // Don't shutdown backends here - just close the window to exit the main loop
+        // Backends will be properly shut down in shutdownEngine() after the loop exits
+        WINDOW().close();
         LOG_INFO("Application quit requested");
     }
 

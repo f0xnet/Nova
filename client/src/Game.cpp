@@ -9,6 +9,12 @@ Game::Game()
     , m_isConnected(false)
     , m_dialogueSystem(std::make_unique<NovaEngine::DialogueSystem>())
     , m_playerController(std::make_unique<NovaEngine::PlayerController>())
+    , m_postProcessPipeline(nullptr)
+    , m_lightingSystem(std::make_unique<NovaEngine::LightingSystem>())
+    , m_ssaoEffect(nullptr)
+    , m_bloomEffect(nullptr)
+    , m_colorGradingEffect(nullptr)
+    , m_dynamicLightingEffect(nullptr)
 {
     LOG_TRACE("Game constructed");
 }
@@ -105,10 +111,68 @@ bool Game::onInitialize() {
     // Initialize dialogue system with UI manager
     m_dialogueSystem->initialize(&m_uiManager);
 
+    // Initialize post-processing pipeline
+    m_postProcessPipeline = std::make_unique<NovaEngine::PostProcessPipeline>(&GRAPHICS());
+    if (!m_postProcessPipeline->initialize(
+        static_cast<NovaEngine::u32>(logicalWidth),
+        static_cast<NovaEngine::u32>(logicalHeight))) {
+        LOG_WARN("Failed to initialize PostProcessPipeline");
+        m_postProcessPipeline.reset();
+    } else {
+        // Add post-processing effects in order
+        // Each effect can be enabled/disabled independently
+
+        // 1. SSAO - Ambient Occlusion (applied first, single-pass)
+        m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
+        if (m_ssaoEffect) {
+            // COMMENTED FOR TESTING: Let constructor values take effect
+            // m_ssaoEffect->setStrength(0.4f);
+            // m_ssaoEffect->setRadius(12.0f);
+            LOG_INFO("SSAO effect added successfully");
+        }
+
+        // 2. Bloom - Glow effect
+        m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
+        if (m_bloomEffect) {
+            m_bloomEffect->setIntensity(0.4f);
+            LOG_INFO("Bloom effect added successfully");
+        }
+
+        // 3. Color Grading - Saturation, contrast, etc.
+        m_colorGradingEffect = m_postProcessPipeline->addEffect<NovaEngine::ColorGradingEffect>();
+        if (m_colorGradingEffect) {
+            m_colorGradingEffect->setSaturation(1.3f);
+            m_colorGradingEffect->setContrast(1.0f);
+            m_colorGradingEffect->setBrightness(0.0f);
+            LOG_INFO("Color grading effect added successfully");
+        }
+
+        // 4. Dynamic Lighting - Multi-light system with colors (ECS-driven)
+        m_dynamicLightingEffect = m_postProcessPipeline->addEffect<NovaEngine::DynamicLightingEffect>();
+        if (m_dynamicLightingEffect) {
+            m_dynamicLightingEffect->setEnabled(false);  // Désactivé par défaut
+            m_dynamicLightingEffect->setAmbientDarkness(0.2f);  // Obscurité ambiante visible
+
+            // Configure lighting system to manage lights from ECS
+            m_lightingSystem->setLightingEffect(m_dynamicLightingEffect);
+
+            // Démarrer à 6h du matin (0.25 = 6h, car 0.0 = minuit, 0.5 = midi)
+            m_lightingSystem->setTimeOfDay(0.25f);
+
+            LOG_INFO("Dynamic lighting effect added successfully (ECS-driven)");
+            LOG_INFO("Time of day initialized to 6:00 AM");
+        }
+    }
+
     LOG_INFO("Game initialized successfully");
     LOG_INFO("=== Controls ===");
     LOG_INFO("  WASD / Arrow Keys - Move");
     LOG_INFO("  E - Talk to NPCs / Advance dialogue");
+    LOG_INFO("  T - Advance time by 1 hour");
+    LOG_INFO("  1 - Toggle SSAO");
+    LOG_INFO("  2 - Toggle Bloom");
+    LOG_INFO("  3 - Toggle Color Grading");
+    LOG_INFO("  4 - Toggle Dynamic Lighting");
     LOG_INFO("  ESC - Quit");
 
     return true;
@@ -129,6 +193,16 @@ void Game::onUpdate(float deltaTime) {
         Vec2f playerPos = m_playerController->getPlayerPosition(scene);
         VIEWPORT().setViewCenter(playerPos);
 
+        // Update dynamic lighting system with ECS lights
+        if (m_dynamicLightingEffect && m_lightingSystem) {
+            // Update camera for world → screen coordinate conversion
+            const auto& viewportData = VIEWPORT().getView();
+            m_dynamicLightingEffect->setCamera(viewportData.center, viewportData.size);
+
+            // Collect and update all lights from entities
+            m_lightingSystem->update(deltaTime, scene->getEntityRegistry());
+        }
+
         // Show/hide NPC indicator
         Entity* nearestNPC = m_playerController->getNearestNPC();
         m_dialogueSystem->showNPCIndicator(nearestNPC != nullptr && !m_dialogueSystem->isActive());
@@ -142,10 +216,23 @@ void Game::onUpdate(float deltaTime) {
 }
 
 void Game::onRender() {
-    // Render ECS scene
+    // Begin post-processing (render scene to texture)
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->beginSceneRender();
+    }
+
+    // Render ECS scene (to texture if pipeline enabled)
     m_sceneManager.render();
 
-    // Render UI (includes dialogue)
+    // End scene rendering and apply post-processing effects
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->endSceneRender(0.016f); // ~60fps delta
+    }
+
+    // Reset view to default before rendering UI (avoid camera offset)
+    VIEWPORT().resetView();
+
+    // Render UI directly to screen (no shader applied)
     m_uiManager.render();
 }
 
@@ -173,11 +260,71 @@ void Game::onEvent(const NovaEngine::Event& event) {
                 }
             }
         }
+        else if (event.inputEvent.key.code == KeyCode::Num1) {
+            // Toggle SSAO effect
+            if (m_ssaoEffect) {
+                bool newState = !m_ssaoEffect->isEnabled();
+                m_ssaoEffect->setEnabled(newState);
+                LOG_INFO("SSAO effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::Num2) {
+            // Toggle Bloom effect
+            if (m_bloomEffect) {
+                bool newState = !m_bloomEffect->isEnabled();
+                m_bloomEffect->setEnabled(newState);
+                LOG_INFO("Bloom effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::Num3) {
+            // Toggle Color Grading effect
+            if (m_colorGradingEffect) {
+                bool newState = !m_colorGradingEffect->isEnabled();
+                m_colorGradingEffect->setEnabled(newState);
+                LOG_INFO("Color grading effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::Num4) {
+            // Toggle Dynamic Lighting effect
+            if (m_dynamicLightingEffect) {
+                bool newState = !m_dynamicLightingEffect->isEnabled();
+                m_dynamicLightingEffect->setEnabled(newState);
+                LOG_INFO("Dynamic lighting effect {}", newState ? "enabled" : "disabled");
+            }
+        }
+        else if (event.inputEvent.key.code == KeyCode::T) {
+            // Advance time by 1 hour
+            if (m_lightingSystem && m_dynamicLightingEffect) {
+                // 1 hour = 1/24 of a full day (1.0)
+                const float oneHour = 1.0f / 24.0f;
+                float currentTime = m_lightingSystem->getTimeOfDay();
+                float newTime = currentTime + oneHour;
+
+                // Wrap around if we exceed 1.0 (midnight)
+                if (newTime >= 1.0f) {
+                    newTime -= 1.0f;
+                }
+
+                m_lightingSystem->setTimeOfDay(newTime);
+
+                // Convert timeOfDay to hours (0.0 = 0h, 0.5 = 12h, 1.0 = 24h)
+                int hours = static_cast<int>(newTime * 24.0f);
+                LOG_INFO("Time advanced to {}:00 ({}h)", hours < 10 ? "0" + std::to_string(hours) : std::to_string(hours), hours);
+            }
+        }
     }
 }
 
 void Game::onShutdown() {
     LOG_INFO("Game shutting down");
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->shutdown();
+        m_postProcessPipeline.reset();
+    }
+    // Effects are owned by pipeline, already deleted
+    m_ssaoEffect = nullptr;
+    m_bloomEffect = nullptr;
+    m_colorGradingEffect = nullptr;
     m_sceneManager.shutdown();
 }
 
