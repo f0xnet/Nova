@@ -42,6 +42,8 @@ public:
     std::vector<std::shared_ptr<UIComponent>> getUI(const ID& uiID);
     i32 getMaxLayers() const;
 
+    bool isMouseOverUI(const Vec2i& mousePos) const;
+
 private:
     struct ComponentInfo {
         std::shared_ptr<UIComponent> component;

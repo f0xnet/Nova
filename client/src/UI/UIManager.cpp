@@ -247,6 +247,18 @@ i32 UIManager::getMaxLayers() const {
     return m_maxLayers;
 }
 
+bool UIManager::isMouseOverUI(const Vec2i& mousePos) const {
+    for (const auto& [id, info] : m_components) {
+        if (info.component->isActive() && info.component->isVisible()) {
+            Rect bounds = info.component->getBounds();
+            if (bounds.contains(static_cast<f32>(mousePos.x), static_cast<f32>(mousePos.y))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void UIManager::invalidateRenderCache() {
     m_renderCacheDirty = true;
 }

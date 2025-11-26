@@ -451,6 +451,12 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
     Vec2i screenPos{input.mouseButton.x, input.mouseButton.y};
+
+    // Don't process editor clicks if mouse is over UI
+    if (m_uiManager.isMouseOverUI(screenPos)) {
+        return;
+    }
+
     Vec2f worldPos = m_editorCamera->screenToWorld(screenPos);
 
     if (input.mouseButton.button == MouseButton::Left) {
