@@ -58,8 +58,8 @@ private:
 
     // Input handling
     void handleEditorInput(const NovaEngine::InputEvent& input);
-    void handleKeyPress(const NovaEngine::KeyEvent& key);
-    void handleMouseClick(const NovaEngine::MouseButtonEvent& mouse);
+    void handleKeyPress(const NovaEngine::InputEvent& input);
+    void handleMouseClick(const NovaEngine::InputEvent& input);
     void handleEntityPlacement(const NovaEngine::Vec2f& worldPos);
     void handleEntitySelection(const NovaEngine::Vec2f& worldPos);
     void handleEntityDrag(const NovaEngine::Vec2f& worldPos);

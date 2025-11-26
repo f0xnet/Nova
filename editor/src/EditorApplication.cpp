@@ -350,36 +350,36 @@ void EditorApplication::handleEditorInput(const NovaEngine::InputEvent& input) {
     }
 }
 
-void EditorApplication::handleKeyPress(const NovaEngine::KeyEvent& key) {
+void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
     // Toggle grid
-    if (key.code == KeyCode::G && !key.control) {
+    if (input.key.code == KeyCode::G && !input.key.control) {
         m_showGrid = !m_showGrid;
         m_editorState->setGridVisible(m_showGrid);
         LOG_INFO("Grid {}", m_showGrid ? "enabled" : "disabled");
     }
 
     // Tool shortcuts
-    if (key.code == KeyCode::Q) {
+    if (input.key.code == KeyCode::Q) {
         m_editorState->setTool(EditorTool::Move);
         LOG_INFO("Tool: Move");
     }
-    if (key.code == KeyCode::W && !key.control) {
+    if (input.key.code == KeyCode::W && !input.key.control) {
         m_editorState->setTool(EditorTool::Move);
         LOG_INFO("Tool: Move");
     }
-    if (key.code == KeyCode::E && !key.control) {
+    if (input.key.code == KeyCode::E && !input.key.control) {
         m_editorState->setTool(EditorTool::Rotate);
         LOG_INFO("Tool: Rotate");
     }
-    if (key.code == KeyCode::R && !key.control) {
+    if (input.key.code == KeyCode::R && !input.key.control) {
         m_editorState->setTool(EditorTool::Scale);
         LOG_INFO("Tool: Scale");
     }
 
     // Save scene
-    if (key.code == KeyCode::S && key.control) {
+    if (input.key.code == KeyCode::S && input.key.control) {
         if (!m_currentScenePath.empty()) {
             saveScene(m_currentScenePath);
         } else {
@@ -389,61 +389,61 @@ void EditorApplication::handleKeyPress(const NovaEngine::KeyEvent& key) {
     }
 
     // Open scene
-    if (key.code == KeyCode::O && key.control) {
+    if (input.key.code == KeyCode::O && input.key.control) {
         // TODO: Open file dialog
         LOG_INFO("Open scene dialog");
     }
 
     // New scene
-    if (key.code == KeyCode::N && key.control) {
+    if (input.key.code == KeyCode::N && input.key.control) {
         newScene();
     }
 
     // Copy
-    if (key.code == KeyCode::C && key.control) {
+    if (input.key.code == KeyCode::C && input.key.control) {
         copySelectedEntities();
     }
 
     // Paste
-    if (key.code == KeyCode::V && key.control) {
+    if (input.key.code == KeyCode::V && input.key.control) {
         pasteEntities();
     }
 
     // Duplicate
-    if (key.code == KeyCode::D && key.control) {
+    if (input.key.code == KeyCode::D && input.key.control) {
         duplicateSelectedEntity();
     }
 
     // Undo
-    if (key.code == KeyCode::Z && key.control) {
+    if (input.key.code == KeyCode::Z && input.key.control) {
         undo();
     }
 
     // Redo
-    if (key.code == KeyCode::Y && key.control) {
+    if (input.key.code == KeyCode::Y && input.key.control) {
         redo();
     }
 
     // Frame selected
-    if (key.code == KeyCode::F) {
+    if (input.key.code == KeyCode::F) {
         frameSelected();
     }
 
     // Delete selected
-    if (key.code == KeyCode::Backspace || key.code == KeyCode::Delete) {
+    if (input.key.code == KeyCode::Backspace) {
         if (m_editorState->hasSelection()) {
             deleteSelectedEntity();
         }
     }
 }
 
-void EditorApplication::handleMouseClick(const NovaEngine::MouseButtonEvent& mouse) {
+void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
-    Vec2i screenPos{mouse.x, mouse.y};
+    Vec2i screenPos{input.mouseButton.x, input.mouseButton.y};
     Vec2f worldPos = m_editorCamera->screenToWorld(screenPos);
 
-    if (mouse.button == MouseButton::Left) {
+    if (input.mouseButton.button == MouseButton::Left) {
         if (m_editorState->getMode() == EditorMode::Place) {
             // Placer entité
             handleEntityPlacement(worldPos);
@@ -464,7 +464,7 @@ void EditorApplication::handleMouseClick(const NovaEngine::MouseButtonEvent& mou
         }
     }
 
-    if (mouse.button == MouseButton::Right) {
+    if (input.mouseButton.button == MouseButton::Right) {
         // Cancel placement/selection
         if (m_editorState->getMode() == EditorMode::Place) {
             m_editorState->setPlacingEntityType("");
