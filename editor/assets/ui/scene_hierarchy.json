@@ -6,37 +6,40 @@
   "images": [
     {
       "ID": "hierarchy_bg",
+      "groupID": "main",
       "x": 0,
       "y": 600,
       "width": 250,
       "height": 480,
-      "color": "30,30,35,255",
+      "color": "30,30,35",
       "layer": 10,
-      "visible": true
+      "isActive": true
     }
   ],
   "text": [
     {
       "ID": "hierarchy_title",
+      "groupID": "main",
       "content": "Scene Hierarchy",
       "x": 10,
       "y": 610,
       "font": "C:/Windows/Fonts/arial.ttf",
       "fontSize": 20,
-      "color": "220,220,220,255",
+      "color": "220,220,220",
       "layer": 11,
-      "visible": true
+      "isActive": true
     },
     {
       "ID": "hierarchy_empty",
+      "groupID": "main",
       "content": "No scene loaded",
       "x": 10,
       "y": 650,
       "font": "C:/Windows/Fonts/arial.ttf",
       "fontSize": 14,
-      "color": "150,150,150,255",
+      "color": "150,150,150",
       "layer": 11,
-      "visible": true
+      "isActive": true
     }
   ]
 }
