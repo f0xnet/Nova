@@ -35,22 +35,13 @@ echo.
 if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"
 if not exist "%OBJ_DIR%" mkdir "%OBJ_DIR%"
 
-:: Editor source files
+:: Editor source files (Phase 1: Minimal JSON-based UI)
 set "EDITOR_FILES=main.cpp"
 set "EDITOR_FILES=%EDITOR_FILES% src\EditorApplication.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\EditorState.cpp"
 set "EDITOR_FILES=%EDITOR_FILES% src\EditorCamera.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\EditorUI.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\EntityPalette.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\Gizmos.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\EditorHistory.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\SceneSerializer.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\PlayModeManager.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\AssetBrowser.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\TileBrush.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\DebugRenderer.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\EditorConsole.cpp"
-set "EDITOR_FILES=%EDITOR_FILES% src\EditorProfiler.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\Core\EditorState.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\Core\EditorConfig.cpp"
+set "EDITOR_FILES=%EDITOR_FILES% src\UI\EditorUIManager.cpp"
 
 :: Engine source files (from client)
 set "ENGINE_DIR=%PROJECT_DIR%\client"
@@ -60,6 +51,8 @@ set "ENGINE_FILES=%ENGINE_FILES% src\UI\Components\Button.cpp src\UI\Components\
 set "ENGINE_FILES=%ENGINE_FILES% src\UI\Components\Panel.cpp src\UI\Components\Animation.cpp"
 set "ENGINE_FILES=%ENGINE_FILES% src\UI\Components\TextInput.cpp src\UI\Components\Slider.cpp"
 set "ENGINE_FILES=%ENGINE_FILES% src\Core\NovaEngine.cpp src\Core\ConfigManager.cpp src\Core\Logger.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\ECS\Entity.cpp src\ECS\EntityRegistry.cpp src\ECS\Scene.cpp src\ECS\SceneManager.cpp"
+set "ENGINE_FILES=%ENGINE_FILES% src\ECS\Components\TransformComponent.cpp src\ECS\Components\SpriteComponent.cpp src\ECS\Components\LightComponent.cpp"
 set "ENGINE_FILES=%ENGINE_FILES% src\Resources\ResourceTypes.cpp src\Resources\ResourceManager.cpp"
 set "ENGINE_FILES=%ENGINE_FILES% src\Audio\SoundPlayer.cpp src\Audio\MusicPlayer.cpp src\Audio\AudioManager.cpp"
 set "ENGINE_FILES=%ENGINE_FILES% src\Events\EventDispatcher.cpp src\Events\Event.cpp src\Events\EventHandler.cpp"

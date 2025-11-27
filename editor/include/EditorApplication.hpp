@@ -3,24 +3,22 @@
 #include <NovaEngine/Core/Application.hpp>
 #include <NovaEngine/ECS/SceneManager.hpp>
 #include <NovaEngine/UI/UIManager.hpp>
-#include "EditorState.hpp"
+#include "Core/EditorState.hpp"
+#include "Core/EditorConfig.hpp"
+#include "UI/EditorUIManager.hpp"
 #include "EditorCamera.hpp"
-#include "EditorUI.hpp"
-#include "EntityPalette.hpp"
-#include "EditorHistory.hpp"
-#include "SceneSerializer.hpp"
+#include <memory>
 
 namespace NovaEditor {
 
 /**
- * @brief Application principale de l'éditeur de niveau NovaEngine
+ * @brief Main editor application (Phase 1: JSON-based UI foundation)
  *
- * Éditeur visuel intégré permettant de :
- * - Créer et éditer des scènes
- * - Placer visuellement des entités (sprites, lumières, NPCs, etc.)
- * - Éditer les propriétés des entités
- * - Prévisualiser en temps réel
- * - Sauvegarder/charger en JSON
+ * Phase 1 Goals:
+ * - Launch editor with JSON-based UI
+ * - Display toolbar, palette, inspector, hierarchy
+ * - Button actions trigger console logs
+ * - Clean modular architecture
  */
 class EditorApplication : public NovaEngine::Application {
 public:
@@ -28,7 +26,7 @@ public:
     ~EditorApplication() override;
 
 protected:
-    // Hooks Application
+    // Application lifecycle hooks
     bool onInitialize() override;
     void onUpdate(float deltaTime) override;
     void onRender() override;
@@ -36,88 +34,44 @@ protected:
     void onShutdown() override;
 
 private:
-    // Initialisation
+    // Initialization
     void initializeEditor();
-    void loadDefinitions();
     void printControls();
 
     // Update
     void updateCamera(float deltaTime);
-    void updateHovering();
-    void updateSelection();
-    void updateEntityManipulation(float deltaTime);
-    void updatePlacement();
 
     // Render
     void renderScene();
     void renderGrid();
-    void renderPlacementPreview();
-    void renderHoverHighlight();
-    void renderGizmos();
     void renderUI();
 
     // Input handling
     void handleEditorInput(const NovaEngine::InputEvent& input);
     void handleKeyPress(const NovaEngine::InputEvent& input);
     void handleMouseClick(const NovaEngine::InputEvent& input);
-    void handleEntityPlacement(const NovaEngine::Vec2f& worldPos);
-    void handleEntitySelection(const NovaEngine::Vec2f& worldPos);
-    void handleEntityDrag(const NovaEngine::Vec2f& worldPos);
 
-    // Scene management
-    void newScene();
-    void loadScene(const std::string& path);
-    void saveScene(const std::string& path);
-
-    // Entity operations
-    void createEntity(const std::string& type, const NovaEngine::Vec2f& position);
-    void deleteSelectedEntity();
-    void duplicateSelectedEntity();
-    void copySelectedEntities();
-    void pasteEntities();
-    NovaEngine::Entity* findEntityAt(const NovaEngine::Vec2f& worldPos);
-
-    // History
-    void undo();
-    void redo();
-
-    // Camera
-    void frameSelected();
-
-    // Utilities
-    NovaEngine::Vec2f snapToGrid(const NovaEngine::Vec2f& position) const;
-    NovaEngine::Vec2i getMousePosition() const;
-
-    // UI callbacks
+    // UI action callback
     void onUIAction(const std::string& action, const std::string& value);
+
+    // Scene management (stubs for Phase 1)
+    void newScene();
+    void loadScene();
+    void saveScene();
 
 private:
     // Core systems
     NovaEngine::SceneManager m_sceneManager;
     NovaEngine::UIManager m_uiManager;
 
-    // Editor-specific
-    std::unique_ptr<EditorState> m_editorState;
-    std::unique_ptr<EditorCamera> m_editorCamera;
-    std::unique_ptr<EditorUI> m_editorUI;
-    std::unique_ptr<EntityPalette> m_entityPalette;
-    std::unique_ptr<EditorHistory> m_editorHistory;
-    std::unique_ptr<SceneSerializer> m_sceneSerializer;
+    // Editor subsystems
+    std::unique_ptr<EditorConfig> m_config;
+    std::unique_ptr<EditorState> m_state;
+    std::unique_ptr<EditorCamera> m_camera;
+    std::unique_ptr<EditorUIManager> m_uiManager_editor;
 
     // Current scene
     NovaEngine::Scene* m_currentScene;
-    std::string m_currentScenePath;
-    bool m_sceneModified;
-
-    // Dragging state
-    bool m_isDragging;
-    NovaEngine::Vec2f m_dragStartPos;
-    NovaEngine::Vec2f m_dragOffset;
-
-    // Grid
-    bool m_showGrid;
-    float m_gridSize;
-    bool m_snapToGrid;
 };
 
 } // namespace NovaEditor

@@ -1,0 +1,124 @@
+{
+  "name": "Entity Palette",
+  "UIID": "entity_palette",
+  "groupID": "main",
+  "layers": 11,
+  "images": [
+    {
+      "ID": "palette_bg",
+      "x": 0,
+      "y": 50,
+      "width": 250,
+      "height": 550,
+      "color": "30,30,35,255",
+      "layer": 10,
+      "visible": true
+    }
+  ],
+  "text": [
+    {
+      "ID": "palette_title",
+      "content": "Entity Palette",
+      "x": 10,
+      "y": 60,
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 20,
+      "color": "220,220,220,255",
+      "layer": 11,
+      "visible": true
+    },
+    {
+      "ID": "palette_category_label",
+      "content": "Categories:",
+      "x": 10,
+      "y": 95,
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 14,
+      "color": "180,180,180,255",
+      "layer": 11,
+      "visible": true
+    }
+  ],
+  "buttons": [
+    {
+      "ID": "btn_category_sprites",
+      "x": 10,
+      "y": 120,
+      "width": 230,
+      "height": 30,
+      "text": "Sprites",
+      "action": "palette_category",
+      "value": "sprites",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 14,
+      "layer": 11,
+      "visible": true,
+      "color": "50,50,55,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_category_lights",
+      "x": 10,
+      "y": 155,
+      "width": 230,
+      "height": 30,
+      "text": "Lights",
+      "action": "palette_category",
+      "value": "lights",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 14,
+      "layer": 11,
+      "visible": true,
+      "color": "50,50,55,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_category_npcs",
+      "x": 10,
+      "y": 190,
+      "width": 230,
+      "height": 30,
+      "text": "NPCs",
+      "action": "palette_category",
+      "value": "npcs",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 14,
+      "layer": 11,
+      "visible": true,
+      "color": "50,50,55,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_category_activators",
+      "x": 10,
+      "y": 225,
+      "width": 230,
+      "height": 30,
+      "text": "Activators",
+      "action": "palette_category",
+      "value": "activators",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 14,
+      "layer": 11,
+      "visible": true,
+      "color": "50,50,55,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_category_zones",
+      "x": 10,
+      "y": 260,
+      "width": 230,
+      "height": 30,
+      "text": "Zones",
+      "action": "palette_category",
+      "value": "zones",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 14,
+      "layer": 11,
+      "visible": true,
+      "color": "50,50,55,255",
+      "textColor": "220,220,220,255"
+    }
+  ]
+}

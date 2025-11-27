@@ -1,0 +1,110 @@
+{
+  "name": "Editor Toolbar",
+  "UIID": "toolbar",
+  "groupID": "main",
+  "layers": 11,
+  "images": [
+    {
+      "ID": "toolbar_bg",
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 50,
+      "color": "40,40,45,255",
+      "layer": 10,
+      "visible": true
+    }
+  ],
+  "buttons": [
+    {
+      "ID": "btn_new_scene",
+      "x": 10,
+      "y": 7.5,
+      "width": 80,
+      "height": 35,
+      "text": "New",
+      "action": "scene_new",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 16,
+      "layer": 11,
+      "visible": true,
+      "color": "60,60,65,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_load_scene",
+      "x": 100,
+      "y": 7.5,
+      "width": 80,
+      "height": 35,
+      "text": "Load",
+      "action": "scene_load",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 16,
+      "layer": 11,
+      "visible": true,
+      "color": "60,60,65,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_save_scene",
+      "x": 190,
+      "y": 7.5,
+      "width": 80,
+      "height": 35,
+      "text": "Save",
+      "action": "scene_save",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 16,
+      "layer": 11,
+      "visible": true,
+      "color": "60,60,65,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_undo",
+      "x": 290,
+      "y": 7.5,
+      "width": 80,
+      "height": 35,
+      "text": "Undo",
+      "action": "edit_undo",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 16,
+      "layer": 11,
+      "visible": true,
+      "color": "60,60,65,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_redo",
+      "x": 380,
+      "y": 7.5,
+      "width": 80,
+      "height": 35,
+      "text": "Redo",
+      "action": "edit_redo",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 16,
+      "layer": 11,
+      "visible": true,
+      "color": "60,60,65,255",
+      "textColor": "220,220,220,255"
+    },
+    {
+      "ID": "btn_toggle_grid",
+      "x": 480,
+      "y": 7.5,
+      "width": 100,
+      "height": 35,
+      "text": "Grid: OFF",
+      "action": "toggle_grid",
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 16,
+      "layer": 11,
+      "visible": true,
+      "color": "60,60,65,255",
+      "textColor": "220,220,220,255"
+    }
+  ]
+}
