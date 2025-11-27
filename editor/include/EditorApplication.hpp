@@ -65,7 +65,7 @@ private:
     NovaEngine::UIManager m_uiManager;
 
     // Editor subsystems
-    std::unique_ptr<EditorConfig> m_config;
+    std::unique_ptr<EditorConfig> m_editorConfig;
     std::unique_ptr<EditorState> m_state;
     std::unique_ptr<EditorCamera> m_camera;
     std::unique_ptr<EditorUIManager> m_uiManager_editor;

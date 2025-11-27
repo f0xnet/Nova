@@ -1,13 +1,19 @@
-#include "EditorApplication.new.hpp"
+#include "EditorApplication.hpp"
 #include <NovaEngine/Core/Logger.hpp>
 #include <NovaEngine/Backend/BackendManager.hpp>
 
 namespace NovaEditor {
 
 EditorApplication::EditorApplication()
-    : Application("Nova Level Editor", 1920, 1080)
+    : Application()
     , m_currentScene(nullptr)
 {
+    // Configure application
+    m_config.windowTitle = "Nova Level Editor";
+    m_config.windowWidth = 1920;
+    m_config.windowHeight = 1080;
+    m_config.fullscreen = false;
+
     LOG_INFO("EditorApplication created");
 }
 
@@ -19,10 +25,10 @@ bool EditorApplication::onInitialize() {
     LOG_INFO("=== Nova Level Editor - Phase 1 ===");
 
     // Create editor subsystems
-    m_config = std::make_unique<EditorConfig>();
+    m_editorConfig = std::make_unique<EditorConfig>();
     m_state = std::make_unique<EditorState>();
     m_camera = std::make_unique<EditorCamera>();
-    m_uiManager_editor = std::make_unique<EditorUIManager>(m_uiManager, m_state.get(), m_config.get());
+    m_uiManager_editor = std::make_unique<EditorUIManager>(m_uiManager, m_state.get(), m_editorConfig.get());
 
     // Initialize editor
     initializeEditor();
@@ -39,12 +45,12 @@ bool EditorApplication::onInitialize() {
     });
 
     // Apply camera settings from config
-    m_camera->setMovementSpeed(m_config->getCameraMovementSpeed());
-    m_camera->setZoomSpeed(m_config->getCameraZoomSpeed());
-    m_camera->setZoomLimits(m_config->getCameraMinZoom(), m_config->getCameraMaxZoom());
+    m_camera->setMovementSpeed(m_editorConfig->getCameraMovementSpeed());
+    m_camera->setZoomSpeed(m_editorConfig->getCameraZoomSpeed());
+    m_camera->setZoomLimits(m_editorConfig->getCameraMinZoom(), m_editorConfig->getCameraMaxZoom());
 
     // Create a default empty scene
-    m_currentScene = m_sceneManager.createScene("EditorScene");
+    m_currentScene = new NovaEngine::Scene("EditorScene");
 
     printControls();
 
@@ -96,7 +102,7 @@ void EditorApplication::onShutdown() {
 
     // Cleanup scene
     if (m_currentScene) {
-        m_sceneManager.unloadScene(m_currentScene->getID());
+        delete m_currentScene;
         m_currentScene = nullptr;
     }
 
@@ -107,8 +113,8 @@ void EditorApplication::initializeEditor() {
     LOG_INFO("Initializing editor subsystems...");
 
     // Set grid from config
-    m_state->setGridEnabled(m_config->isGridEnabledByDefault());
-    m_state->setGridSize(m_config->getDefaultGridSize());
+    m_state->setGridEnabled(m_editorConfig->isGridEnabledByDefault());
+    m_state->setGridSize(m_editorConfig->getDefaultGridSize());
 
     LOG_INFO("Editor subsystems initialized");
 }
@@ -116,7 +122,6 @@ void EditorApplication::initializeEditor() {
 void EditorApplication::printControls() {
     LOG_INFO("=== Editor Controls ===");
     LOG_INFO("Camera: WASD or Arrow keys to move");
-    LOG_INFO("Camera: Mouse wheel to zoom");
     LOG_INFO("UI: Click buttons to trigger actions (Phase 1: logs only)");
     LOG_INFO("ESC: Exit editor");
 }
@@ -167,10 +172,7 @@ void EditorApplication::handleEditorInput(const NovaEngine::InputEvent& input) {
             handleMouseClick(input);
         }
     }
-    else if (input.type == InputEventType::MouseWheelScrolled) {
-        // Camera zoom
-        m_camera->handleMouseWheel(input.mouseWheel.delta);
-    }
+    // Note: Mouse wheel scrolling not supported in current InputEvent
 }
 
 void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
@@ -178,7 +180,7 @@ void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
 
     // ESC: Exit
     if (input.key.code == KeyCode::Escape) {
-        stop();
+        quit();
     }
 
     // Ctrl+N: New scene
