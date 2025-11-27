@@ -101,7 +101,7 @@ bool EditorUIManager::loadAllLayouts() {
 
 void EditorUIManager::toggleGroup(const std::string& groupID) {
     LOG_INFO("Toggling UI group: {}", groupID);
-    m_uiManager.toggleGroup(groupID);
+    m_uiManager.switchToGroup("editor_main", groupID);
 }
 
 bool EditorUIManager::loadLayout(const std::string& filename) {
