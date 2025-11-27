@@ -79,6 +79,11 @@ private:
      * @brief Load a single UI layout from file
      */
     bool loadLayout(const std::string& filename);
+
+    /**
+     * @brief Toggle visibility of a UI group
+     */
+    void toggleGroup(const std::string& groupID);
 };
 
 } // namespace NovaEditor

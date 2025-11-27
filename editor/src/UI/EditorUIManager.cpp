@@ -46,7 +46,13 @@ void EditorUIManager::handleAction(const std::string& action, const std::string&
     LOG_INFO("[EditorUIManager] Action received: '{}' with value '{}' from component '{}'",
              action, value, componentID);
 
-    // Route the action to the application callback
+    // Handle toggle_group action directly (show/hide UI panels)
+    if (action == "toggle_group") {
+        toggleGroup(value);
+        return;
+    }
+
+    // Route other actions to the application callback
     if (m_actionCallback) {
         m_actionCallback(action, value);
     } else {
@@ -79,23 +85,23 @@ void EditorUIManager::updateToolbarState() {
 }
 
 bool EditorUIManager::loadAllLayouts() {
-    LOG_INFO("Loading all UI layouts...");
+    LOG_INFO("Loading main UI layout...");
 
-    bool success = true;
-
-    // Load all UI panels
-    success &= loadLayout("toolbar.json");
-    success &= loadLayout("entity_palette.json");
-    success &= loadLayout("inspector.json");
-    success &= loadLayout("scene_hierarchy.json");
+    // Load single unified UI JSON with groups
+    bool success = loadLayout("editor_main.json");
 
     if (success) {
-        LOG_INFO("All UI layouts loaded successfully");
+        LOG_INFO("UI layout loaded successfully");
     } else {
-        LOG_ERROR("Some UI layouts failed to load");
+        LOG_ERROR("Failed to load UI layout");
     }
 
     return success;
+}
+
+void EditorUIManager::toggleGroup(const std::string& groupID) {
+    LOG_INFO("Toggling UI group: {}", groupID);
+    m_uiManager.toggleGroup(groupID);
 }
 
 bool EditorUIManager::loadLayout(const std::string& filename) {

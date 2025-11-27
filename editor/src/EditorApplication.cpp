@@ -8,10 +8,10 @@ EditorApplication::EditorApplication()
     : Application()
     , m_currentScene(nullptr)
 {
-    // Configure application
+    // Configure application for 4K windowed borderless
     m_config.windowTitle = "Nova Level Editor";
-    m_config.windowWidth = 1920;
-    m_config.windowHeight = 1080;
+    m_config.windowWidth = 3840;
+    m_config.windowHeight = 2160;
     m_config.fullscreen = false;
 
     LOG_INFO("EditorApplication created");
