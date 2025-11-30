@@ -362,8 +362,11 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
     Vec2i screenPos{input.mouseButton.x, input.mouseButton.y};
     Vec2f worldPos = m_camera->screenToWorld(screenPos);
 
-    LOG_DEBUG("Editor click at screen ({}, {}) -> world ({}, {})",
-              screenPos.x, screenPos.y, worldPos.x, worldPos.y);
+    LOG_INFO("=== MOUSE CLICK ===");
+    LOG_INFO("Screen: ({}, {})", screenPos.x, screenPos.y);
+    LOG_INFO("World: ({}, {})", worldPos.x, worldPos.y);
+    LOG_INFO("Camera pos: ({}, {}), zoom: {}",
+             m_camera->getPosition().x, m_camera->getPosition().y, m_camera->getZoom());
 
     // Handle placement mode
     if (m_isPlacementMode) {
@@ -380,6 +383,8 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
 
             // Iterate through all entities to find one under the mouse
             const auto& entities = m_currentScene->getEntityRegistry().getAllEntities();
+            LOG_INFO("Checking {} entities for selection", entities.size());
+
             for (auto* entity : entities) {
                 if (entity) {
                     auto* transform = entity->getComponent<TransformComponent>();
@@ -399,11 +404,17 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
                     Vec2f scaledSize{spriteSize.x * scale.x, spriteSize.y * scale.y};
                     Vec2f halfSize{scaledSize.x * 0.5f, scaledSize.y * 0.5f};
 
+                    LOG_DEBUG("Entity {}: pos({}, {}), size({}, {}), bounds({}, {})",
+                             entity->getID(), entityPos.x, entityPos.y,
+                             scaledSize.x, scaledSize.y, halfSize.x, halfSize.y);
+
                     // Check if click is within sprite bounds (AABB test)
                     if (worldPos.x >= entityPos.x - halfSize.x &&
                         worldPos.x <= entityPos.x + halfSize.x &&
                         worldPos.y >= entityPos.y - halfSize.y &&
                         worldPos.y <= entityPos.y + halfSize.y) {
+
+                        LOG_INFO("Entity {} is under mouse!", entity->getID());
 
                         // Calculate distance to center for z-ordering
                         float distance = std::sqrt(
@@ -420,9 +431,11 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
             }
 
             if (clickedEntity) {
+                LOG_INFO("Selected entity: {}", clickedEntity->getID());
                 selectEntity(clickedEntity);
                 startDraggingEntity();
             } else {
+                LOG_INFO("No entity under mouse - deselecting");
                 // Clicked on empty space - deselect
                 selectEntity(nullptr);
             }
@@ -957,7 +970,11 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
         return;
     }
 
-    LOG_INFO("Placing {} '{}' at ({}, {})", m_placementEntityType, m_placementEntityId, position.x, position.y);
+    LOG_INFO("=== PLACING ENTITY ===");
+    LOG_INFO("Position requested: ({}, {})", position.x, position.y);
+    LOG_INFO("Camera position: ({}, {})", m_camera->getPosition().x, m_camera->getPosition().y);
+    LOG_INFO("Camera zoom: {}", m_camera->getZoom());
+    LOG_INFO("Placement type: {}, ID: {}", m_placementEntityType, m_placementEntityId);
 
     try {
         // Create entity based on type
