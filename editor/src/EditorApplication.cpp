@@ -856,11 +856,15 @@ void EditorApplication::showEntitySelectionDialog(const std::string& category) {
         if (titleText) {
             auto text = std::dynamic_pointer_cast<NovaEngine::Text>(titleText);
             if (text) {
-                std::string capitalizedCategory = category;
-                if (!capitalizedCategory.empty()) {
-                    capitalizedCategory[0] = std::toupper(capitalizedCategory[0]);
+                try {
+                    std::string capitalizedCategory = category;
+                    if (!capitalizedCategory.empty()) {
+                        capitalizedCategory[0] = std::toupper(capitalizedCategory[0]);
+                    }
+                    text->setString("Select " + capitalizedCategory + " to Place");
+                } catch (const std::exception& e) {
+                    LOG_ERROR("Failed to update entity dialog title: {}", e.what());
                 }
-                text->setString("Select " + capitalizedCategory + " to Place");
             }
         }
 
