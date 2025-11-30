@@ -990,6 +990,7 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
     LOG_INFO("Camera position: ({}, {})", m_camera->getPosition().x, m_camera->getPosition().y);
     LOG_INFO("Camera zoom: {}", m_camera->getZoom());
     LOG_INFO("Placement type: {}, ID: {}", m_placementEntityType, m_placementEntityId);
+    LOG_INFO("Note: Sprites will be centered at cursor position (origin set to center)");
 
     try {
         // Create entity based on type
@@ -1010,7 +1011,8 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
                 transform->scale = Vec2f{scale, scale};
             }
 
-            entity->addComponent(std::move(transform));
+            // Will set origin after we know sprite size
+            Vec2f spriteSize{0.0f, 0.0f};
 
             // Add sprite component
             auto sprite = std::make_unique<SpriteComponent>();
@@ -1030,15 +1032,30 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
                         (*definition)["width"].get<f32>(),
                         (*definition)["height"].get<f32>()
                     };
+                    spriteSize = sprite->size;
                 } else if (definition->contains("size")) {
                     auto& size = (*definition)["size"];
                     sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+                    spriteSize = sprite->size;
+                }
+
+                // Set origin from definition, or default to center
+                if (definition->contains("origin")) {
+                    auto& origin = (*definition)["origin"];
+                    transform->origin = Vec2f{origin[0].get<f32>(), origin[1].get<f32>()};
+                    LOG_INFO("Using origin from definition: ({}, {})", transform->origin.x, transform->origin.y);
+                } else {
+                    // Default to center of sprite for better placement UX
+                    transform->origin = Vec2f{spriteSize.x * 0.5f, spriteSize.y * 0.5f};
+                    LOG_INFO("Using centered origin: ({}, {}) (sprite size: {}, {})",
+                             transform->origin.x, transform->origin.y, spriteSize.x, spriteSize.y);
                 }
             }
 
             // Apply current layer as zOrder (overrides definition)
             sprite->zOrder = m_state->getCurrentLayer();
 
+            entity->addComponent(std::move(transform));
             entity->addComponent(std::move(sprite));
 
             LOG_INFO("Sprite entity created successfully (ID: {})", entity->getID());
@@ -1120,7 +1137,8 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
                 transform->scale = Vec2f{scale, scale};
             }
 
-            entity->addComponent(std::move(transform));
+            // Will set origin after we know sprite size
+            Vec2f spriteSize{0.0f, 0.0f};
 
             // Add tag component for NPC identification
             auto tag = std::make_unique<TagComponent>();
@@ -1140,15 +1158,30 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
                         (*spriteDef)["width"].get<f32>(),
                         (*spriteDef)["height"].get<f32>()
                     };
+                    spriteSize = sprite->size;
                 } else if (spriteDef->contains("size")) {
                     auto& size = (*spriteDef)["size"];
                     sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+                    spriteSize = sprite->size;
+                }
+
+                // Set origin from definition, or default to center
+                if (spriteDef->contains("origin")) {
+                    auto& origin = (*spriteDef)["origin"];
+                    transform->origin = Vec2f{origin[0].get<f32>(), origin[1].get<f32>()};
+                    LOG_INFO("Using origin from definition: ({}, {})", transform->origin.x, transform->origin.y);
+                } else {
+                    // Default to center of sprite for better placement UX
+                    transform->origin = Vec2f{spriteSize.x * 0.5f, spriteSize.y * 0.5f};
+                    LOG_INFO("Using centered origin: ({}, {}) (sprite size: {}, {})",
+                             transform->origin.x, transform->origin.y, spriteSize.x, spriteSize.y);
                 }
             }
 
             // Apply current layer as zOrder (overrides definition)
             sprite->zOrder = m_state->getCurrentLayer();
 
+            entity->addComponent(std::move(transform));
             entity->addComponent(std::move(sprite));
 
             LOG_INFO("NPC entity created successfully (ID: {})", entity->getID());
