@@ -452,27 +452,6 @@
       "isActive": true
     },
     {
-      "ID": "scene_dialog_overlay",
-      "groupID": "scene_dialog",
-      "haveText": false,
-      "text": "",
-      "font": "",
-      "fontSize": 0,
-      "color": "0,0,0",
-      "path": "",
-      "path_hover": "",
-      "path_pressed": "",
-      "x": 0,
-      "y": 0,
-      "width": 3840,
-      "height": 2160,
-      "effect": "none",
-      "action": "none",
-      "value": "",
-      "layer": 18,
-      "isActive": true
-    },
-    {
       "ID": "btn_scene_dialog_cancel",
       "groupID": "scene_dialog",
       "haveText": true,
