@@ -483,10 +483,11 @@ void EditorApplication::showSceneSelectionDialog() {
                 if (i < m_availableScenes.size()) {
                     // Show button with scene name
                     button->setText(m_availableScenes[i]);
+                    button->setVisible(true);
                     button->setActive(true);
                 } else {
-                    // Hide unused button
-                    button->setActive(false);
+                    // Hide unused button completely
+                    button->setVisible(false);
                 }
             }
         }
