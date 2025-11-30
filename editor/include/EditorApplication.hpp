@@ -75,6 +75,9 @@ private:
     void updateDraggingEntity(const NovaEngine::Vec2f& worldPos);
     void stopDraggingEntity();
 
+    // Layers panel
+    void updateLayersPanel();
+
 private:
     // Core systems
     NovaEngine::SceneManager m_sceneManager;

@@ -581,6 +581,17 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
         m_entityDialogPage = 0;
         LOG_INFO("Entity selection dialog closed");
     }
+    else if (action == "set_layer") {
+        // Set the current layer for entity placement
+        try {
+            i32 layer = std::stoi(value);
+            m_state->setCurrentLayer(layer);
+            LOG_INFO("Current layer set to: {}", layer);
+            updateLayersPanel();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse layer value: {}", e.what());
+        }
+    }
     else {
         LOG_WARN("Unknown action: '{}'", action);
     }
@@ -634,6 +645,9 @@ void EditorApplication::loadScene(const std::string& scenePath) {
 
             LOG_INFO("Scene loaded successfully: {} entities",
                      m_currentScene->getEntityRegistry().getEntityCount());
+
+            // Update layers panel to show entities in loaded scene
+            updateLayersPanel();
         } else {
             LOG_ERROR("Scene was loaded but could not be retrieved from SceneManager");
         }
@@ -1007,6 +1021,7 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
 
             LOG_INFO("Sprite entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
+            updateLayersPanel();
         }
         else if (m_placementEntityType == "lights") {
             // Create entity
@@ -1109,6 +1124,7 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
 
             LOG_INFO("NPC entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
+            updateLayersPanel();
         }
 
     } catch (const std::exception& e) {
@@ -1178,6 +1194,67 @@ void EditorApplication::stopDraggingEntity() {
         m_draggedEntity = nullptr;
         m_dragOffset = NovaEngine::Vec2f{0.0f, 0.0f};
     }
+}
+
+void EditorApplication::updateLayersPanel() {
+    using namespace NovaEngine;
+
+    if (!m_currentScene) {
+        return;
+    }
+
+    // Count entities per layer
+    std::map<i32, int> layerCounts;
+
+    const auto& entities = m_currentScene->getEntityRegistry().getAllEntities();
+    for (auto* entity : entities) {
+        if (entity) {
+            auto* sprite = entity->getComponent<SpriteComponent>();
+            if (sprite) {
+                layerCounts[sprite->zOrder]++;
+            }
+        }
+    }
+
+    // Update layer button texts
+    struct LayerButton {
+        std::string buttonID;
+        i32 layer;
+    };
+
+    std::vector<LayerButton> layerButtons = {
+        {"btn_layer_m10", -10},
+        {"btn_layer_m5", -5},
+        {"btn_layer_m1", -1},
+        {"btn_layer_0", 0},
+        {"btn_layer_1", 1},
+        {"btn_layer_2", 2},
+        {"btn_layer_3", 3},
+        {"btn_layer_5", 5},
+        {"btn_layer_10", 10}
+    };
+
+    i32 currentLayer = m_state->getCurrentLayer();
+
+    for (const auto& lb : layerButtons) {
+        auto btnComponent = m_uiManager.getComponent(lb.buttonID);
+        if (btnComponent) {
+            auto button = std::dynamic_pointer_cast<Button>(btnComponent);
+            if (button) {
+                int count = layerCounts[lb.layer];
+                std::string text = "Layer " + std::to_string(lb.layer) + ": " + std::to_string(count);
+
+                // Add indicator for current layer
+                if (lb.layer == currentLayer) {
+                    text = "> " + text + " <";
+                }
+
+                button->setText(text);
+            }
+        }
+    }
+
+    LOG_DEBUG("Layers panel updated");
 }
 
 } // namespace NovaEditor
