@@ -313,7 +313,7 @@ void EditorApplication::renderSelectionBox() {
     rectData.outlineThickness = 2.0f / m_camera->getZoom(); // Keep constant thickness regardless of zoom
     rectData.rotation = transform->rotation;
 
-    GRAPHICS().drawRectangle(rectData);
+    GRAPHICS().drawRect(rectData);
 
     // Also draw small handles at the corners for better visibility
     f32 handleSize = 8.0f / m_camera->getZoom();
@@ -326,7 +326,7 @@ void EditorApplication::renderSelectionBox() {
     handleTL.fillColor = handleColor;
     handleTL.outlineColor = Color{0, 0, 0, 255};
     handleTL.outlineThickness = 1.0f / m_camera->getZoom();
-    GRAPHICS().drawRectangle(handleTL);
+    GRAPHICS().drawRect(handleTL);
 
     // Top-right handle
     RectData handleTR;
@@ -335,7 +335,7 @@ void EditorApplication::renderSelectionBox() {
     handleTR.fillColor = handleColor;
     handleTR.outlineColor = Color{0, 0, 0, 255};
     handleTR.outlineThickness = 1.0f / m_camera->getZoom();
-    GRAPHICS().drawRectangle(handleTR);
+    GRAPHICS().drawRect(handleTR);
 
     // Bottom-left handle
     RectData handleBL;
@@ -344,7 +344,7 @@ void EditorApplication::renderSelectionBox() {
     handleBL.fillColor = handleColor;
     handleBL.outlineColor = Color{0, 0, 0, 255};
     handleBL.outlineThickness = 1.0f / m_camera->getZoom();
-    GRAPHICS().drawRectangle(handleBL);
+    GRAPHICS().drawRect(handleBL);
 
     // Bottom-right handle
     RectData handleBR;
@@ -353,7 +353,7 @@ void EditorApplication::renderSelectionBox() {
     handleBR.fillColor = handleColor;
     handleBR.outlineColor = Color{0, 0, 0, 255};
     handleBR.outlineThickness = 1.0f / m_camera->getZoom();
-    GRAPHICS().drawRectangle(handleBR);
+    GRAPHICS().drawRect(handleBR);
 }
 
 void EditorApplication::renderUI() {
