@@ -341,6 +341,29 @@ void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
         m_state->setGridEnabled(!m_state->isGridEnabled());
         LOG_INFO("Grid: {}", m_state->isGridEnabled() ? "ON" : "OFF");
     }
+
+    // Layer shortcuts (number keys 0-9 for layers 0-9)
+    if (input.key.code >= KeyCode::Num0 && input.key.code <= KeyCode::Num9) {
+        int layer = static_cast<int>(input.key.code) - static_cast<int>(KeyCode::Num0);
+
+        // If Shift is held, use negative layer
+        if (input.key.shift) {
+            layer = -layer;
+        }
+
+        m_state->setCurrentLayer(layer);
+        LOG_INFO("Current layer set to: {}", layer);
+    }
+
+    // Additional layer shortcuts
+    if (input.key.code == KeyCode::Minus || input.key.code == KeyCode::KpMinus) {
+        m_state->setCurrentLayer(m_state->getCurrentLayer() - 1);
+        LOG_INFO("Current layer: {}", m_state->getCurrentLayer());
+    }
+    if (input.key.code == KeyCode::Equal || input.key.code == KeyCode::KpPlus) {
+        m_state->setCurrentLayer(m_state->getCurrentLayer() + 1);
+        LOG_INFO("Current layer: {}", m_state->getCurrentLayer());
+    }
 }
 
 void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
@@ -373,16 +396,35 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
                     if (!transform) continue;
 
                     Vec2f entityPos = transform->position;
-                    float distance = std::sqrt(
-                        (worldPos.x - entityPos.x) * (worldPos.x - entityPos.x) +
-                        (worldPos.y - entityPos.y) * (worldPos.y - entityPos.y)
-                    );
+                    Vec2f scale = transform->scale;
 
-                    // Simple radius check (can be improved with actual sprite bounds)
-                    float clickRadius = 50.0f; // Adjust based on sprite size
-                    if (distance < clickRadius && distance < closestDistance) {
-                        clickedEntity = entity;
-                        closestDistance = distance;
+                    // Get sprite size if available for accurate hit detection
+                    auto* sprite = entity->getComponent<SpriteComponent>();
+                    Vec2f spriteSize{100.0f, 100.0f}; // Default size
+                    if (sprite && sprite->size.x > 0 && sprite->size.y > 0) {
+                        spriteSize = sprite->size;
+                    }
+
+                    // Calculate actual bounds with scale applied
+                    Vec2f scaledSize{spriteSize.x * scale.x, spriteSize.y * scale.y};
+                    Vec2f halfSize{scaledSize.x * 0.5f, scaledSize.y * 0.5f};
+
+                    // Check if click is within sprite bounds (AABB test)
+                    if (worldPos.x >= entityPos.x - halfSize.x &&
+                        worldPos.x <= entityPos.x + halfSize.x &&
+                        worldPos.y >= entityPos.y - halfSize.y &&
+                        worldPos.y <= entityPos.y + halfSize.y) {
+
+                        // Calculate distance to center for z-ordering
+                        float distance = std::sqrt(
+                            (worldPos.x - entityPos.x) * (worldPos.x - entityPos.x) +
+                            (worldPos.y - entityPos.y) * (worldPos.y - entityPos.y)
+                        );
+
+                        if (distance < closestDistance) {
+                            clickedEntity = entity;
+                            closestDistance = distance;
+                        }
                     }
                 }
             }
@@ -919,26 +961,31 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
             // Create entity
             Entity* entity = m_currentScene->getEntityRegistry().createEntity();
 
+            // Initialize sprite from definition first to get all properties
+            const auto* definition = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
+
             // Add transform component
             auto transform = std::make_unique<TransformComponent>();
             transform->position = position;
+
+            // Apply scale from definition if present
+            if (definition && definition->contains("scale")) {
+                float scale = (*definition)["scale"].get<f32>();
+                transform->scale = Vec2f{scale, scale};
+            }
+
             entity->addComponent(std::move(transform));
 
             // Add sprite component
             auto sprite = std::make_unique<SpriteComponent>();
 
-            // Initialize sprite from definition
-            const auto* definition = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
+            // Initialize sprite properties from definition
             if (definition) {
                 // Load texture and set properties from definition
                 if (definition->contains("texture")) {
                     std::string texturePath = (*definition)["texture"].get<std::string>();
                     sprite->textureHandle = RESOURCES().loadTexture(texturePath);
                     sprite->textureID = m_placementEntityId;
-                }
-
-                if (definition->contains("zOrder")) {
-                    sprite->zOrder = (*definition)["zOrder"].get<i32>();
                 }
 
                 // Set size from definition
@@ -952,6 +999,9 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
                     sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
                 }
             }
+
+            // Apply current layer as zOrder (overrides definition)
+            sprite->zOrder = m_state->getCurrentLayer();
 
             entity->addComponent(std::move(sprite));
 
@@ -1013,9 +1063,19 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
             // Create entity
             Entity* entity = m_currentScene->getEntityRegistry().createEntity();
 
+            // Load sprite definition to get all properties including scale
+            const auto* spriteDef = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
+
             // Add transform component
             auto transform = std::make_unique<TransformComponent>();
             transform->position = position;
+
+            // Apply scale from definition if present
+            if (spriteDef && spriteDef->contains("scale")) {
+                float scale = (*spriteDef)["scale"].get<f32>();
+                transform->scale = Vec2f{scale, scale};
+            }
+
             entity->addComponent(std::move(transform));
 
             // Add tag component for NPC identification
@@ -1024,17 +1084,12 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
             entity->addComponent(std::move(tag));
 
             // Add sprite component for visual representation
-            // Try to load sprite with same ID as NPC
             auto sprite = std::make_unique<SpriteComponent>();
-            const auto* spriteDef = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
             if (spriteDef) {
                 if (spriteDef->contains("texture")) {
                     std::string texturePath = (*spriteDef)["texture"].get<std::string>();
                     sprite->textureHandle = RESOURCES().loadTexture(texturePath);
                     sprite->textureID = m_placementEntityId;
-                }
-                if (spriteDef->contains("zOrder")) {
-                    sprite->zOrder = (*spriteDef)["zOrder"].get<i32>();
                 }
                 if (spriteDef->contains("width") && spriteDef->contains("height")) {
                     sprite->size = Vec2f{
@@ -1046,6 +1101,9 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
                     sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
                 }
             }
+
+            // Apply current layer as zOrder (overrides definition)
+            sprite->zOrder = m_state->getCurrentLayer();
 
             entity->addComponent(std::move(sprite));
 
@@ -1118,6 +1176,7 @@ void EditorApplication::stopDraggingEntity() {
         LOG_INFO("Stopped dragging entity");
         m_isDragging = false;
         m_draggedEntity = nullptr;
+        m_dragOffset = NovaEngine::Vec2f{0.0f, 0.0f};
     }
 }
 

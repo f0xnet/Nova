@@ -10,6 +10,7 @@ EditorState::EditorState()
     , m_sceneModified(false)
     , m_gridEnabled(true)
     , m_gridSize(32.0f)
+    , m_currentLayer(0)
 {
     LOG_INFO("EditorState initialized");
 }

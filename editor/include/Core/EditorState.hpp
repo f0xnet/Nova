@@ -65,6 +65,10 @@ public:
     NovaEngine::f32 getGridSize() const { return m_gridSize; }
     void setGridSize(NovaEngine::f32 size) { m_gridSize = size; }
 
+    // Layer (for z-ordering)
+    NovaEngine::i32 getCurrentLayer() const { return m_currentLayer; }
+    void setCurrentLayer(NovaEngine::i32 layer) { m_currentLayer = layer; }
+
 private:
     // Selection
     NovaEngine::Entity* m_selectedEntity;
@@ -83,6 +87,9 @@ private:
     // Grid
     bool m_gridEnabled;
     NovaEngine::f32 m_gridSize;
+
+    // Layer
+    NovaEngine::i32 m_currentLayer;
 };
 
 } // namespace NovaEditor
