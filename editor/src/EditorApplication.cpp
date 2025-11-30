@@ -2,9 +2,13 @@
 #include <NovaEngine/Core/Logger.hpp>
 #include <NovaEngine/Backend/BackendManager.hpp>
 #include <NovaEngine/UI/Components/Button.hpp>
+#include <nlohmann/json.hpp>
 #include <filesystem>
 #include <algorithm>
 #include <chrono>
+#include <fstream>
+#include <limits>
+#include <cmath>
 
 namespace NovaEditor {
 
@@ -287,15 +291,33 @@ void EditorApplication::handleEditorInput(const NovaEngine::InputEvent& input) {
             handleMouseClick(input);
         }
     }
+    else if (input.type == InputEventType::MouseMoved) {
+        // Handle dragging
+        if (m_isDragging) {
+            Vec2i screenPos{input.mouseMove.x, input.mouseMove.y};
+            Vec2f worldPos = m_camera->screenToWorld(screenPos);
+            updateDraggingEntity(worldPos);
+        }
+    }
+    else if (input.type == InputEventType::MouseButtonReleased) {
+        // Stop dragging
+        if (input.mouseButton.button == MouseButton::Left) {
+            stopDraggingEntity();
+        }
+    }
     // Note: Mouse wheel scrolling not supported in current InputEvent
 }
 
 void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
-    // ESC: Exit
+    // ESC: Exit placement mode or quit
     if (input.key.code == KeyCode::Escape) {
-        quit();
+        if (m_isPlacementMode) {
+            exitPlacementMode();
+        } else {
+            quit();
+        }
     }
 
     // Ctrl+N: New scene
@@ -329,8 +351,50 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
     LOG_DEBUG("Editor click at screen ({}, {}) -> world ({}, {})",
               screenPos.x, screenPos.y, worldPos.x, worldPos.y);
 
-    // Phase 1: Just log clicks
-    // Future phases will handle entity selection here
+    // Handle placement mode
+    if (m_isPlacementMode) {
+        placeEntity(worldPos);
+        return;
+    }
+
+    // Handle entity selection and dragging
+    if (input.mouseButton.button == MouseButton::Left) {
+        if (m_currentScene) {
+            // Check if clicking on an entity
+            Entity* clickedEntity = nullptr;
+            float closestDistance = std::numeric_limits<float>::max();
+
+            // Iterate through all entities to find one under the mouse
+            const auto& entities = m_currentScene->getEntityRegistry().getAllEntities();
+            for (auto* entity : entities) {
+                if (entity) {
+                    auto* transform = entity->getComponent<TransformComponent>();
+                    if (!transform) continue;
+
+                    Vec2f entityPos = transform->position;
+                    float distance = std::sqrt(
+                        (worldPos.x - entityPos.x) * (worldPos.x - entityPos.x) +
+                        (worldPos.y - entityPos.y) * (worldPos.y - entityPos.y)
+                    );
+
+                    // Simple radius check (can be improved with actual sprite bounds)
+                    float clickRadius = 50.0f; // Adjust based on sprite size
+                    if (distance < clickRadius && distance < closestDistance) {
+                        clickedEntity = entity;
+                        closestDistance = distance;
+                    }
+                }
+            }
+
+            if (clickedEntity) {
+                selectEntity(clickedEntity);
+                startDraggingEntity();
+            } else {
+                // Clicked on empty space - deselect
+                selectEntity(nullptr);
+            }
+        }
+    }
 }
 
 void EditorApplication::onUIAction(const std::string& action, const std::string& value) {
@@ -370,6 +434,8 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
     }
     else if (action == "palette_category") {
         m_uiManager_editor->updateEntityPalette(value);
+        // Show entity selection dialog
+        showEntitySelectionDialog(value);
     }
     else if (action == "load_scene_by_index") {
         // Load scene by index from available scenes list
@@ -603,6 +669,240 @@ void EditorApplication::showSceneSelectionDialog() {
                  m_sceneDialogPage + 1, totalPages, m_availableScenes.size());
     } catch (const std::exception& e) {
         LOG_ERROR("Exception in showSceneSelectionDialog: {}", e.what());
+    }
+}
+
+// ===== ENTITY MANAGEMENT =====
+
+std::vector<std::string> EditorApplication::getAvailableEntities(const std::string& category) const {
+    using json = nlohmann::json;
+    std::vector<std::string> entities;
+
+    std::string filePath;
+    std::string jsonKey;
+
+    // Map category to file and JSON key
+    if (category == "sprites") {
+        filePath = m_editorConfig->getDefinitionsPath() + "/Sprites.json";
+        jsonKey = "sprites";
+    } else if (category == "lights") {
+        filePath = m_editorConfig->getDefinitionsPath() + "/Lights.json";
+        jsonKey = "lights";
+    } else if (category == "npcs") {
+        filePath = m_editorConfig->getDefinitionsPath() + "/NPCs.json";
+        jsonKey = "npcs";
+    } else {
+        LOG_WARN("Unknown entity category: {}", category);
+        return entities;
+    }
+
+    try {
+        std::ifstream file(filePath);
+        if (!file.is_open()) {
+            LOG_WARN("Definition file not found: {}", filePath);
+            return entities;
+        }
+
+        json data = json::parse(file);
+        if (data.contains(jsonKey) && data[jsonKey].is_array()) {
+            for (const auto& entity : data[jsonKey]) {
+                if (entity.contains("id") && entity["id"].is_string()) {
+                    entities.push_back(entity["id"].get<std::string>());
+                }
+            }
+        }
+
+        file.close();
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error reading definitions from {}: {}", filePath, e.what());
+    }
+
+    std::sort(entities.begin(), entities.end());
+    LOG_INFO("Found {} {}(s)", entities.size(), category);
+    return entities;
+}
+
+void EditorApplication::showEntitySelectionDialog(const std::string& category) {
+    using namespace NovaEngine;
+
+    LOG_INFO("Opening entity selection dialog for category: {}", category);
+    m_currentEntityCategory = category;
+
+    try {
+        // Get available entities (only once when opening dialog)
+        if (m_availableEntities.empty()) {
+            LOG_INFO("Scanning for available entities...");
+            m_availableEntities = getAvailableEntities(category);
+            m_entityDialogPage = 0;
+        }
+
+        if (m_availableEntities.empty()) {
+            LOG_WARN("No {} found", category);
+            return;
+        }
+
+        // TODO: Show entity dialog UI (for now, auto-select first entity for testing)
+        LOG_INFO("=== Available {} ===", category);
+        for (size_t i = 0; i < m_availableEntities.size(); ++i) {
+            LOG_INFO("  [{}] {}", i, m_availableEntities[i]);
+        }
+
+        // For now, automatically enter placement mode with first entity
+        if (!m_availableEntities.empty()) {
+            enterPlacementMode(category, m_availableEntities[0]);
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception in showEntitySelectionDialog: {}", e.what());
+    }
+}
+
+void EditorApplication::enterPlacementMode(const std::string& entityType, const std::string& entityId) {
+    LOG_INFO("Entering placement mode: {} - {}", entityType, entityId);
+
+    m_placementEntityType = entityType;
+    m_placementEntityId = entityId;
+    m_isPlacementMode = true;
+
+    // Update editor state
+    m_state->setMode(EditorState::Mode::Place);
+    m_state->setPlacementType(entityType + ":" + entityId);
+
+    LOG_INFO("Placement mode active. Click to place entity.");
+}
+
+void EditorApplication::exitPlacementMode() {
+    if (m_isPlacementMode) {
+        LOG_INFO("Exiting placement mode");
+        m_isPlacementMode = false;
+        m_placementEntityType.clear();
+        m_placementEntityId.clear();
+        m_state->setMode(EditorState::Mode::Select);
+        m_state->setPlacementType("");
+    }
+}
+
+void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
+    using namespace NovaEngine;
+
+    if (!m_isPlacementMode || !m_currentScene) {
+        LOG_WARN("Cannot place entity: not in placement mode or no scene loaded");
+        return;
+    }
+
+    LOG_INFO("Placing {} '{}' at ({}, {})", m_placementEntityType, m_placementEntityId, position.x, position.y);
+
+    try {
+        // Create entity based on type
+        if (m_placementEntityType == "sprites") {
+            // Create entity
+            Entity* entity = m_currentScene->getEntityRegistry().createEntity();
+
+            // Add transform component
+            auto transform = std::make_unique<TransformComponent>();
+            transform->position = position;
+            entity->addComponent(std::move(transform));
+
+            // Add sprite component
+            auto sprite = std::make_unique<SpriteComponent>();
+
+            // Initialize sprite from definition
+            const auto* definition = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
+            if (definition) {
+                // Load texture and set properties from definition
+                if (definition->contains("texture")) {
+                    std::string texturePath = (*definition)["texture"].get<std::string>();
+                    sprite->textureHandle = RESOURCES().loadTexture(texturePath);
+                    sprite->textureID = m_placementEntityId;
+                }
+
+                if (definition->contains("zOrder")) {
+                    sprite->zOrder = (*definition)["zOrder"].get<i32>();
+                }
+
+                // Set size from definition
+                if (definition->contains("width") && definition->contains("height")) {
+                    sprite->size = Vec2f{
+                        (*definition)["width"].get<f32>(),
+                        (*definition)["height"].get<f32>()
+                    };
+                } else if (definition->contains("size")) {
+                    auto& size = (*definition)["size"];
+                    sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+                }
+            }
+
+            entity->addComponent(std::move(sprite));
+
+            LOG_INFO("Sprite entity created successfully (ID: {})", entity->getID());
+            m_state->setSceneModified(true);
+        }
+        // TODO: Add support for lights, NPCs, etc.
+
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception while placing entity: {}", e.what());
+    }
+}
+
+void EditorApplication::selectEntity(NovaEngine::Entity* entity) {
+    if (entity) {
+        LOG_INFO("Entity selected: ID {}", entity->getID());
+        m_state->setSelectedEntity(entity);
+    } else {
+        LOG_INFO("Entity deselected");
+        m_state->clearSelection();
+    }
+}
+
+void EditorApplication::startDraggingEntity() {
+    using namespace NovaEngine;
+
+    if (!m_state->hasSelection() || !m_currentScene) {
+        return;
+    }
+
+    auto* entity = m_state->getSelectedEntity();
+    if (entity) {
+        auto* transform = entity->getComponent<TransformComponent>();
+        if (!transform) return;
+
+        m_draggedEntity = entity;
+        m_isDragging = true;
+
+        // Calculate offset between mouse and entity position
+        // Note: We get the world position from the last mouse event
+        // For now, set offset to zero - it will be calculated on first move
+        m_dragOffset = Vec2f{0.0f, 0.0f};
+
+        LOG_INFO("Started dragging entity ID {}", entity->getID());
+    }
+}
+
+void EditorApplication::updateDraggingEntity(const NovaEngine::Vec2f& worldPos) {
+    using namespace NovaEngine;
+
+    if (m_isDragging && m_draggedEntity) {
+        auto* transform = m_draggedEntity->getComponent<TransformComponent>();
+        if (!transform) {
+            stopDraggingEntity();
+            return;
+        }
+
+        // On first update, calculate offset
+        if (m_dragOffset.x == 0.0f && m_dragOffset.y == 0.0f) {
+            m_dragOffset = transform->position - worldPos;
+        }
+
+        Vec2f newPos = worldPos + m_dragOffset;
+        transform->position = newPos;
+        m_state->setSceneModified(true);
+    }
+}
+
+void EditorApplication::stopDraggingEntity() {
+    if (m_isDragging) {
+        LOG_INFO("Stopped dragging entity");
+        m_isDragging = false;
+        m_draggedEntity = nullptr;
     }
 }
 
