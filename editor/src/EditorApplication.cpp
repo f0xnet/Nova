@@ -440,10 +440,10 @@ void EditorApplication::loadScene(const std::string& scenePath) {
 
     std::string sceneName = "LoadedScene";
 
-    // Unload current scene if exists
+    // Unload previous scene from SceneManager if it exists
     if (m_currentScene) {
-        LOG_INFO("Unloading current scene...");
-        delete m_currentScene;
+        LOG_INFO("Unloading previous scene from SceneManager...");
+        m_sceneManager.unloadScene(sceneName);
         m_currentScene = nullptr;
     }
 
