@@ -7,6 +7,7 @@
 #include "Core/EditorConfig.hpp"
 #include <functional>
 #include <string>
+#include <unordered_map>
 
 namespace NovaEditor {
 
@@ -64,6 +65,9 @@ private:
     EditorConfig* m_editorConfig;
 
     ActionCallback m_actionCallback;
+
+    // Track group visibility states
+    std::unordered_map<std::string, bool> m_groupVisibility;
 
     /**
      * @brief Internal handler that receives all UI actions

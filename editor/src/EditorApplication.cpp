@@ -30,6 +30,11 @@ bool EditorApplication::onInitialize() {
     m_camera = std::make_unique<EditorCamera>();
     m_uiManager_editor = std::make_unique<EditorUIManager>(m_uiManager, m_state.get(), m_editorConfig.get());
 
+    // Initialize SceneManager with entity definitions
+    if (!m_sceneManager.initialize("data/definitions", "data/scenegraph.json")) {
+        LOG_WARN("Failed to initialize SceneManager - scenes may not load properly");
+    }
+
     // Initialize editor
     initializeEditor();
 
@@ -262,8 +267,54 @@ void EditorApplication::newScene() {
 void EditorApplication::loadScene() {
     LOG_INFO("Load scene requested");
 
-    // Phase 1: Just log
-    // Future: Show file dialog, load scene from JSON
+    // TODO: Show file dialog to select scene
+    // For now, we'll try to load a test scene
+    std::string scenePath = "data/scenes/test_scene.json";
+    std::string sceneName = "LoadedScene";
+
+    LOG_INFO("Attempting to load scene from: {}", scenePath);
+
+    // Unload current scene if exists
+    if (m_currentScene) {
+        LOG_INFO("Unloading current scene...");
+        delete m_currentScene;
+        m_currentScene = nullptr;
+    }
+
+    // Load scene using SceneManager
+    if (m_sceneManager.loadScene(scenePath, sceneName)) {
+        // Get the loaded scene
+        m_currentScene = m_sceneManager.getScene(sceneName);
+
+        if (m_currentScene) {
+            // Set as active scene for rendering
+            m_sceneManager.setActiveScene(sceneName);
+
+            // Update editor state
+            m_state->setCurrentScenePath(scenePath);
+            m_state->setSceneModified(false);
+
+            // Center camera on scene (0,0 for now)
+            m_camera->focusOn(NovaEngine::Vec2f{0.0f, 0.0f});
+            m_camera->setZoom(1.0f);
+
+            // Refresh UI
+            m_uiManager_editor->refreshSceneHierarchy();
+
+            LOG_INFO("Scene loaded successfully: {} entities",
+                     m_currentScene->getEntityRegistry().getEntityCount());
+        } else {
+            LOG_ERROR("Scene was loaded but could not be retrieved from SceneManager");
+        }
+    } else {
+        LOG_ERROR("Failed to load scene from: {}", scenePath);
+        LOG_INFO("Creating empty scene instead...");
+
+        // Create empty scene as fallback
+        m_currentScene = new NovaEngine::Scene("EditorScene");
+        m_state->setCurrentScenePath("");
+        m_state->setSceneModified(false);
+    }
 }
 
 void EditorApplication::saveScene() {

@@ -91,6 +91,12 @@ bool EditorUIManager::loadAllLayouts() {
     bool success = loadLayout("editor_main.json");
 
     if (success) {
+        // Initialize group visibility (all visible by default)
+        m_groupVisibility["toolbar"] = true;
+        m_groupVisibility["palette"] = true;
+        m_groupVisibility["inspector"] = true;
+        m_groupVisibility["hierarchy"] = true;
+
         LOG_INFO("UI layout loaded successfully");
     } else {
         LOG_ERROR("Failed to load UI layout");
@@ -100,8 +106,14 @@ bool EditorUIManager::loadAllLayouts() {
 }
 
 void EditorUIManager::toggleGroup(const std::string& groupID) {
-    LOG_INFO("Toggling UI group: {}", groupID);
-    m_uiManager.switchToGroup("editor_main", groupID);
+    // Toggle the visibility state
+    bool currentState = m_groupVisibility[groupID];
+    bool newState = !currentState;
+
+    m_groupVisibility[groupID] = newState;
+    m_uiManager.setGroupActive(groupID, newState);
+
+    LOG_INFO("Toggled UI group '{}': {}", groupID, newState ? "VISIBLE" : "HIDDEN");
 }
 
 bool EditorUIManager::loadLayout(const std::string& filename) {
