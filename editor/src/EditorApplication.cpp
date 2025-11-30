@@ -12,6 +12,10 @@ EditorApplication::EditorApplication()
     : Application()
     , m_currentScene(nullptr)
     , m_sceneDialogPage(0)
+    , m_entityDialogPage(0)
+    , m_isPlacementMode(false)
+    , m_draggedEntity(nullptr)
+    , m_isDragging(false)
 {
     // Configure application for 4K windowed borderless
     m_config.windowTitle = "Nova Level Editor";

@@ -64,6 +64,17 @@ private:
     std::vector<std::string> getAvailableScenes() const;
     void showSceneSelectionDialog();
 
+    // Entity management
+    std::vector<std::string> getAvailableEntities(const std::string& category) const;
+    void showEntitySelectionDialog(const std::string& category);
+    void enterPlacementMode(const std::string& entityType, const std::string& entityId);
+    void exitPlacementMode();
+    void placeEntity(const NovaEngine::Vec2f& position);
+    void selectEntity(NovaEngine::Entity* entity);
+    void startDraggingEntity();
+    void updateDraggingEntity(const NovaEngine::Vec2f& worldPos);
+    void stopDraggingEntity();
+
 private:
     // Core systems
     NovaEngine::SceneManager m_sceneManager;
@@ -82,6 +93,19 @@ private:
     std::vector<std::string> m_availableScenes;
     size_t m_sceneDialogPage;
     static constexpr size_t SCENES_PER_PAGE = 10;
+
+    // Entity selection and placement
+    std::vector<std::string> m_availableEntities;
+    size_t m_entityDialogPage;
+    std::string m_currentEntityCategory;
+    std::string m_placementEntityType;
+    std::string m_placementEntityId;
+    bool m_isPlacementMode;
+
+    // Entity dragging
+    NovaEngine::Entity* m_draggedEntity;
+    NovaEngine::Vec2f m_dragOffset;
+    bool m_isDragging;
 };
 
 } // namespace NovaEditor
