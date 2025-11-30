@@ -107,7 +107,7 @@
       "height": 700,
       "color": "255,255,255",
       "layer": 10,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "layer_entities_bg",
@@ -119,7 +119,7 @@
       "height": 700,
       "color": "200,200,200",
       "layer": 10,
-      "isActive": true
+      "isActive": false
     }
   ],
   "text": [
@@ -229,7 +229,7 @@
       "fontSize": 32,
       "color": "50,50,50",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "layer_entities_title",
@@ -241,7 +241,7 @@
       "fontSize": 24,
       "color": "50,50,50",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     }
   ],
   "buttons": [
@@ -1104,7 +1104,7 @@
       "action": "set_layer",
       "value": "-10",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_m5",
@@ -1125,7 +1125,7 @@
       "action": "set_layer",
       "value": "-5",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_m1",
@@ -1146,7 +1146,7 @@
       "action": "set_layer",
       "value": "-1",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_0",
@@ -1167,7 +1167,7 @@
       "action": "set_layer",
       "value": "0",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_1",
@@ -1188,7 +1188,7 @@
       "action": "set_layer",
       "value": "1",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_2",
@@ -1209,7 +1209,7 @@
       "action": "set_layer",
       "value": "2",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_3",
@@ -1230,7 +1230,7 @@
       "action": "set_layer",
       "value": "3",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_5",
@@ -1251,7 +1251,7 @@
       "action": "set_layer",
       "value": "5",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_layer_10",
@@ -1272,7 +1272,7 @@
       "action": "set_layer",
       "value": "10",
       "layer": 11,
-      "isActive": true
+      "isActive": false
     }
   ]
 }
