@@ -354,16 +354,6 @@ void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
         m_state->setCurrentLayer(layer);
         LOG_INFO("Current layer set to: {}", layer);
     }
-
-    // Additional layer shortcuts
-    if (input.key.code == KeyCode::Minus || input.key.code == KeyCode::KpMinus) {
-        m_state->setCurrentLayer(m_state->getCurrentLayer() - 1);
-        LOG_INFO("Current layer: {}", m_state->getCurrentLayer());
-    }
-    if (input.key.code == KeyCode::Equal || input.key.code == KeyCode::KpPlus) {
-        m_state->setCurrentLayer(m_state->getCurrentLayer() + 1);
-        LOG_INFO("Current layer: {}", m_state->getCurrentLayer());
-    }
 }
 
 void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
