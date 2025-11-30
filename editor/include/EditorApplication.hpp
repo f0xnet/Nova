@@ -80,6 +80,8 @@ private:
 
     // Scene selection dialog
     std::vector<std::string> m_availableScenes;
+    size_t m_sceneDialogPage;
+    static constexpr size_t SCENES_PER_PAGE = 10;
 };
 
 } // namespace NovaEditor

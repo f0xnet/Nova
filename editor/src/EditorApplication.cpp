@@ -10,6 +10,7 @@ namespace NovaEditor {
 EditorApplication::EditorApplication()
     : Application()
     , m_currentScene(nullptr)
+    , m_sceneDialogPage(0)
 {
     // Configure application for 4K windowed borderless
     m_config.windowTitle = "Nova Level Editor";
@@ -333,25 +334,49 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
         // Load scene by index from available scenes list
         try {
             size_t index = std::stoul(value);
-            if (index < m_availableScenes.size()) {
-                std::string scenePath = m_editorConfig->getScenesPath() + "/" + m_availableScenes[index];
-                LOG_INFO("Loading scene: {}", m_availableScenes[index]);
+            // Calculate actual scene index based on current page
+            size_t actualIndex = (m_sceneDialogPage * SCENES_PER_PAGE) + index;
 
-                // Close dialog
+            if (actualIndex < m_availableScenes.size()) {
+                std::string scenePath = m_editorConfig->getScenesPath() + "/" + m_availableScenes[actualIndex];
+                LOG_INFO("Loading scene: {}", m_availableScenes[actualIndex]);
+
+                // Close dialog and clear state
                 m_uiManager.setGroupActive("scene_dialog", false);
+                m_availableScenes.clear();
+                m_sceneDialogPage = 0;
 
                 // Load the scene
                 loadScene(scenePath);
             } else {
-                LOG_ERROR("Invalid scene index: {}", index);
+                LOG_ERROR("Invalid scene index: {}", actualIndex);
             }
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to parse scene index: {}", e.what());
         }
     }
+    else if (action == "scene_next_page") {
+        // Go to next page of scenes
+        size_t totalPages = (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE;
+        if (m_sceneDialogPage < totalPages - 1) {
+            m_sceneDialogPage++;
+            showSceneSelectionDialog();
+            LOG_INFO("Scene dialog: next page {}", m_sceneDialogPage + 1);
+        }
+    }
+    else if (action == "scene_prev_page") {
+        // Go to previous page of scenes
+        if (m_sceneDialogPage > 0) {
+            m_sceneDialogPage--;
+            showSceneSelectionDialog();
+            LOG_INFO("Scene dialog: previous page {}", m_sceneDialogPage + 1);
+        }
+    }
     else if (action == "close_scene_dialog") {
-        // Close the scene selection dialog
+        // Close the scene selection dialog and clear state
         m_uiManager.setGroupActive("scene_dialog", false);
+        m_availableScenes.clear();
+        m_sceneDialogPage = 0;
         LOG_INFO("Scene selection dialog closed");
     }
     else {
@@ -459,32 +484,40 @@ std::vector<std::string> EditorApplication::getAvailableScenes() const {
 void EditorApplication::showSceneSelectionDialog() {
     using namespace NovaEngine;
 
-    // Get available scenes
-    m_availableScenes = getAvailableScenes();
+    // Get available scenes (only once when opening dialog)
+    if (m_availableScenes.empty()) {
+        m_availableScenes = getAvailableScenes();
+        m_sceneDialogPage = 0;
+    }
 
     if (m_availableScenes.empty()) {
         LOG_WARN("No scenes found in data/scenes/");
         return;
     }
 
-    LOG_INFO("=== Available Scenes ===");
-    for (size_t i = 0; i < m_availableScenes.size(); ++i) {
-        LOG_INFO("  [{}] {}", i, m_availableScenes[i]);
-    }
+    LOG_INFO("=== Available Scenes (Page {}/{}) ===",
+             m_sceneDialogPage + 1,
+             (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE);
 
-    // Update button text and visibility for each scene slot (max 10)
-    for (size_t i = 0; i < 10; ++i) {
+    // Calculate page range
+    size_t startIdx = m_sceneDialogPage * SCENES_PER_PAGE;
+    size_t endIdx = std::min(startIdx + SCENES_PER_PAGE, m_availableScenes.size());
+
+    // Update button text and visibility for each scene slot
+    for (size_t i = 0; i < SCENES_PER_PAGE; ++i) {
         std::string buttonID = "btn_scene_" + std::to_string(i);
         auto btnComponent = m_uiManager.getComponent(buttonID);
 
         if (btnComponent) {
             auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnComponent);
             if (button) {
-                if (i < m_availableScenes.size()) {
+                size_t sceneIdx = startIdx + i;
+                if (sceneIdx < endIdx) {
                     // Show button with scene name
-                    button->setText(m_availableScenes[i]);
+                    button->setText(m_availableScenes[sceneIdx]);
                     button->setVisible(true);
                     button->setActive(true);
+                    LOG_INFO("  [{}] {}", sceneIdx, m_availableScenes[sceneIdx]);
                 } else {
                     // Hide unused button completely
                     button->setVisible(false);
@@ -493,9 +526,23 @@ void EditorApplication::showSceneSelectionDialog() {
         }
     }
 
+    // Update prev/next button visibility
+    size_t totalPages = (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE;
+
+    auto btnPrev = m_uiManager.getComponent("btn_scene_prev");
+    if (btnPrev) {
+        btnPrev->setVisible(m_sceneDialogPage > 0);
+    }
+
+    auto btnNext = m_uiManager.getComponent("btn_scene_next");
+    if (btnNext) {
+        btnNext->setVisible(m_sceneDialogPage < totalPages - 1);
+    }
+
     // Show the dialog
     m_uiManager.setGroupActive("scene_dialog", true);
-    LOG_INFO("Scene selection dialog opened with {} scenes", m_availableScenes.size());
+    LOG_INFO("Scene selection dialog opened: page {}/{}, total {} scenes",
+             m_sceneDialogPage + 1, totalPages, m_availableScenes.size());
 }
 
 } // namespace NovaEditor
