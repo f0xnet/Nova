@@ -83,7 +83,7 @@
       "height": 2160,
       "color": "0,0,0,128",
       "layer": 17,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "entity_dialog_bg",
@@ -95,7 +95,7 @@
       "height": 1500,
       "color": "255,255,255",
       "layer": 18,
-      "isActive": true
+      "isActive": false
     }
   ],
   "text": [
@@ -193,7 +193,7 @@
       "fontSize": 48,
       "color": "220,220,220",
       "layer": 19,
-      "isActive": true
+      "isActive": false
     }
   ],
   "buttons": [
@@ -783,7 +783,7 @@
       "action": "close_entity_dialog",
       "value": "",
       "layer": 19,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_entity_prev",
@@ -804,7 +804,7 @@
       "action": "entity_prev_page",
       "value": "",
       "layer": 19,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_entity_next",
@@ -825,7 +825,7 @@
       "action": "entity_next_page",
       "value": "",
       "layer": 19,
-      "isActive": true
+      "isActive": false
     },
     {
       "ID": "btn_entity_0",
