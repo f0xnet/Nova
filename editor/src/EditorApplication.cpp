@@ -1,6 +1,7 @@
 #include "EditorApplication.hpp"
 #include <NovaEngine/Core/Logger.hpp>
 #include <NovaEngine/Backend/BackendManager.hpp>
+#include <NovaEngine/UI/Components/Button.hpp>
 #include <filesystem>
 #include <algorithm>
 
@@ -317,7 +318,7 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
         LOG_INFO("Grid toggled: {}", gridEnabled ? "ON" : "OFF");
 
         // Update button text to reflect current state
-        auto btnToggleGrid = m_uiManager.getComponent(ID::generate("btn_toggle_grid"));
+        auto btnToggleGrid = m_uiManager.getComponent("btn_toggle_grid");
         if (btnToggleGrid) {
             auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnToggleGrid);
             if (button) {
@@ -474,10 +475,10 @@ void EditorApplication::showSceneSelectionDialog() {
     // Update button text and visibility for each scene slot (max 10)
     for (size_t i = 0; i < 10; ++i) {
         std::string buttonID = "btn_scene_" + std::to_string(i);
-        auto btnComponent = m_uiManager.getComponent(ID::generate(buttonID));
+        auto btnComponent = m_uiManager.getComponent(buttonID);
 
         if (btnComponent) {
-            auto button = std::dynamic_pointer_cast<Button>(btnComponent);
+            auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnComponent);
             if (button) {
                 if (i < m_availableScenes.size()) {
                     // Show button with scene name
