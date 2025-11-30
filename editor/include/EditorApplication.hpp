@@ -44,6 +44,7 @@ private:
     // Render
     void renderScene();
     void renderGrid();
+    void renderSelectionBox();
     void renderUI();
 
     // Input handling

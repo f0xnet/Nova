@@ -116,6 +116,9 @@ void EditorApplication::onRender() {
         renderGrid();
     }
 
+    // Render selection box around selected entity
+    renderSelectionBox();
+
     // Render UI (in screen space)
     renderUI();
 }
@@ -267,6 +270,90 @@ void EditorApplication::renderGrid() {
     xAxis.fillColor = axisColor;
     xAxis.outlineThickness = 0;
     GRAPHICS().drawRect(xAxis);
+}
+
+void EditorApplication::renderSelectionBox() {
+    using namespace NovaEngine;
+
+    // Only render if an entity is selected
+    Entity* selectedEntity = m_state->getSelectedEntity();
+    if (!selectedEntity) {
+        return;
+    }
+
+    // Get transform and sprite components
+    auto* transform = selectedEntity->getComponent<TransformComponent>();
+    auto* sprite = selectedEntity->getComponent<SpriteComponent>();
+
+    if (!transform || !sprite) {
+        return;
+    }
+
+    // Calculate entity bounds
+    Vec2f entityPos = transform->position;
+    Vec2f scale = transform->scale;
+    Vec2f spriteSize = sprite->size;
+    Vec2f origin = transform->origin;
+
+    // Calculate scaled size
+    Vec2f scaledSize{spriteSize.x * scale.x, spriteSize.y * scale.y};
+
+    // Calculate box position (top-left corner, accounting for origin)
+    Vec2f boxPos{
+        entityPos.x - origin.x * scale.x,
+        entityPos.y - origin.y * scale.y
+    };
+
+    // Draw selection rectangle
+    RectData rectData;
+    rectData.position = boxPos;
+    rectData.size = scaledSize;
+    rectData.fillColor = Color{0, 0, 0, 0};        // Transparent fill
+    rectData.outlineColor = Color{255, 255, 0, 255}; // Yellow outline
+    rectData.outlineThickness = 2.0f / m_camera->getZoom(); // Keep constant thickness regardless of zoom
+    rectData.rotation = transform->rotation;
+
+    GRAPHICS().drawRectangle(rectData);
+
+    // Also draw small handles at the corners for better visibility
+    f32 handleSize = 8.0f / m_camera->getZoom();
+    Color handleColor{255, 165, 0, 255}; // Orange
+
+    // Top-left handle
+    RectData handleTL;
+    handleTL.position = boxPos;
+    handleTL.size = Vec2f{handleSize, handleSize};
+    handleTL.fillColor = handleColor;
+    handleTL.outlineColor = Color{0, 0, 0, 255};
+    handleTL.outlineThickness = 1.0f / m_camera->getZoom();
+    GRAPHICS().drawRectangle(handleTL);
+
+    // Top-right handle
+    RectData handleTR;
+    handleTR.position = Vec2f{boxPos.x + scaledSize.x - handleSize, boxPos.y};
+    handleTR.size = Vec2f{handleSize, handleSize};
+    handleTR.fillColor = handleColor;
+    handleTR.outlineColor = Color{0, 0, 0, 255};
+    handleTR.outlineThickness = 1.0f / m_camera->getZoom();
+    GRAPHICS().drawRectangle(handleTR);
+
+    // Bottom-left handle
+    RectData handleBL;
+    handleBL.position = Vec2f{boxPos.x, boxPos.y + scaledSize.y - handleSize};
+    handleBL.size = Vec2f{handleSize, handleSize};
+    handleBL.fillColor = handleColor;
+    handleBL.outlineColor = Color{0, 0, 0, 255};
+    handleBL.outlineThickness = 1.0f / m_camera->getZoom();
+    GRAPHICS().drawRectangle(handleBL);
+
+    // Bottom-right handle
+    RectData handleBR;
+    handleBR.position = Vec2f{boxPos.x + scaledSize.x - handleSize, boxPos.y + scaledSize.y - handleSize};
+    handleBR.size = Vec2f{handleSize, handleSize};
+    handleBR.fillColor = handleColor;
+    handleBR.outlineColor = Color{0, 0, 0, 255};
+    handleBR.outlineThickness = 1.0f / m_camera->getZoom();
+    GRAPHICS().drawRectangle(handleBR);
 }
 
 void EditorApplication::renderUI() {
