@@ -6,44 +6,48 @@
     {
       "ID": "toolbar_bg",
       "groupID": "toolbar",
+      "image": "data/ui/ui_assets/editor_background.png",
       "x": 0,
       "y": 0,
       "width": 3840,
       "height": 100,
-      "color": "40,40,45",
+      "color": "255,255,255",
       "layer": 10,
       "isActive": true
     },
     {
       "ID": "palette_bg",
       "groupID": "palette",
+      "image": "data/ui/ui_assets/editor_background.png",
       "x": 0,
       "y": 100,
       "width": 500,
       "height": 1100,
-      "color": "30,30,35",
+      "color": "255,255,255",
       "layer": 10,
       "isActive": true
     },
     {
       "ID": "inspector_bg",
       "groupID": "inspector",
+      "image": "data/ui/ui_assets/editor_background.png",
       "x": 3340,
       "y": 100,
       "width": 500,
       "height": 2060,
-      "color": "30,30,35",
+      "color": "255,255,255",
       "layer": 10,
       "isActive": true
     },
     {
       "ID": "hierarchy_bg",
       "groupID": "hierarchy",
+      "image": "data/ui/ui_assets/editor_background.png",
       "x": 0,
       "y": 1200,
       "width": 500,
       "height": 960,
-      "color": "30,30,35",
+      "color": "255,255,255",
       "layer": 10,
       "isActive": true
     },
@@ -61,11 +65,12 @@
     {
       "ID": "scene_dialog_bg",
       "groupID": "scene_dialog",
+      "image": "data/ui/ui_assets/editor_background.png",
       "x": 1120,
       "y": 300,
       "width": 1600,
       "height": 1500,
-      "color": "50,50,55",
+      "color": "255,255,255",
       "layer": 18,
       "isActive": true
     }
