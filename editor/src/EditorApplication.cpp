@@ -1,6 +1,8 @@
 #include "EditorApplication.hpp"
 #include <NovaEngine/Core/Logger.hpp>
 #include <NovaEngine/Backend/BackendManager.hpp>
+#include <filesystem>
+#include <algorithm>
 
 namespace NovaEditor {
 
@@ -150,8 +152,73 @@ void EditorApplication::renderScene() {
 void EditorApplication::renderGrid() {
     using namespace NovaEngine;
 
-    // TODO: Implement grid rendering
-    // For Phase 1, we skip this (not critical for UI testing)
+    // Get viewport information
+    Vec2f viewCenter = VIEWPORT().getViewCenter();
+    Vec2f viewSize = VIEWPORT().getViewSize();
+
+    // Calculate visible bounds (with some padding)
+    f32 padding = 100.0f;
+    f32 left = viewCenter.x - (viewSize.x / 2.0f) - padding;
+    f32 right = viewCenter.x + (viewSize.x / 2.0f) + padding;
+    f32 top = viewCenter.y - (viewSize.y / 2.0f) - padding;
+    f32 bottom = viewCenter.y + (viewSize.y / 2.0f) + padding;
+
+    // Get grid size
+    f32 gridSize = m_state->getGridSize();
+
+    // Grid color (subtle gray)
+    Color gridColor(80, 80, 80, 100);  // Semi-transparent gray
+    f32 lineThickness = 1.0f;
+
+    // Draw vertical lines
+    i32 startX = static_cast<i32>(left / gridSize) - 1;
+    i32 endX = static_cast<i32>(right / gridSize) + 1;
+    for (i32 i = startX; i <= endX; ++i) {
+        f32 x = i * gridSize;
+
+        RectData line;
+        line.position = Vec2f{x - lineThickness / 2.0f, top};
+        line.size = Vec2f{lineThickness, bottom - top};
+        line.fillColor = gridColor;
+        line.outlineThickness = 0;
+
+        GRAPHICS().drawRect(line);
+    }
+
+    // Draw horizontal lines
+    i32 startY = static_cast<i32>(top / gridSize) - 1;
+    i32 endY = static_cast<i32>(bottom / gridSize) + 1;
+    for (i32 i = startY; i <= endY; ++i) {
+        f32 y = i * gridSize;
+
+        RectData line;
+        line.position = Vec2f{left, y - lineThickness / 2.0f};
+        line.size = Vec2f{right - left, lineThickness};
+        line.fillColor = gridColor;
+        line.outlineThickness = 0;
+
+        GRAPHICS().drawRect(line);
+    }
+
+    // Draw axis lines (thicker and different color for x=0 and y=0)
+    Color axisColor(120, 120, 120, 150);  // Slightly brighter
+    f32 axisThickness = 2.0f;
+
+    // Y-axis (vertical line at x=0)
+    RectData yAxis;
+    yAxis.position = Vec2f{-axisThickness / 2.0f, top};
+    yAxis.size = Vec2f{axisThickness, bottom - top};
+    yAxis.fillColor = axisColor;
+    yAxis.outlineThickness = 0;
+    GRAPHICS().drawRect(yAxis);
+
+    // X-axis (horizontal line at y=0)
+    RectData xAxis;
+    xAxis.position = Vec2f{left, -axisThickness / 2.0f};
+    xAxis.size = Vec2f{right - left, axisThickness};
+    xAxis.fillColor = axisColor;
+    xAxis.outlineThickness = 0;
+    GRAPHICS().drawRect(xAxis);
 }
 
 void EditorApplication::renderUI() {
@@ -246,11 +313,45 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
     }
     else if (action == "toggle_grid") {
         m_state->setGridEnabled(!m_state->isGridEnabled());
-        LOG_INFO("Grid toggled: {}", m_state->isGridEnabled() ? "ON" : "OFF");
-        // TODO: Update button text in UI
+        bool gridEnabled = m_state->isGridEnabled();
+        LOG_INFO("Grid toggled: {}", gridEnabled ? "ON" : "OFF");
+
+        // Update button text to reflect current state
+        auto btnToggleGrid = m_uiManager.getComponent(ID::generate("btn_toggle_grid"));
+        if (btnToggleGrid) {
+            auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnToggleGrid);
+            if (button) {
+                button->setText(gridEnabled ? "Grid: ON" : "Grid: OFF");
+            }
+        }
     }
     else if (action == "palette_category") {
         m_uiManager_editor->updateEntityPalette(value);
+    }
+    else if (action == "load_scene_by_index") {
+        // Load scene by index from available scenes list
+        try {
+            size_t index = std::stoul(value);
+            if (index < m_availableScenes.size()) {
+                std::string scenePath = m_editorConfig->getScenesPath() + "/" + m_availableScenes[index];
+                LOG_INFO("Loading scene: {}", m_availableScenes[index]);
+
+                // Close dialog
+                m_uiManager.setGroupActive("scene_dialog", false);
+
+                // Load the scene
+                loadScene(scenePath);
+            } else {
+                LOG_ERROR("Invalid scene index: {}", index);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse scene index: {}", e.what());
+        }
+    }
+    else if (action == "close_scene_dialog") {
+        // Close the scene selection dialog
+        m_uiManager.setGroupActive("scene_dialog", false);
+        LOG_INFO("Scene selection dialog closed");
     }
     else {
         LOG_WARN("Unknown action: '{}'", action);
@@ -267,12 +368,14 @@ void EditorApplication::newScene() {
 void EditorApplication::loadScene() {
     LOG_INFO("Load scene requested");
 
-    // TODO: Show file dialog to select scene
-    // For now, we'll try to load a test scene
-    std::string scenePath = "data/scenes/test_scene.json";
-    std::string sceneName = "LoadedScene";
+    // Show scene selection dialog
+    showSceneSelectionDialog();
+}
 
+void EditorApplication::loadScene(const std::string& scenePath) {
     LOG_INFO("Attempting to load scene from: {}", scenePath);
+
+    std::string sceneName = "LoadedScene";
 
     // Unload current scene if exists
     if (m_currentScene) {
@@ -322,6 +425,75 @@ void EditorApplication::saveScene() {
 
     // Phase 1: Just log
     // Future: Show save dialog if needed, save scene to JSON
+}
+
+std::vector<std::string> EditorApplication::getAvailableScenes() const {
+    namespace fs = std::filesystem;
+    std::vector<std::string> scenes;
+
+    std::string scenesPath = m_editorConfig->getScenesPath();
+
+    try {
+        if (fs::exists(scenesPath) && fs::is_directory(scenesPath)) {
+            for (const auto& entry : fs::directory_iterator(scenesPath)) {
+                if (entry.is_regular_file() && entry.path().extension() == ".json") {
+                    // Store relative path from data/scenes/
+                    scenes.push_back(entry.path().filename().string());
+                }
+            }
+        } else {
+            LOG_WARN("Scenes directory not found: {}", scenesPath);
+        }
+    } catch (const fs::filesystem_error& e) {
+        LOG_ERROR("Error scanning scenes directory: {}", e.what());
+    }
+
+    // Sort alphabetically
+    std::sort(scenes.begin(), scenes.end());
+
+    LOG_INFO("Found {} scene(s) in {}", scenes.size(), scenesPath);
+    return scenes;
+}
+
+void EditorApplication::showSceneSelectionDialog() {
+    using namespace NovaEngine;
+
+    // Get available scenes
+    m_availableScenes = getAvailableScenes();
+
+    if (m_availableScenes.empty()) {
+        LOG_WARN("No scenes found in data/scenes/");
+        return;
+    }
+
+    LOG_INFO("=== Available Scenes ===");
+    for (size_t i = 0; i < m_availableScenes.size(); ++i) {
+        LOG_INFO("  [{}] {}", i, m_availableScenes[i]);
+    }
+
+    // Update button text and visibility for each scene slot (max 10)
+    for (size_t i = 0; i < 10; ++i) {
+        std::string buttonID = "btn_scene_" + std::to_string(i);
+        auto btnComponent = m_uiManager.getComponent(ID::generate(buttonID));
+
+        if (btnComponent) {
+            auto button = std::dynamic_pointer_cast<Button>(btnComponent);
+            if (button) {
+                if (i < m_availableScenes.size()) {
+                    // Show button with scene name
+                    button->setText(m_availableScenes[i]);
+                    button->setActive(true);
+                } else {
+                    // Hide unused button
+                    button->setActive(false);
+                }
+            }
+        }
+    }
+
+    // Show the dialog
+    m_uiManager.setGroupActive("scene_dialog", true);
+    LOG_INFO("Scene selection dialog opened with {} scenes", m_availableScenes.size());
 }
 
 } // namespace NovaEditor

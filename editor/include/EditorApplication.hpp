@@ -54,10 +54,15 @@ private:
     // UI action callback
     void onUIAction(const std::string& action, const std::string& value);
 
-    // Scene management (stubs for Phase 1)
+    // Scene management
     void newScene();
     void loadScene();
+    void loadScene(const std::string& scenePath);
     void saveScene();
+
+    // Scene utilities
+    std::vector<std::string> getAvailableScenes() const;
+    void showSceneSelectionDialog();
 
 private:
     // Core systems
@@ -72,6 +77,9 @@ private:
 
     // Current scene
     NovaEngine::Scene* m_currentScene;
+
+    // Scene selection dialog
+    std::vector<std::string> m_availableScenes;
 };
 
 } // namespace NovaEditor

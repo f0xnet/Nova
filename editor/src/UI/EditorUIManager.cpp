@@ -91,11 +91,15 @@ bool EditorUIManager::loadAllLayouts() {
     bool success = loadLayout("editor_main.json");
 
     if (success) {
-        // Initialize group visibility (all visible by default)
+        // Initialize group visibility (panels visible, dialogs hidden)
         m_groupVisibility["toolbar"] = true;
         m_groupVisibility["palette"] = true;
         m_groupVisibility["inspector"] = true;
         m_groupVisibility["hierarchy"] = true;
+        m_groupVisibility["scene_dialog"] = false;
+
+        // Hide dialog group initially
+        m_uiManager.setGroupActive("scene_dialog", false);
 
         LOG_INFO("UI layout loaded successfully");
     } else {
