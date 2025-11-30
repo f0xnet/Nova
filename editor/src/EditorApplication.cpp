@@ -1296,7 +1296,7 @@ void EditorApplication::updateLayersPanel() {
 
     // Update entity list buttons
     for (size_t i = 0; i < 10; ++i) {
-        std::string btnID = "btn_entity_" + std::to_string(i);
+        std::string btnID = "btn_layer_entity_" + std::to_string(i);
         auto btnComponent = m_uiManager.getComponent(btnID);
         if (btnComponent) {
             auto button = std::dynamic_pointer_cast<Button>(btnComponent);

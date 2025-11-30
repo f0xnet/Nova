@@ -876,7 +876,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_0",
+      "ID": "btn_layer_entity_0",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 0",
@@ -897,7 +897,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_1",
+      "ID": "btn_layer_entity_1",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 1",
@@ -918,7 +918,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_2",
+      "ID": "btn_layer_entity_2",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 2",
@@ -939,7 +939,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_3",
+      "ID": "btn_layer_entity_3",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 3",
@@ -960,7 +960,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_4",
+      "ID": "btn_layer_entity_4",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 4",
@@ -981,7 +981,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_5",
+      "ID": "btn_layer_entity_5",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 5",
@@ -1002,7 +1002,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_6",
+      "ID": "btn_layer_entity_6",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 6",
@@ -1023,7 +1023,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_7",
+      "ID": "btn_layer_entity_7",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 7",
@@ -1044,7 +1044,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_8",
+      "ID": "btn_layer_entity_8",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 8",
@@ -1065,7 +1065,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_9",
+      "ID": "btn_layer_entity_9",
       "groupID": "entity_dialog",
       "haveText": true,
       "text": "Entity 9",
@@ -1275,7 +1275,7 @@
       "isActive": true
     },
     {
-      "ID": "btn_entity_0",
+      "ID": "btn_layer_entity_0",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1296,7 +1296,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_1",
+      "ID": "btn_layer_entity_1",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1317,7 +1317,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_2",
+      "ID": "btn_layer_entity_2",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1338,7 +1338,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_3",
+      "ID": "btn_layer_entity_3",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1359,7 +1359,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_4",
+      "ID": "btn_layer_entity_4",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1380,7 +1380,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_5",
+      "ID": "btn_layer_entity_5",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1401,7 +1401,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_6",
+      "ID": "btn_layer_entity_6",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1422,7 +1422,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_7",
+      "ID": "btn_layer_entity_7",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1443,7 +1443,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_8",
+      "ID": "btn_layer_entity_8",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
@@ -1464,7 +1464,7 @@
       "isActive": false
     },
     {
-      "ID": "btn_entity_9",
+      "ID": "btn_layer_entity_9",
       "groupID": "layers_panel",
       "haveText": true,
       "text": "",
