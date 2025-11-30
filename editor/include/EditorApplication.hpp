@@ -95,6 +95,7 @@ private:
     static constexpr size_t SCENES_PER_PAGE = 10;
 
     // Entity selection and placement
+    static constexpr size_t ENTITIES_PER_PAGE = 10;
     std::vector<std::string> m_availableEntities;
     size_t m_entityDialogPage;
     std::string m_currentEntityCategory;

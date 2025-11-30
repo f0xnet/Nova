@@ -2,6 +2,7 @@
 #include <NovaEngine/Core/Logger.hpp>
 #include <NovaEngine/Backend/BackendManager.hpp>
 #include <NovaEngine/UI/Components/Button.hpp>
+#include <NovaEngine/UI/Components/Text.hpp>
 #include <nlohmann/json.hpp>
 #include <filesystem>
 #include <algorithm>
@@ -434,6 +435,9 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
     }
     else if (action == "palette_category") {
         m_uiManager_editor->updateEntityPalette(value);
+        // Clear previous entity list when changing category
+        m_availableEntities.clear();
+        m_entityDialogPage = 0;
         // Show entity selection dialog
         showEntitySelectionDialog(value);
     }
@@ -485,6 +489,55 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
         m_availableScenes.clear();
         m_sceneDialogPage = 0;
         LOG_INFO("Scene selection dialog closed");
+    }
+    else if (action == "select_entity_by_index") {
+        // Select entity by index from available entities list
+        try {
+            size_t index = std::stoul(value);
+            // Calculate actual entity index based on current page
+            size_t actualIndex = (m_entityDialogPage * ENTITIES_PER_PAGE) + index;
+
+            if (actualIndex < m_availableEntities.size()) {
+                std::string entityId = m_availableEntities[actualIndex];
+                LOG_INFO("Selected entity: {}", entityId);
+
+                // Close dialog and clear state
+                m_uiManager.setGroupActive("entity_dialog", false);
+                m_availableEntities.clear();
+                m_entityDialogPage = 0;
+
+                // Enter placement mode with selected entity
+                enterPlacementMode(m_currentEntityCategory, entityId);
+            } else {
+                LOG_ERROR("Invalid entity index: {}", actualIndex);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse entity index: {}", e.what());
+        }
+    }
+    else if (action == "entity_next_page") {
+        // Go to next page of entities
+        size_t totalPages = (m_availableEntities.size() + ENTITIES_PER_PAGE - 1) / ENTITIES_PER_PAGE;
+        if (m_entityDialogPage < totalPages - 1) {
+            m_entityDialogPage++;
+            showEntitySelectionDialog(m_currentEntityCategory);
+            LOG_INFO("Entity dialog: next page {}", m_entityDialogPage + 1);
+        }
+    }
+    else if (action == "entity_prev_page") {
+        // Go to previous page of entities
+        if (m_entityDialogPage > 0) {
+            m_entityDialogPage--;
+            showEntitySelectionDialog(m_currentEntityCategory);
+            LOG_INFO("Entity dialog: previous page {}", m_entityDialogPage + 1);
+        }
+    }
+    else if (action == "close_entity_dialog") {
+        // Close the entity selection dialog and clear state
+        m_uiManager.setGroupActive("entity_dialog", false);
+        m_availableEntities.clear();
+        m_entityDialogPage = 0;
+        LOG_INFO("Entity selection dialog closed");
     }
     else {
         LOG_WARN("Unknown action: '{}'", action);
@@ -741,16 +794,81 @@ void EditorApplication::showEntitySelectionDialog(const std::string& category) {
             return;
         }
 
-        // TODO: Show entity dialog UI (for now, auto-select first entity for testing)
-        LOG_INFO("=== Available {} ===", category);
-        for (size_t i = 0; i < m_availableEntities.size(); ++i) {
-            LOG_INFO("  [{}] {}", i, m_availableEntities[i]);
+        LOG_INFO("=== Available {} (Page {}/{}) ===",
+                 category,
+                 m_entityDialogPage + 1,
+                 (m_availableEntities.size() + ENTITIES_PER_PAGE - 1) / ENTITIES_PER_PAGE);
+
+        // Calculate page range
+        size_t startIdx = m_entityDialogPage * ENTITIES_PER_PAGE;
+        size_t endIdx = std::min(startIdx + ENTITIES_PER_PAGE, m_availableEntities.size());
+
+        LOG_INFO("Updating entity button visibility...");
+        // Update button text and visibility for each entity slot
+        for (size_t i = 0; i < ENTITIES_PER_PAGE; ++i) {
+            std::string buttonID = "btn_entity_" + std::to_string(i);
+            auto btnComponent = m_uiManager.getComponent(buttonID);
+
+            if (btnComponent) {
+                auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnComponent);
+                if (button) {
+                    size_t entityIdx = startIdx + i;
+                    if (entityIdx < endIdx) {
+                        // Show button with entity name
+                        button->setText(m_availableEntities[entityIdx]);
+                        button->setVisible(true);
+                        button->setActive(true);
+                        LOG_INFO("  [{}] {}", entityIdx, m_availableEntities[entityIdx]);
+                    } else {
+                        // Hide unused button completely
+                        button->setVisible(false);
+                    }
+                } else {
+                    LOG_WARN("Button {} exists but is not a Button component", buttonID);
+                }
+            } else {
+                LOG_WARN("Button component {} not found", buttonID);
+            }
         }
 
-        // For now, automatically enter placement mode with first entity
-        if (!m_availableEntities.empty()) {
-            enterPlacementMode(category, m_availableEntities[0]);
+        LOG_INFO("Updating prev/next button visibility...");
+        // Update prev/next button visibility
+        size_t totalPages = (m_availableEntities.size() + ENTITIES_PER_PAGE - 1) / ENTITIES_PER_PAGE;
+
+        auto btnPrev = m_uiManager.getComponent("btn_entity_prev");
+        if (btnPrev) {
+            btnPrev->setVisible(m_entityDialogPage > 0);
+            LOG_INFO("Prev button visibility: {}", m_entityDialogPage > 0);
+        } else {
+            LOG_WARN("btn_entity_prev not found");
         }
+
+        auto btnNext = m_uiManager.getComponent("btn_entity_next");
+        if (btnNext) {
+            btnNext->setVisible(m_entityDialogPage < totalPages - 1);
+            LOG_INFO("Next button visibility: {}", m_entityDialogPage < totalPages - 1);
+        } else {
+            LOG_WARN("btn_entity_next not found");
+        }
+
+        // Update dialog title with category name
+        auto titleText = m_uiManager.getComponent("entity_dialog_title");
+        if (titleText) {
+            auto text = std::dynamic_pointer_cast<NovaEngine::Text>(titleText);
+            if (text) {
+                std::string capitalizedCategory = category;
+                if (!capitalizedCategory.empty()) {
+                    capitalizedCategory[0] = std::toupper(capitalizedCategory[0]);
+                }
+                text->setString("Select " + capitalizedCategory + " to Place");
+            }
+        }
+
+        // Show the dialog
+        LOG_INFO("Activating entity_dialog group...");
+        m_uiManager.setGroupActive("entity_dialog", true);
+        LOG_INFO("Entity selection dialog opened: page {}/{}, total {} entities",
+                 m_entityDialogPage + 1, totalPages, m_availableEntities.size());
     } catch (const std::exception& e) {
         LOG_ERROR("Exception in showEntitySelectionDialog: {}", e.what());
     }
@@ -836,7 +954,100 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
             LOG_INFO("Sprite entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
         }
-        // TODO: Add support for lights, NPCs, etc.
+        else if (m_placementEntityType == "lights") {
+            // Create entity
+            Entity* entity = m_currentScene->getEntityRegistry().createEntity();
+
+            // Add transform component
+            auto transform = std::make_unique<TransformComponent>();
+            transform->position = position;
+            entity->addComponent(std::move(transform));
+
+            // Add light component
+            auto light = std::make_unique<LightComponent>();
+
+            // Initialize light from definition
+            const auto* definition = m_sceneManager.getDefinitionManager().getLightDefinition(m_placementEntityId);
+            if (definition) {
+                // Load light properties from definition
+                if (definition->contains("type")) {
+                    std::string typeStr = (*definition)["type"].get<std::string>();
+                    if (typeStr == "point") light->type = LightComponent::LightType::Point;
+                    else if (typeStr == "directional") light->type = LightComponent::LightType::Directional;
+                    else if (typeStr == "spot") light->type = LightComponent::LightType::Spot;
+                }
+
+                if (definition->contains("color")) {
+                    auto& color = (*definition)["color"];
+                    light->color = Color{
+                        static_cast<u8>(color[0].get<int>()),
+                        static_cast<u8>(color[1].get<int>()),
+                        static_cast<u8>(color[2].get<int>()),
+                        static_cast<u8>(color[3].get<int>())
+                    };
+                }
+
+                if (definition->contains("radius")) {
+                    light->radius = (*definition)["radius"].get<f32>();
+                }
+
+                if (definition->contains("intensity")) {
+                    light->intensity = (*definition)["intensity"].get<f32>();
+                }
+
+                if (definition->contains("castShadows")) {
+                    light->castShadows = (*definition)["castShadows"].get<bool>();
+                }
+            }
+
+            entity->addComponent(std::move(light));
+
+            LOG_INFO("Light entity created successfully (ID: {})", entity->getID());
+            m_state->setSceneModified(true);
+        }
+        else if (m_placementEntityType == "npcs") {
+            // Create entity
+            Entity* entity = m_currentScene->getEntityRegistry().createEntity();
+
+            // Add transform component
+            auto transform = std::make_unique<TransformComponent>();
+            transform->position = position;
+            entity->addComponent(std::move(transform));
+
+            // Add tag component for NPC identification
+            auto tag = std::make_unique<TagComponent>();
+            tag->tag = "npc";
+            entity->addComponent(std::move(tag));
+
+            // Add sprite component for visual representation
+            // Try to load sprite with same ID as NPC
+            auto sprite = std::make_unique<SpriteComponent>();
+            const auto* spriteDef = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
+            if (spriteDef) {
+                if (spriteDef->contains("texture")) {
+                    std::string texturePath = (*spriteDef)["texture"].get<std::string>();
+                    sprite->textureHandle = RESOURCES().loadTexture(texturePath);
+                    sprite->textureID = m_placementEntityId;
+                }
+                if (spriteDef->contains("zOrder")) {
+                    sprite->zOrder = (*spriteDef)["zOrder"].get<i32>();
+                }
+                if (spriteDef->contains("width") && spriteDef->contains("height")) {
+                    sprite->size = Vec2f{
+                        (*spriteDef)["width"].get<f32>(),
+                        (*spriteDef)["height"].get<f32>()
+                    };
+                } else if (spriteDef->contains("size")) {
+                    auto& size = (*spriteDef)["size"];
+                    sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
+                }
+            }
+
+            entity->addComponent(std::move(sprite));
+
+            LOG_INFO("NPC entity created successfully (ID: {})", entity->getID());
+            m_state->setSceneModified(true);
+        }
 
     } catch (const std::exception& e) {
         LOG_ERROR("Exception while placing entity: {}", e.what());
