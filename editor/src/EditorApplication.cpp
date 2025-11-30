@@ -4,6 +4,7 @@
 #include <NovaEngine/UI/Components/Button.hpp>
 #include <filesystem>
 #include <algorithm>
+#include <chrono>
 
 namespace NovaEditor {
 
@@ -28,25 +29,39 @@ EditorApplication::~EditorApplication() {
 bool EditorApplication::onInitialize() {
     LOG_INFO("=== Nova Level Editor - Phase 1 ===");
 
+    auto initStart = std::chrono::high_resolution_clock::now();
+
     // Create editor subsystems
+    LOG_INFO("Creating editor subsystems...");
+    auto subsysStart = std::chrono::high_resolution_clock::now();
     m_editorConfig = std::make_unique<EditorConfig>();
     m_state = std::make_unique<EditorState>();
     m_camera = std::make_unique<EditorCamera>();
     m_uiManager_editor = std::make_unique<EditorUIManager>(m_uiManager, m_state.get(), m_editorConfig.get());
+    auto subsysEnd = std::chrono::high_resolution_clock::now();
+    LOG_INFO("Subsystems creation took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(subsysEnd - subsysStart).count());
 
     // Initialize SceneManager with entity definitions
+    LOG_INFO("Initializing SceneManager...");
+    auto sceneManStart = std::chrono::high_resolution_clock::now();
     if (!m_sceneManager.initialize("data/definitions/", "data/scenegraph.json")) {
         LOG_WARN("Failed to initialize SceneManager - scenes may not load properly");
     }
+    auto sceneManEnd = std::chrono::high_resolution_clock::now();
+    LOG_INFO("SceneManager initialization took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(sceneManEnd - sceneManStart).count());
 
     // Initialize editor
     initializeEditor();
 
     // Initialize UI Manager and load JSON layouts
+    LOG_INFO("Initializing UI Manager...");
+    auto uiStart = std::chrono::high_resolution_clock::now();
     if (!m_uiManager_editor->initialize()) {
         LOG_ERROR("Failed to initialize EditorUIManager");
         return false;
     }
+    auto uiEnd = std::chrono::high_resolution_clock::now();
+    LOG_INFO("UI Manager initialization took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(uiEnd - uiStart).count());
 
     // Set up UI action callback
     m_uiManager_editor->setActionCallback([this](const std::string& action, const std::string& value) {
@@ -63,6 +78,8 @@ bool EditorApplication::onInitialize() {
 
     printControls();
 
+    auto initEnd = std::chrono::high_resolution_clock::now();
+    LOG_INFO("Total initialization took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(initEnd - initStart).count());
     LOG_INFO("EditorApplication initialized successfully");
     return true;
 }
@@ -109,13 +126,33 @@ void EditorApplication::onEvent(const NovaEngine::Event& event) {
 void EditorApplication::onShutdown() {
     LOG_INFO("EditorApplication shutting down");
 
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     // Cleanup scene
     if (m_currentScene) {
+        LOG_INFO("Deleting current scene...");
+        auto sceneStart = std::chrono::high_resolution_clock::now();
         delete m_currentScene;
         m_currentScene = nullptr;
+        auto sceneEnd = std::chrono::high_resolution_clock::now();
+        auto sceneDuration = std::chrono::duration_cast<std::chrono::milliseconds>(sceneEnd - sceneStart).count();
+        LOG_INFO("Scene deletion took {} ms", sceneDuration);
     }
 
     // Cleanup subsystems (unique_ptr handles this automatically)
+    LOG_INFO("Cleaning up subsystems...");
+    auto subsystemsStart = std::chrono::high_resolution_clock::now();
+    m_uiManager_editor.reset();
+    m_camera.reset();
+    m_state.reset();
+    m_editorConfig.reset();
+    auto subsystemsEnd = std::chrono::high_resolution_clock::now();
+    auto subsystemsDuration = std::chrono::duration_cast<std::chrono::milliseconds>(subsystemsEnd - subsystemsStart).count();
+    LOG_INFO("Subsystems cleanup took {} ms", subsystemsDuration);
+
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    LOG_INFO("Total shutdown took {} ms", totalDuration);
 }
 
 void EditorApplication::initializeEditor() {
