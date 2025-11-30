@@ -91,6 +91,8 @@ bool EditorUIManager::loadAllLayouts() {
     bool success = loadLayout("editor_main.json");
 
     if (success) {
+        LOG_INFO("Initializing group visibility...");
+
         // Initialize group visibility (panels visible, dialogs hidden)
         m_groupVisibility["toolbar"] = true;
         m_groupVisibility["palette"] = true;
@@ -98,8 +100,14 @@ bool EditorUIManager::loadAllLayouts() {
         m_groupVisibility["hierarchy"] = true;
         m_groupVisibility["scene_dialog"] = false;
 
-        // Hide dialog group initially
-        m_uiManager.setGroupActive("scene_dialog", false);
+        LOG_INFO("Hiding scene_dialog group...");
+        try {
+            // Hide dialog group initially
+            m_uiManager.setGroupActive("scene_dialog", false);
+            LOG_INFO("scene_dialog group hidden successfully");
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to hide scene_dialog group: {}", e.what());
+        }
 
         LOG_INFO("UI layout loaded successfully");
     } else {

@@ -521,65 +521,85 @@ std::vector<std::string> EditorApplication::getAvailableScenes() const {
 void EditorApplication::showSceneSelectionDialog() {
     using namespace NovaEngine;
 
-    // Get available scenes (only once when opening dialog)
-    if (m_availableScenes.empty()) {
-        m_availableScenes = getAvailableScenes();
-        m_sceneDialogPage = 0;
-    }
+    LOG_INFO("Opening scene selection dialog...");
 
-    if (m_availableScenes.empty()) {
-        LOG_WARN("No scenes found in data/scenes/");
-        return;
-    }
+    try {
+        // Get available scenes (only once when opening dialog)
+        if (m_availableScenes.empty()) {
+            LOG_INFO("Scanning for available scenes...");
+            m_availableScenes = getAvailableScenes();
+            m_sceneDialogPage = 0;
+        }
 
-    LOG_INFO("=== Available Scenes (Page {}/{}) ===",
-             m_sceneDialogPage + 1,
-             (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE);
+        if (m_availableScenes.empty()) {
+            LOG_WARN("No scenes found in data/scenes/");
+            return;
+        }
 
-    // Calculate page range
-    size_t startIdx = m_sceneDialogPage * SCENES_PER_PAGE;
-    size_t endIdx = std::min(startIdx + SCENES_PER_PAGE, m_availableScenes.size());
+        LOG_INFO("=== Available Scenes (Page {}/{}) ===",
+                 m_sceneDialogPage + 1,
+                 (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE);
 
-    // Update button text and visibility for each scene slot
-    for (size_t i = 0; i < SCENES_PER_PAGE; ++i) {
-        std::string buttonID = "btn_scene_" + std::to_string(i);
-        auto btnComponent = m_uiManager.getComponent(buttonID);
+        // Calculate page range
+        size_t startIdx = m_sceneDialogPage * SCENES_PER_PAGE;
+        size_t endIdx = std::min(startIdx + SCENES_PER_PAGE, m_availableScenes.size());
 
-        if (btnComponent) {
-            auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnComponent);
-            if (button) {
-                size_t sceneIdx = startIdx + i;
-                if (sceneIdx < endIdx) {
-                    // Show button with scene name
-                    button->setText(m_availableScenes[sceneIdx]);
-                    button->setVisible(true);
-                    button->setActive(true);
-                    LOG_INFO("  [{}] {}", sceneIdx, m_availableScenes[sceneIdx]);
+        LOG_INFO("Updating scene button visibility...");
+        // Update button text and visibility for each scene slot
+        for (size_t i = 0; i < SCENES_PER_PAGE; ++i) {
+            std::string buttonID = "btn_scene_" + std::to_string(i);
+            auto btnComponent = m_uiManager.getComponent(buttonID);
+
+            if (btnComponent) {
+                auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnComponent);
+                if (button) {
+                    size_t sceneIdx = startIdx + i;
+                    if (sceneIdx < endIdx) {
+                        // Show button with scene name
+                        button->setText(m_availableScenes[sceneIdx]);
+                        button->setVisible(true);
+                        button->setActive(true);
+                        LOG_INFO("  [{}] {}", sceneIdx, m_availableScenes[sceneIdx]);
+                    } else {
+                        // Hide unused button completely
+                        button->setVisible(false);
+                    }
                 } else {
-                    // Hide unused button completely
-                    button->setVisible(false);
+                    LOG_WARN("Button {} exists but is not a Button component", buttonID);
                 }
+            } else {
+                LOG_WARN("Button component {} not found", buttonID);
             }
         }
+
+        LOG_INFO("Updating prev/next button visibility...");
+        // Update prev/next button visibility
+        size_t totalPages = (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE;
+
+        auto btnPrev = m_uiManager.getComponent("btn_scene_prev");
+        if (btnPrev) {
+            btnPrev->setVisible(m_sceneDialogPage > 0);
+            LOG_INFO("Prev button visibility: {}", m_sceneDialogPage > 0);
+        } else {
+            LOG_WARN("btn_scene_prev not found");
+        }
+
+        auto btnNext = m_uiManager.getComponent("btn_scene_next");
+        if (btnNext) {
+            btnNext->setVisible(m_sceneDialogPage < totalPages - 1);
+            LOG_INFO("Next button visibility: {}", m_sceneDialogPage < totalPages - 1);
+        } else {
+            LOG_WARN("btn_scene_next not found");
+        }
+
+        // Show the dialog
+        LOG_INFO("Activating scene_dialog group...");
+        m_uiManager.setGroupActive("scene_dialog", true);
+        LOG_INFO("Scene selection dialog opened: page {}/{}, total {} scenes",
+                 m_sceneDialogPage + 1, totalPages, m_availableScenes.size());
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception in showSceneSelectionDialog: {}", e.what());
     }
-
-    // Update prev/next button visibility
-    size_t totalPages = (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE;
-
-    auto btnPrev = m_uiManager.getComponent("btn_scene_prev");
-    if (btnPrev) {
-        btnPrev->setVisible(m_sceneDialogPage > 0);
-    }
-
-    auto btnNext = m_uiManager.getComponent("btn_scene_next");
-    if (btnNext) {
-        btnNext->setVisible(m_sceneDialogPage < totalPages - 1);
-    }
-
-    // Show the dialog
-    m_uiManager.setGroupActive("scene_dialog", true);
-    LOG_INFO("Scene selection dialog opened: page {}/{}, total {} scenes",
-             m_sceneDialogPage + 1, totalPages, m_availableScenes.size());
 }
 
 } // namespace NovaEditor
