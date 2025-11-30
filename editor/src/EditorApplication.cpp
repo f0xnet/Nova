@@ -595,6 +595,21 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
             LOG_ERROR("Failed to parse layer value: {}", e.what());
         }
     }
+    else if (action == "select_entity_from_list") {
+        // Select entity from the layers panel list
+        try {
+            size_t index = std::stoul(value);
+            if (index < m_layerEntitiesList.size()) {
+                Entity* entity = m_layerEntitiesList[index];
+                LOG_INFO("Selected entity from list: ID {}", entity->getID());
+                selectEntity(entity);
+            } else {
+                LOG_ERROR("Invalid entity list index: {}", index);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse entity index: {}", e.what());
+        }
+    }
     else {
         LOG_WARN("Unknown action: '{}'", action);
     }
@@ -1029,6 +1044,9 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
             LOG_INFO("Sprite entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
             updateLayersPanel();
+
+            // Exit placement mode after placing entity
+            exitPlacementMode();
         }
         else if (m_placementEntityType == "lights") {
             // Create entity
@@ -1080,6 +1098,10 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
 
             LOG_INFO("Light entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
+            updateLayersPanel();
+
+            // Exit placement mode after placing entity
+            exitPlacementMode();
         }
         else if (m_placementEntityType == "npcs") {
             // Create entity
@@ -1132,6 +1154,9 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
             LOG_INFO("NPC entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
             updateLayersPanel();
+
+            // Exit placement mode after placing entity
+            exitPlacementMode();
         }
 
     } catch (const std::exception& e) {
@@ -1210,8 +1235,9 @@ void EditorApplication::updateLayersPanel() {
         return;
     }
 
-    // Count entities per layer
+    // Count entities per layer and collect entities by layer
     std::map<i32, int> layerCounts;
+    std::map<i32, std::vector<Entity*>> entitiesByLayer;
 
     const auto& entities = m_currentScene->getEntityRegistry().getAllEntities();
     for (auto* entity : entities) {
@@ -1219,6 +1245,7 @@ void EditorApplication::updateLayersPanel() {
             auto* sprite = entity->getComponent<SpriteComponent>();
             if (sprite) {
                 layerCounts[sprite->zOrder]++;
+                entitiesByLayer[sprite->zOrder].push_back(entity);
             }
         }
     }
@@ -1261,7 +1288,43 @@ void EditorApplication::updateLayersPanel() {
         }
     }
 
-    LOG_DEBUG("Layers panel updated");
+    // Update entity list for current layer
+    m_layerEntitiesList.clear();
+    if (entitiesByLayer.count(currentLayer) > 0) {
+        m_layerEntitiesList = entitiesByLayer[currentLayer];
+    }
+
+    // Update entity list buttons
+    for (size_t i = 0; i < 10; ++i) {
+        std::string btnID = "btn_entity_" + std::to_string(i);
+        auto btnComponent = m_uiManager.getComponent(btnID);
+        if (btnComponent) {
+            auto button = std::dynamic_pointer_cast<Button>(btnComponent);
+            if (button) {
+                if (i < m_layerEntitiesList.size()) {
+                    Entity* entity = m_layerEntitiesList[i];
+
+                    // Try to get a meaningful name for the entity
+                    std::string entityName = "Entity #" + std::to_string(entity->getID());
+
+                    // If it has a sprite, show the sprite ID
+                    auto* sprite = entity->getComponent<SpriteComponent>();
+                    if (sprite && !sprite->textureID.empty()) {
+                        entityName = sprite->textureID + " #" + std::to_string(entity->getID());
+                    }
+
+                    button->setText(entityName);
+                    button->setVisible(true);
+                    button->setActive(true);
+                } else {
+                    button->setVisible(false);
+                    button->setActive(false);
+                }
+            }
+        }
+    }
+
+    LOG_DEBUG("Layers panel updated - {} entities on layer {}", m_layerEntitiesList.size(), currentLayer);
 }
 
 } // namespace NovaEditor

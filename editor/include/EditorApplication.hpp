@@ -110,6 +110,9 @@ private:
     NovaEngine::Entity* m_draggedEntity;
     NovaEngine::Vec2f m_dragOffset;
     bool m_isDragging;
+
+    // Layers panel entity list
+    std::vector<NovaEngine::Entity*> m_layerEntitiesList;
 };
 
 } // namespace NovaEditor
