@@ -31,7 +31,7 @@ bool EditorApplication::onInitialize() {
     m_uiManager_editor = std::make_unique<EditorUIManager>(m_uiManager, m_state.get(), m_editorConfig.get());
 
     // Initialize SceneManager with entity definitions
-    if (!m_sceneManager.initialize("client/bin/Release/data/definitions", "client/bin/Release/data/scenegraph.json")) {
+    if (!m_sceneManager.initialize("data/definitions/", "data/scenegraph.json")) {
         LOG_WARN("Failed to initialize SceneManager - scenes may not load properly");
     }
 
@@ -269,7 +269,7 @@ void EditorApplication::loadScene() {
 
     // TODO: Show file dialog to select scene
     // For now, we'll try to load a test scene
-    std::string scenePath = "client/bin/Release/data/scenes/test_scene.json";
+    std::string scenePath = "data/scenes/test_scene.json";
     std::string sceneName = "LoadedScene";
 
     LOG_INFO("Attempting to load scene from: {}", scenePath);
