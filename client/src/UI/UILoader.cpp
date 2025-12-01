@@ -168,7 +168,8 @@ void UILoader::parseImages(const nlohmann::json& imagesJson, UIManager& uiManage
         image->setUIID(layoutData.uiID);
         image->setGroupID(imageData.value("groupID", "main"));
         image->setLayer(imageData.value("layer", 0));
-        
+        image->setActive(imageData.value("isActive", true));
+
         Vec2f rescaledPos = applyRescale(
             static_cast<f32>(imageData.value("x", 0)),
             static_cast<f32>(imageData.value("y", 0))
