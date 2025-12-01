@@ -80,24 +80,27 @@ void EditorCamera::handleMouseDrag(const NovaEngine::Vec2f& delta) {
 NovaEngine::Vec2f EditorCamera::screenToWorld(const NovaEngine::Vec2i& screenPos) const {
     using namespace NovaEngine;
 
-    // Try using viewport's screenToWorld first
-    Vec2f worldPos = VIEWPORT().screenToWorld(screenPos);
+    // Get viewport's conversion
+    Vec2f viewportWorld = VIEWPORT().screenToWorld(screenPos);
 
-    // If viewport returns same as screen (indicating it's not working), do manual conversion
-    if (worldPos.x == static_cast<f32>(screenPos.x) && worldPos.y == static_cast<f32>(screenPos.y)) {
-        // Manual conversion: screen coordinates + camera offset - half window size
-        u32 windowWidth = WINDOW().getWidth();
-        u32 windowHeight = WINDOW().getHeight();
+    // Calculate manual conversion for comparison
+    u32 windowWidth = WINDOW().getWidth();
+    u32 windowHeight = WINDOW().getHeight();
 
-        // Convert screen to world: screen position relative to window center, then offset by camera position
-        worldPos.x = (static_cast<f32>(screenPos.x) - static_cast<f32>(windowWidth) / 2.0f) / m_zoom + m_position.x;
-        worldPos.y = (static_cast<f32>(screenPos.y) - static_cast<f32>(windowHeight) / 2.0f) / m_zoom + m_position.y;
+    Vec2f manualWorld;
+    manualWorld.x = (static_cast<f32>(screenPos.x) - static_cast<f32>(windowWidth) / 2.0f) / m_zoom + m_position.x;
+    manualWorld.y = (static_cast<f32>(screenPos.y) - static_cast<f32>(windowHeight) / 2.0f) / m_zoom + m_position.y;
 
-        LOG_DEBUG("Manual screen->world conversion: screen({}, {}) -> world({}, {}) [camera: ({}, {}), zoom: {}]",
-                  screenPos.x, screenPos.y, worldPos.x, worldPos.y, m_position.x, m_position.y, m_zoom);
-    }
+    // Always log both for debugging
+    LOG_INFO("Screen->World conversion:");
+    LOG_INFO("  Screen: ({}, {})", screenPos.x, screenPos.y);
+    LOG_INFO("  Viewport result: ({}, {})", viewportWorld.x, viewportWorld.y);
+    LOG_INFO("  Manual calc: ({}, {})", manualWorld.x, manualWorld.y);
+    LOG_INFO("  Camera: ({}, {}), zoom: {}, window: {}x{}",
+             m_position.x, m_position.y, m_zoom, windowWidth, windowHeight);
 
-    return worldPos;
+    // Use manual calculation (viewport might not be set up correctly)
+    return manualWorld;
 }
 
 NovaEngine::Vec2i EditorCamera::worldToScreen(const NovaEngine::Vec2f& worldPos) const {

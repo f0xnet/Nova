@@ -479,6 +479,7 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
 
                     Vec2f entityPos = transform->position;
                     Vec2f scale = transform->scale;
+                    Vec2f origin = transform->origin;
 
                     // Get sprite size if available for accurate hit detection
                     auto* sprite = entity->getComponent<SpriteComponent>();
@@ -487,19 +488,25 @@ void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
                         spriteSize = sprite->size;
                     }
 
-                    // Calculate actual bounds with scale applied
+                    // Calculate actual bounds accounting for origin
                     Vec2f scaledSize{spriteSize.x * scale.x, spriteSize.y * scale.y};
-                    Vec2f halfSize{scaledSize.x * 0.5f, scaledSize.y * 0.5f};
+                    Vec2f scaledOrigin{origin.x * scale.x, origin.y * scale.y};
 
-                    LOG_DEBUG("Entity {}: pos({}, {}), size({}, {}), bounds({}, {})",
+                    // Top-left corner of the sprite
+                    Vec2f topLeft{entityPos.x - scaledOrigin.x, entityPos.y - scaledOrigin.y};
+                    // Bottom-right corner
+                    Vec2f bottomRight{topLeft.x + scaledSize.x, topLeft.y + scaledSize.y};
+
+                    LOG_DEBUG("Entity {}: pos({}, {}), origin({}, {}), size({}, {}), bounds[({}, {}) to ({}, {})]",
                              entity->getID(), entityPos.x, entityPos.y,
-                             scaledSize.x, scaledSize.y, halfSize.x, halfSize.y);
+                             origin.x, origin.y, scaledSize.x, scaledSize.y,
+                             topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
 
-                    // Check if click is within sprite bounds (AABB test)
-                    if (worldPos.x >= entityPos.x - halfSize.x &&
-                        worldPos.x <= entityPos.x + halfSize.x &&
-                        worldPos.y >= entityPos.y - halfSize.y &&
-                        worldPos.y <= entityPos.y + halfSize.y) {
+                    // Check if click is within sprite bounds (AABB test accounting for origin)
+                    if (worldPos.x >= topLeft.x &&
+                        worldPos.x <= bottomRight.x &&
+                        worldPos.y >= topLeft.y &&
+                        worldPos.y <= bottomRight.y) {
 
                         LOG_INFO("Entity {} is under mouse!", entity->getID());
 
