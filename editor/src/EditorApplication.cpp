@@ -429,6 +429,20 @@ void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
         LOG_INFO("Grid: {}", m_state->isGridEnabled() ? "ON" : "OFF");
     }
 
+    // L: Toggle layers panel
+    if (input.key.code == KeyCode::L) {
+        toggleLayersPanel();
+    }
+
+    // P: Show properties of selected entity
+    if (input.key.code == KeyCode::P) {
+        if (m_state->getSelectedEntity()) {
+            showEntityProperties();
+        } else {
+            LOG_INFO("No entity selected - press P when an entity is selected to see properties");
+        }
+    }
+
     // Layer shortcuts (number keys 0-9 for layers 0-9)
     if (input.key.code >= KeyCode::Num0 && input.key.code <= KeyCode::Num9) {
         int layer = static_cast<int>(input.key.code) - static_cast<int>(KeyCode::Num0);
@@ -571,6 +585,12 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
                 button->setText(gridEnabled ? "Grid: ON" : "Grid: OFF");
             }
         }
+    }
+    else if (action == "toggle_layers") {
+        toggleLayersPanel();
+    }
+    else if (action == "close_properties") {
+        hideEntityProperties();
     }
     else if (action == "palette_category") {
         m_uiManager_editor->updateEntityPalette(value);
@@ -1452,6 +1472,107 @@ void EditorApplication::updateLayersPanel() {
     }
 
     LOG_DEBUG("Layers panel updated - {} entities on layer {}", m_layerEntitiesList.size(), currentLayer);
+}
+
+void EditorApplication::toggleLayersPanel() {
+    using namespace NovaEngine;
+
+    // Check current state
+    auto panelBg = m_uiManager.getComponent("layers_panel_bg");
+    bool isActive = false;
+
+    if (panelBg) {
+        isActive = panelBg->isActive();
+    }
+
+    // Toggle the panel
+    bool newState = !isActive;
+    m_uiManager.setGroupActive("layers_panel", newState);
+
+    LOG_INFO("Layers panel toggled: {}", newState ? "VISIBLE" : "HIDDEN");
+
+    // Update layers panel content if showing it
+    if (newState && m_currentScene) {
+        updateLayersPanel();
+    }
+}
+
+void EditorApplication::showEntityProperties() {
+    using namespace NovaEngine;
+
+    Entity* selectedEntity = m_state->getSelectedEntity();
+    if (!selectedEntity) {
+        LOG_WARN("Cannot show properties: no entity selected");
+        return;
+    }
+
+    LOG_INFO("Opening entity properties panel for entity ID {}", selectedEntity->getID());
+
+    // Update panel with entity data
+    updateEntityPropertiesPanel();
+
+    // Show the panel
+    m_uiManager.setGroupActive("entity_properties", true);
+}
+
+void EditorApplication::hideEntityProperties() {
+    using namespace NovaEngine;
+
+    LOG_INFO("Closing entity properties panel");
+    m_uiManager.setGroupActive("entity_properties", false);
+}
+
+void EditorApplication::updateEntityPropertiesPanel() {
+    using namespace NovaEngine;
+
+    Entity* selectedEntity = m_state->getSelectedEntity();
+    if (!selectedEntity) {
+        return;
+    }
+
+    auto* transform = selectedEntity->getComponent<TransformComponent>();
+    auto* sprite = selectedEntity->getComponent<SpriteComponent>();
+
+    if (!transform) {
+        return;
+    }
+
+    // Property indices match the order we created them:
+    // 0: ID, 1: Position X, 2: Position Y, 3: Scale X, 4: Scale Y, 5: Rotation, 6: Layer, 7: Texture ID
+
+    struct PropertyData {
+        std::string value;
+    };
+
+    std::vector<PropertyData> properties = {
+        {std::to_string(selectedEntity->getID())},
+        {std::to_string(static_cast<int>(transform->position.x))},
+        {std::to_string(static_cast<int>(transform->position.y))},
+        {std::to_string(transform->scale.x)},
+        {std::to_string(transform->scale.y)},
+        {std::to_string(transform->rotation)},
+        {sprite ? std::to_string(sprite->zOrder) : "N/A"},
+        {sprite && !sprite->textureID.empty() ? sprite->textureID : "N/A"}
+    };
+
+    // Update each property value text
+    for (size_t i = 0; i < properties.size(); ++i) {
+        std::string valueID = "prop_value_" + std::to_string(i);
+        auto valueComponent = m_uiManager.getComponent(valueID);
+
+        if (valueComponent) {
+            auto text = std::dynamic_pointer_cast<Text>(valueComponent);
+            if (text) {
+                try {
+                    text->setString(properties[i].value);
+                } catch (const std::exception& e) {
+                    LOG_ERROR("Failed to update property {}: {}", i, e.what());
+                }
+            }
+        }
+    }
+
+    LOG_DEBUG("Entity properties panel updated for entity ID {}", selectedEntity->getID());
 }
 
 } // namespace NovaEditor

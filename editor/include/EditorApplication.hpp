@@ -78,6 +78,12 @@ private:
 
     // Layers panel
     void updateLayersPanel();
+    void toggleLayersPanel();
+
+    // Entity properties panel
+    void showEntityProperties();
+    void hideEntityProperties();
+    void updateEntityPropertiesPanel();
 
 private:
     // Core systems
