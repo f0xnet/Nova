@@ -589,8 +589,31 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
     else if (action == "toggle_layers") {
         toggleLayersPanel();
     }
+    else if (action == "show_properties") {
+        if (m_state->getSelectedEntity()) {
+            showEntityProperties();
+        } else {
+            LOG_INFO("No entity selected - select an entity first to view properties");
+        }
+    }
     else if (action == "close_properties") {
         hideEntityProperties();
+    }
+    else if (action == "apply_properties") {
+        applyPropertyChanges();
+    }
+    else if (action == "modify_property") {
+        // value format: "propertyIndex:delta"
+        try {
+            size_t colonPos = value.find(':');
+            if (colonPos != std::string::npos) {
+                int propIndex = std::stoi(value.substr(0, colonPos));
+                float delta = std::stof(value.substr(colonPos + 1));
+                modifyEntityProperty(propIndex, delta);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse modify_property value: {}", e.what());
+        }
     }
     else if (action == "palette_category") {
         m_uiManager_editor->updateEntityPalette(value);
@@ -1573,6 +1596,116 @@ void EditorApplication::updateEntityPropertiesPanel() {
     }
 
     LOG_DEBUG("Entity properties panel updated for entity ID {}", selectedEntity->getID());
+}
+
+void EditorApplication::modifyEntityProperty(int propertyIndex, float delta) {
+    using namespace NovaEngine;
+
+    Entity* selectedEntity = m_state->getSelectedEntity();
+    if (!selectedEntity) {
+        return;
+    }
+
+    auto* transform = selectedEntity->getComponent<TransformComponent>();
+    auto* sprite = selectedEntity->getComponent<SpriteComponent>();
+
+    if (!transform) {
+        return;
+    }
+
+    // Property indices: 0=ID, 1=PosX, 2=PosY, 3=ScaleX, 4=ScaleY, 5=Rotation, 6=Layer, 7=TextureID
+    bool modified = false;
+    std::string propertyName;
+
+    switch (propertyIndex) {
+        case 1: // Position X
+            transform->position.x += delta;
+            propertyName = "Position X";
+            modified = true;
+            break;
+        case 2: // Position Y
+            transform->position.y += delta;
+            propertyName = "Position Y";
+            modified = true;
+            break;
+        case 3: // Scale X
+            transform->scale.x += delta * 0.1f;  // Smaller delta for scale
+            transform->scale.x = std::max(0.1f, transform->scale.x);  // Minimum scale
+            propertyName = "Scale X";
+            modified = true;
+            break;
+        case 4: // Scale Y
+            transform->scale.y += delta * 0.1f;
+            transform->scale.y = std::max(0.1f, transform->scale.y);
+            propertyName = "Scale Y";
+            modified = true;
+            break;
+        case 5: // Rotation
+            transform->rotation += delta * 5.0f;  // 5 degrees per click
+            propertyName = "Rotation";
+            modified = true;
+            break;
+        case 6: // Layer
+            if (sprite) {
+                sprite->zOrder += static_cast<i32>(delta);
+                sprite->zOrder = std::clamp(sprite->zOrder, -10, 10);  // Limit to -10..10
+                propertyName = "Layer";
+                modified = true;
+            }
+            break;
+        default:
+            LOG_WARN("Cannot modify property index {}", propertyIndex);
+            return;
+    }
+
+    if (modified) {
+        LOG_INFO("Modified {}: delta={}", propertyName, delta);
+        m_state->setSceneModified(true);
+
+        // Update the properties panel to show new values
+        updateEntityPropertiesPanel();
+    }
+}
+
+void EditorApplication::applyPropertyChanges() {
+    using namespace NovaEngine;
+
+    Entity* selectedEntity = m_state->getSelectedEntity();
+    if (!selectedEntity) {
+        LOG_WARN("No entity selected to apply changes");
+        return;
+    }
+
+    auto* sprite = selectedEntity->getComponent<SpriteComponent>();
+    if (!sprite) {
+        LOG_INFO("Property changes applied (no sprite to reload)");
+        return;
+    }
+
+    // Reload the sprite texture to ensure any changes are reflected
+    if (!sprite->textureID.empty()) {
+        LOG_INFO("Reloading sprite texture: {}", sprite->textureID);
+
+        // Get the sprite definition to reload the texture
+        const auto* definition = m_sceneManager.getDefinitionManager().getSpriteDefinition(sprite->textureID);
+        if (definition && definition->contains("texture")) {
+            std::string texturePath = (*definition)["texture"].get<std::string>();
+
+            // Reload the texture
+            sprite->textureHandle = RESOURCES().loadTexture(texturePath);
+            LOG_INFO("Texture reloaded: {}", texturePath);
+        }
+    }
+
+    // Mark scene as modified
+    m_state->setSceneModified(true);
+
+    // Update layers panel in case layer changed
+    if (m_currentScene) {
+        updateLayersPanel();
+    }
+
+    LOG_INFO("Property changes applied successfully for entity ID {}", selectedEntity->getID());
 }
 
 } // namespace NovaEditor

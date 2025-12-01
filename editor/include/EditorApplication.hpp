@@ -84,6 +84,8 @@ private:
     void showEntityProperties();
     void hideEntityProperties();
     void updateEntityPropertiesPanel();
+    void modifyEntityProperty(int propertyIndex, float delta);
+    void applyPropertyChanges();
 
 private:
     // Core systems
