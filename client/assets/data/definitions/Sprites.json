@@ -40,6 +40,30 @@
       "size": [32, 32],
       "scale": [1.0, 1.0],
       "zOrder": -10
+    },
+    {
+      "id": "npc_merchant",
+      "texture": "data/sprites/npc_merchant.png",
+      "width": 100,
+      "height": 200,
+      "scale": 2.0,
+      "zOrder": 10
+    },
+    {
+      "id": "npc_guard",
+      "texture": "data/sprites/npc_guard.png",
+      "width": 100,
+      "height": 200,
+      "scale": 2.0,
+      "zOrder": 10
+    },
+    {
+      "id": "npc_priest",
+      "texture": "data/sprites/npc_priest.png",
+      "width": 100,
+      "height": 200,
+      "scale": 2.0,
+      "zOrder": 10
     }
   ]
 }

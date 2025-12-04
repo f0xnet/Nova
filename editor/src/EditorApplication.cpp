@@ -59,6 +59,12 @@ bool EditorApplication::onInitialize() {
     auto sceneManEnd = std::chrono::high_resolution_clock::now();
     LOG_INFO("SceneManager initialization took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(sceneManEnd - sceneManStart).count());
 
+    // Load NPC definitions
+    LOG_INFO("Loading NPC definitions...");
+    if (!loadNPCDefinitions()) {
+        LOG_WARN("Failed to load NPC definitions - NPCs may not display properly");
+    }
+
     // Initialize editor
     initializeEditor();
 
@@ -175,6 +181,39 @@ void EditorApplication::initializeEditor() {
     m_state->setGridSize(m_editorConfig->getDefaultGridSize());
 
     LOG_INFO("Editor subsystems initialized");
+}
+
+bool EditorApplication::loadNPCDefinitions() {
+    using namespace NovaEngine;
+
+    std::string path = "data/definitions/NPCs.json";
+    std::ifstream file(path);
+
+    if (!file.is_open()) {
+        LOG_WARN("NPCs definitions file not found: {} (skipping)", path);
+        return true; // Not critical if file doesn't exist
+    }
+
+    try {
+        nlohmann::json data;
+        file >> data;
+
+        if (data.contains("npcs") && data["npcs"].is_array()) {
+            for (const auto& npc : data["npcs"]) {
+                if (npc.contains("id")) {
+                    std::string id = npc["id"];
+                    m_npcDefinitions[id] = npc;
+                    LOG_DEBUG("Loaded NPC definition: {}", id);
+                }
+            }
+        }
+
+        LOG_INFO("Loaded {} NPC definitions from {}", m_npcDefinitions.size(), path);
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to parse NPC definitions: {}", e.what());
+        return false;
+    }
 }
 
 void EditorApplication::printControls() {
@@ -1261,8 +1300,19 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
             // Create entity
             Entity* entity = m_currentScene->getEntityRegistry().createEntity();
 
-            // Load sprite definition to get all properties including scale
-            const auto* spriteDef = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
+            // First, look up the NPC definition to get the sprite ID
+            std::string spriteId;
+            auto npcDefIt = m_npcDefinitions.find(m_placementEntityId);
+            if (npcDefIt != m_npcDefinitions.end() && npcDefIt->second.contains("sprite")) {
+                spriteId = npcDefIt->second["sprite"].get<std::string>();
+                LOG_INFO("NPC '{}' uses sprite '{}'", m_placementEntityId, spriteId);
+            } else {
+                LOG_WARN("NPC definition not found or missing sprite field: {}", m_placementEntityId);
+                spriteId = m_placementEntityId; // Fallback to using NPC ID as sprite ID
+            }
+
+            // Now load the sprite definition using the correct sprite ID
+            const auto* spriteDef = m_sceneManager.getDefinitionManager().getSpriteDefinition(spriteId);
 
             // Add transform component
             auto transform = std::make_unique<TransformComponent>();
@@ -1288,7 +1338,7 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
                 if (spriteDef->contains("texture")) {
                     std::string texturePath = (*spriteDef)["texture"].get<std::string>();
                     sprite->textureHandle = RESOURCES().loadTexture(texturePath);
-                    sprite->textureID = m_placementEntityId;
+                    sprite->textureID = spriteId; // Use the sprite ID, not the NPC ID
                 }
                 if (spriteDef->contains("width") && spriteDef->contains("height")) {
                     sprite->size = Vec2f{

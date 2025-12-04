@@ -8,6 +8,8 @@
 #include "UI/EditorUIManager.hpp"
 #include "EditorCamera.hpp"
 #include <memory>
+#include <unordered_map>
+#include <nlohmann/json.hpp>
 
 namespace NovaEditor {
 
@@ -122,6 +124,10 @@ private:
 
     // Layers panel entity list
     std::vector<NovaEngine::Entity*> m_layerEntitiesList;
+
+    // NPC definitions (loaded from NPCs.json)
+    std::unordered_map<std::string, nlohmann::json> m_npcDefinitions;
+    bool loadNPCDefinitions();
 };
 
 } // namespace NovaEditor
