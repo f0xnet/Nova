@@ -13,6 +13,8 @@
 #include "UI/EditorUIManager.hpp"
 #include "UI/TimeOfDayPanel.hpp"
 #include "UI/PostProcessPanel.hpp"
+#include "UI/EntityPropertiesPanel.hpp"
+#include "UI/LayersPanel.hpp"
 #include "EditorCamera.hpp"
 #include <memory>
 #include <unordered_map>
@@ -85,16 +87,6 @@ private:
     void updateDraggingEntity(const NovaEngine::Vec2f& worldPos);
     void stopDraggingEntity();
 
-    // Layers panel
-    void updateLayersPanel();
-    void toggleLayersPanel();
-
-    // Entity properties panel
-    void showEntityProperties();
-    void hideEntityProperties();
-    void updateEntityPropertiesPanel();
-    void modifyEntityProperty(int propertyIndex, float delta);
-    void applyPropertyChanges();
 
 private:
     // Core systems
@@ -108,9 +100,11 @@ private:
     NovaEngine::BloomEffect* m_bloomEffect;
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
 
-    // UI Panels (NEW - eliminates 200+ lines of boilerplate!)
+    // UI Panels (NEW - eliminates 400+ lines of boilerplate!)
     std::unique_ptr<TimeOfDayPanel> m_timeOfDayPanel;
     std::unique_ptr<PostProcessPanel> m_postProcessPanel;
+    std::unique_ptr<EntityPropertiesPanel> m_entityPropertiesPanel;
+    std::unique_ptr<LayersPanel> m_layersPanel;
 
     // Editor subsystems
     std::unique_ptr<EditorConfig> m_editorConfig;
@@ -139,9 +133,6 @@ private:
     NovaEngine::Entity* m_draggedEntity;
     NovaEngine::Vec2f m_dragOffset;
     bool m_isDragging;
-
-    // Layers panel entity list
-    std::vector<NovaEngine::Entity*> m_layerEntitiesList;
 
     // NPC definitions (loaded from NPCs.json)
     std::unordered_map<std::string, nlohmann::json> m_npcDefinitions;

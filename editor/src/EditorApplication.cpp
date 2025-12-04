@@ -149,8 +149,13 @@ bool EditorApplication::onInitialize() {
         m_colorGradingEffect = nullptr;
     }
 
+    // Create a default empty scene
+    m_currentScene = new NovaEngine::Scene("EditorScene");
+
     // Initialize UI Panels (NEW ARCHITECTURE!)
     LOG_INFO("Initializing UI panels...");
+
+    // Time of Day panel
     if (m_dynamicLightingEffect) {
         m_timeOfDayPanel = std::make_unique<TimeOfDayPanel>(
             m_uiManager,
@@ -160,6 +165,7 @@ bool EditorApplication::onInitialize() {
         LOG_INFO("TimeOfDayPanel created");
     }
 
+    // Post-processing panel
     if (m_bloomEffect && m_colorGradingEffect) {
         m_postProcessPanel = std::make_unique<PostProcessPanel>(
             m_uiManager,
@@ -169,8 +175,29 @@ bool EditorApplication::onInitialize() {
         LOG_INFO("PostProcessPanel created");
     }
 
-    // Create a default empty scene
-    m_currentScene = new NovaEngine::Scene("EditorScene");
+    // Entity properties panel (with callback for layer changes)
+    m_entityPropertiesPanel = std::make_unique<EntityPropertiesPanel>(
+        m_uiManager,
+        m_state.get(),
+        &m_sceneManager,
+        [this]() {
+            // Callback when layer changes - update layers panel
+            if (m_layersPanel) {
+                m_layersPanel->update();
+            }
+        }
+    );
+    LOG_INFO("EntityPropertiesPanel created");
+
+    // Layers panel
+    m_layersPanel = std::make_unique<LayersPanel>(
+        m_uiManager,
+        m_state.get(),
+        m_currentScene
+    );
+    LOG_INFO("LayersPanel created");
+
+    LOG_INFO("All UI panels initialized successfully");
 
     printControls();
 
@@ -567,15 +594,17 @@ void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
 
     // L: Toggle layers panel
     if (input.key.code == KeyCode::L) {
-        toggleLayersPanel();
+        if (m_layersPanel) m_layersPanel->toggle();
     }
 
     // P: Show properties of selected entity
     if (input.key.code == KeyCode::P) {
-        if (m_state->getSelectedEntity()) {
-            showEntityProperties();
-        } else {
-            LOG_INFO("No entity selected - press P when an entity is selected to see properties");
+        if (m_entityPropertiesPanel) {
+            if (m_state->getSelectedEntity()) {
+                m_entityPropertiesPanel->show();
+            } else {
+                LOG_INFO("No entity selected - press P when an entity is selected to see properties");
+            }
         }
     }
 
@@ -723,32 +752,36 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
         }
     }
     else if (action == "toggle_layers") {
-        toggleLayersPanel();
+        if (m_layersPanel) m_layersPanel->toggle();
     }
     else if (action == "show_properties") {
-        if (m_state->getSelectedEntity()) {
-            showEntityProperties();
-        } else {
-            LOG_INFO("No entity selected - select an entity first to view properties");
+        if (m_entityPropertiesPanel) {
+            if (m_state->getSelectedEntity()) {
+                m_entityPropertiesPanel->show();
+            } else {
+                LOG_INFO("No entity selected - select an entity first to view properties");
+            }
         }
     }
     else if (action == "close_properties") {
-        hideEntityProperties();
+        if (m_entityPropertiesPanel) m_entityPropertiesPanel->hide();
     }
     else if (action == "apply_properties") {
-        applyPropertyChanges();
+        if (m_entityPropertiesPanel) m_entityPropertiesPanel->applyChanges();
     }
     else if (action == "modify_property") {
-        // value format: "propertyIndex:delta"
-        try {
-            size_t colonPos = value.find(':');
-            if (colonPos != std::string::npos) {
-                int propIndex = std::stoi(value.substr(0, colonPos));
-                float delta = std::stof(value.substr(colonPos + 1));
-                modifyEntityProperty(propIndex, delta);
+        if (m_entityPropertiesPanel) {
+            // value format: "propertyIndex:delta"
+            try {
+                size_t colonPos = value.find(':');
+                if (colonPos != std::string::npos) {
+                    int propIndex = std::stoi(value.substr(0, colonPos));
+                    float delta = std::stof(value.substr(colonPos + 1));
+                    m_entityPropertiesPanel->modifyProperty(propIndex, delta);
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to parse modify_property value: {}", e.what());
             }
-        } catch (const std::exception& e) {
-            LOG_ERROR("Failed to parse modify_property value: {}", e.what());
         }
     }
     else if (action == "palette_category") {
@@ -863,24 +896,26 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
             i32 layer = std::stoi(value);
             m_state->setCurrentLayer(layer);
             LOG_INFO("Current layer set to: {}", layer);
-            updateLayersPanel();
+            if (m_layersPanel) m_layersPanel->update();
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to parse layer value: {}", e.what());
         }
     }
     else if (action == "select_entity_from_list") {
         // Select entity from the layers panel list
-        try {
-            size_t index = std::stoul(value);
-            if (index < m_layerEntitiesList.size()) {
-                Entity* entity = m_layerEntitiesList[index];
-                LOG_INFO("Selected entity from list: ID {}", entity->getID());
-                selectEntity(entity);
-            } else {
-                LOG_ERROR("Invalid entity list index: {}", index);
+        if (m_layersPanel) {
+            try {
+                size_t index = std::stoul(value);
+                Entity* entity = m_layersPanel->getEntityFromList(index);
+                if (entity) {
+                    LOG_INFO("Selected entity from list: ID {}", entity->getID());
+                    selectEntity(entity);
+                } else {
+                    LOG_ERROR("Invalid entity list index: {}", index);
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to parse entity index: {}", e.what());
             }
-        } catch (const std::exception& e) {
-            LOG_ERROR("Failed to parse entity index: {}", e.what());
         }
     }
     // Time of Day actions (NEW - using panels!)
@@ -1012,7 +1047,10 @@ void EditorApplication::loadScene(const std::string& scenePath) {
                      m_currentScene->getEntityRegistry().getEntityCount());
 
             // Update layers panel to show entities in loaded scene
-            updateLayersPanel();
+            if (m_layersPanel) {
+                m_layersPanel->setScene(m_currentScene);
+                m_layersPanel->update();
+            }
         } else {
             LOG_ERROR("Scene was loaded but could not be retrieved from SceneManager");
         }
@@ -1407,7 +1445,7 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
 
             LOG_INFO("Sprite entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
-            updateLayersPanel();
+            if (m_layersPanel) m_layersPanel->update();
 
             // Exit placement mode after placing entity
             exitPlacementMode();
@@ -1462,7 +1500,7 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
 
             LOG_INFO("Light entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
-            updateLayersPanel();
+            if (m_layersPanel) m_layersPanel->update();
 
             // Exit placement mode after placing entity
             exitPlacementMode();
@@ -1544,7 +1582,7 @@ void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
 
             LOG_INFO("NPC entity created successfully (ID: {})", entity->getID());
             m_state->setSceneModified(true);
-            updateLayersPanel();
+            if (m_layersPanel) m_layersPanel->update();
 
             // Exit placement mode after placing entity
             exitPlacementMode();
@@ -1617,316 +1655,6 @@ void EditorApplication::stopDraggingEntity() {
         m_draggedEntity = nullptr;
         m_dragOffset = NovaEngine::Vec2f{0.0f, 0.0f};
     }
-}
-
-void EditorApplication::updateLayersPanel() {
-    using namespace NovaEngine;
-
-    if (!m_currentScene) {
-        return;
-    }
-
-    // Count entities per layer and collect entities by layer
-    std::map<i32, int> layerCounts;
-    std::map<i32, std::vector<Entity*>> entitiesByLayer;
-
-    const auto& entities = m_currentScene->getEntityRegistry().getAllEntities();
-    for (auto* entity : entities) {
-        if (entity) {
-            auto* sprite = entity->getComponent<SpriteComponent>();
-            if (sprite) {
-                layerCounts[sprite->zOrder]++;
-                entitiesByLayer[sprite->zOrder].push_back(entity);
-            }
-        }
-    }
-
-    // Update layer button texts
-    struct LayerButton {
-        std::string buttonID;
-        i32 layer;
-    };
-
-    std::vector<LayerButton> layerButtons = {
-        {"btn_layer_m10", -10},
-        {"btn_layer_m5", -5},
-        {"btn_layer_m1", -1},
-        {"btn_layer_0", 0},
-        {"btn_layer_1", 1},
-        {"btn_layer_2", 2},
-        {"btn_layer_3", 3},
-        {"btn_layer_5", 5},
-        {"btn_layer_10", 10}
-    };
-
-    i32 currentLayer = m_state->getCurrentLayer();
-
-    for (const auto& lb : layerButtons) {
-        auto btnComponent = m_uiManager.getComponent(lb.buttonID);
-        if (btnComponent) {
-            auto button = std::dynamic_pointer_cast<Button>(btnComponent);
-            if (button) {
-                int count = layerCounts[lb.layer];
-                std::string text = "Layer " + std::to_string(lb.layer) + ": " + std::to_string(count);
-
-                // Add indicator for current layer
-                if (lb.layer == currentLayer) {
-                    text = "> " + text + " <";
-                }
-
-                button->setText(text);
-            }
-        }
-    }
-
-    // Update entity list for current layer
-    m_layerEntitiesList.clear();
-    if (entitiesByLayer.count(currentLayer) > 0) {
-        m_layerEntitiesList = entitiesByLayer[currentLayer];
-    }
-
-    // Update entity list buttons
-    for (size_t i = 0; i < 10; ++i) {
-        std::string btnID = "btn_layer_entity_" + std::to_string(i);
-        auto btnComponent = m_uiManager.getComponent(btnID);
-        if (btnComponent) {
-            auto button = std::dynamic_pointer_cast<Button>(btnComponent);
-            if (button) {
-                if (i < m_layerEntitiesList.size()) {
-                    Entity* entity = m_layerEntitiesList[i];
-
-                    // Try to get a meaningful name for the entity
-                    std::string entityName = "Entity #" + std::to_string(entity->getID());
-
-                    // If it has a sprite, show the sprite ID
-                    auto* sprite = entity->getComponent<SpriteComponent>();
-                    if (sprite && !sprite->textureID.empty()) {
-                        entityName = sprite->textureID + " #" + std::to_string(entity->getID());
-                    }
-
-                    button->setText(entityName);
-                    button->setVisible(true);
-                    button->setActive(true);
-                } else {
-                    button->setVisible(false);
-                    button->setActive(false);
-                }
-            }
-        }
-    }
-
-    LOG_DEBUG("Layers panel updated - {} entities on layer {}", m_layerEntitiesList.size(), currentLayer);
-}
-
-void EditorApplication::toggleLayersPanel() {
-    using namespace NovaEngine;
-
-    // Check current state
-    auto panelBg = m_uiManager.getComponent("layers_panel_bg");
-    bool isActive = false;
-
-    if (panelBg) {
-        isActive = panelBg->isActive();
-    }
-
-    // Toggle the panel
-    bool newState = !isActive;
-    m_uiManager.setGroupActive("layers_panel", newState);
-
-    LOG_INFO("Layers panel toggled: {}", newState ? "VISIBLE" : "HIDDEN");
-
-    // Update layers panel content if showing it
-    if (newState && m_currentScene) {
-        updateLayersPanel();
-    }
-}
-
-void EditorApplication::showEntityProperties() {
-    using namespace NovaEngine;
-
-    Entity* selectedEntity = m_state->getSelectedEntity();
-    if (!selectedEntity) {
-        LOG_WARN("Cannot show properties: no entity selected");
-        return;
-    }
-
-    LOG_INFO("Opening entity properties panel for entity ID {}", selectedEntity->getID());
-
-    // Update panel with entity data
-    updateEntityPropertiesPanel();
-
-    // Show the panel
-    m_uiManager.setGroupActive("entity_properties", true);
-}
-
-void EditorApplication::hideEntityProperties() {
-    using namespace NovaEngine;
-
-    LOG_INFO("Closing entity properties panel");
-    m_uiManager.setGroupActive("entity_properties", false);
-}
-
-void EditorApplication::updateEntityPropertiesPanel() {
-    using namespace NovaEngine;
-
-    Entity* selectedEntity = m_state->getSelectedEntity();
-    if (!selectedEntity) {
-        return;
-    }
-
-    auto* transform = selectedEntity->getComponent<TransformComponent>();
-    auto* sprite = selectedEntity->getComponent<SpriteComponent>();
-
-    if (!transform) {
-        return;
-    }
-
-    // Property indices match the order we created them:
-    // 0: ID, 1: Position X, 2: Position Y, 3: Scale X, 4: Scale Y, 5: Rotation, 6: Layer, 7: Texture ID
-
-    struct PropertyData {
-        std::string value;
-    };
-
-    std::vector<PropertyData> properties = {
-        {std::to_string(selectedEntity->getID())},
-        {std::to_string(static_cast<int>(transform->position.x))},
-        {std::to_string(static_cast<int>(transform->position.y))},
-        {std::to_string(transform->scale.x)},
-        {std::to_string(transform->scale.y)},
-        {std::to_string(transform->rotation)},
-        {sprite ? std::to_string(sprite->zOrder) : "N/A"},
-        {sprite && !sprite->textureID.empty() ? sprite->textureID : "N/A"}
-    };
-
-    // Update each property value text
-    for (size_t i = 0; i < properties.size(); ++i) {
-        std::string valueID = "prop_value_" + std::to_string(i);
-        auto valueComponent = m_uiManager.getComponent(valueID);
-
-        if (valueComponent) {
-            auto text = std::dynamic_pointer_cast<Text>(valueComponent);
-            if (text) {
-                try {
-                    text->setString(properties[i].value);
-                } catch (const std::exception& e) {
-                    LOG_ERROR("Failed to update property {}: {}", i, e.what());
-                }
-            }
-        }
-    }
-
-    LOG_DEBUG("Entity properties panel updated for entity ID {}", selectedEntity->getID());
-}
-
-void EditorApplication::modifyEntityProperty(int propertyIndex, float delta) {
-    using namespace NovaEngine;
-
-    Entity* selectedEntity = m_state->getSelectedEntity();
-    if (!selectedEntity) {
-        return;
-    }
-
-    auto* transform = selectedEntity->getComponent<TransformComponent>();
-    auto* sprite = selectedEntity->getComponent<SpriteComponent>();
-
-    if (!transform) {
-        return;
-    }
-
-    // Property indices: 0=ID, 1=PosX, 2=PosY, 3=ScaleX, 4=ScaleY, 5=Rotation, 6=Layer, 7=TextureID
-    bool modified = false;
-    std::string propertyName;
-
-    switch (propertyIndex) {
-        case 1: // Position X
-            transform->position.x += delta;
-            propertyName = "Position X";
-            modified = true;
-            break;
-        case 2: // Position Y
-            transform->position.y += delta;
-            propertyName = "Position Y";
-            modified = true;
-            break;
-        case 3: // Scale X
-            transform->scale.x += delta * 0.1f;  // Smaller delta for scale
-            transform->scale.x = std::max(0.1f, transform->scale.x);  // Minimum scale
-            propertyName = "Scale X";
-            modified = true;
-            break;
-        case 4: // Scale Y
-            transform->scale.y += delta * 0.1f;
-            transform->scale.y = std::max(0.1f, transform->scale.y);
-            propertyName = "Scale Y";
-            modified = true;
-            break;
-        case 5: // Rotation
-            transform->rotation += delta * 5.0f;  // 5 degrees per click
-            propertyName = "Rotation";
-            modified = true;
-            break;
-        case 6: // Layer
-            if (sprite) {
-                sprite->zOrder += static_cast<i32>(delta);
-                sprite->zOrder = std::clamp(sprite->zOrder, -10, 10);  // Limit to -10..10
-                propertyName = "Layer";
-                modified = true;
-            }
-            break;
-        default:
-            LOG_WARN("Cannot modify property index {}", propertyIndex);
-            return;
-    }
-
-    if (modified) {
-        LOG_INFO("Modified {}: delta={}", propertyName, delta);
-        m_state->setSceneModified(true);
-
-        // Update the properties panel to show new values
-        updateEntityPropertiesPanel();
-    }
-}
-
-void EditorApplication::applyPropertyChanges() {
-    using namespace NovaEngine;
-
-    Entity* selectedEntity = m_state->getSelectedEntity();
-    if (!selectedEntity) {
-        LOG_WARN("No entity selected to apply changes");
-        return;
-    }
-
-    auto* sprite = selectedEntity->getComponent<SpriteComponent>();
-    if (!sprite) {
-        LOG_INFO("Property changes applied (no sprite to reload)");
-        return;
-    }
-
-    // Reload the sprite texture to ensure any changes are reflected
-    if (!sprite->textureID.empty()) {
-        LOG_INFO("Reloading sprite texture: {}", sprite->textureID);
-
-        // Get the sprite definition to reload the texture
-        const auto* definition = m_sceneManager.getDefinitionManager().getSpriteDefinition(sprite->textureID);
-        if (definition && definition->contains("texture")) {
-            std::string texturePath = (*definition)["texture"].get<std::string>();
-
-            // Reload the texture
-            sprite->textureHandle = RESOURCES().loadTexture(texturePath);
-            LOG_INFO("Texture reloaded: {}", texturePath);
-        }
-    }
-
-    // Mark scene as modified
-    m_state->setSceneModified(true);
-
-    // Update layers panel in case layer changed
-    if (m_currentScene) {
-        updateLayersPanel();
-    }
-
-    LOG_INFO("Property changes applied successfully for entity ID {}", selectedEntity->getID());
 }
 
 } // namespace NovaEditor
