@@ -3,6 +3,11 @@
 #include <NovaEngine/Core/Application.hpp>
 #include <NovaEngine/ECS/SceneManager.hpp>
 #include <NovaEngine/UI/UIManager.hpp>
+#include <NovaEngine/Systems/LightingSystem.hpp>
+#include <NovaEngine/Rendering/PostProcessPipeline.hpp>
+#include <NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp>
+#include <NovaEngine/Rendering/Effects/BloomEffect.hpp>
+#include <NovaEngine/Rendering/Effects/ColorGradingEffect.hpp>
 #include "Core/EditorState.hpp"
 #include "Core/EditorConfig.hpp"
 #include "UI/EditorUIManager.hpp"
@@ -89,10 +94,33 @@ private:
     void modifyEntityProperty(int propertyIndex, float delta);
     void applyPropertyChanges();
 
+    // Time of Day panel
+    void showTimeOfDayPanel();
+    void closeTimeOfDayPanel();
+    void updateTimeOfDayPanel();
+    void setTimeOfDay(float time);
+    void adjustAmbientDarkness(float delta);
+
+    // Post-Processing panel
+    void showPostProcessPanel();
+    void closePostProcessPanel();
+    void updatePostProcessPanel();
+    void adjustBloomIntensity(float delta);
+    void adjustSaturation(float delta);
+    void adjustContrast(float delta);
+    void adjustBrightness(float delta);
+
 private:
     // Core systems
     NovaEngine::SceneManager m_sceneManager;
     NovaEngine::UIManager m_uiManager;
+
+    // Rendering systems
+    std::unique_ptr<NovaEngine::LightingSystem> m_lightingSystem;
+    std::unique_ptr<NovaEngine::PostProcessPipeline> m_postProcessPipeline;
+    NovaEngine::DynamicLightingEffect* m_dynamicLightingEffect;
+    NovaEngine::BloomEffect* m_bloomEffect;
+    NovaEngine::ColorGradingEffect* m_colorGradingEffect;
 
     // Editor subsystems
     std::unique_ptr<EditorConfig> m_editorConfig;

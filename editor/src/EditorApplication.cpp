@@ -15,6 +15,10 @@ namespace NovaEditor {
 
 EditorApplication::EditorApplication()
     : Application()
+    , m_lightingSystem(std::make_unique<NovaEngine::LightingSystem>())
+    , m_dynamicLightingEffect(nullptr)
+    , m_bloomEffect(nullptr)
+    , m_colorGradingEffect(nullptr)
     , m_currentScene(nullptr)
     , m_sceneDialogPage(0)
     , m_entityDialogPage(0)
@@ -88,6 +92,36 @@ bool EditorApplication::onInitialize() {
     m_camera->setZoomSpeed(m_editorConfig->getCameraZoomSpeed());
     m_camera->setZoomLimits(m_editorConfig->getCameraMinZoom(), m_editorConfig->getCameraMaxZoom());
 
+    // Initialize post-processing pipeline
+    LOG_INFO("Initializing post-processing pipeline...");
+    m_postProcessPipeline = std::make_unique<NovaEngine::PostProcessPipeline>(&GRAPHICS());
+    if (!m_postProcessPipeline->initialize(m_config.windowWidth, m_config.windowHeight)) {
+        LOG_WARN("Failed to initialize PostProcessPipeline");
+    } else {
+        // Add effects in order
+        m_dynamicLightingEffect = m_postProcessPipeline->addEffect<NovaEngine::DynamicLightingEffect>();
+        m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
+        m_colorGradingEffect = m_postProcessPipeline->addEffect<NovaEngine::ColorGradingEffect>();
+
+        // Set default values
+        if (m_dynamicLightingEffect) {
+            m_dynamicLightingEffect->setAmbientDarkness(0.5f);
+            m_dynamicLightingEffect->setTimeOfDay(0.5f); // Noon by default
+            m_lightingSystem->setLightingEffect(m_dynamicLightingEffect);
+            LOG_INFO("Dynamic lighting effect initialized");
+        }
+        if (m_bloomEffect) {
+            m_bloomEffect->setIntensity(0.4f);
+            LOG_INFO("Bloom effect initialized");
+        }
+        if (m_colorGradingEffect) {
+            m_colorGradingEffect->setSaturation(1.3f);
+            m_colorGradingEffect->setContrast(1.0f);
+            m_colorGradingEffect->setBrightness(0.0f);
+            LOG_INFO("Color grading effect initialized");
+        }
+    }
+
     // Create a default empty scene
     m_currentScene = new NovaEngine::Scene("EditorScene");
 
@@ -110,10 +144,21 @@ void EditorApplication::onUpdate(float deltaTime) {
     // Update current scene
     if (m_currentScene) {
         m_currentScene->update(deltaTime);
+
+        // Update lighting system with scene entities
+        if (m_lightingSystem && m_dynamicLightingEffect) {
+            m_dynamicLightingEffect->setCamera(m_camera->getPosition(), NovaEngine::VIEWPORT().getViewSize());
+            m_lightingSystem->update(deltaTime, m_currentScene->getEntityRegistry());
+        }
     }
 }
 
 void EditorApplication::onRender() {
+    // Begin post-processing (renders scene to texture)
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->beginSceneRender();
+    }
+
     // Render scene with camera view
     renderScene();
 
@@ -125,7 +170,12 @@ void EditorApplication::onRender() {
     // Render selection box around selected entity
     renderSelectionBox();
 
-    // Render UI (in screen space)
+    // Apply post-processing effects
+    if (m_postProcessPipeline) {
+        m_postProcessPipeline->endSceneRender(1.0f/60.0f);
+    }
+
+    // Render UI (in screen space, after post-processing)
     renderUI();
 }
 
@@ -784,6 +834,68 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
             }
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to parse entity index: {}", e.what());
+        }
+    }
+    // Time of Day actions
+    else if (action == "show_time_of_day") {
+        showTimeOfDayPanel();
+    }
+    else if (action == "close_time_panel") {
+        closeTimeOfDayPanel();
+    }
+    else if (action == "set_time") {
+        try {
+            float time = std::stof(value);
+            setTimeOfDay(time);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse time value: {}", e.what());
+        }
+    }
+    else if (action == "adjust_ambient") {
+        try {
+            float delta = std::stof(value);
+            adjustAmbientDarkness(delta);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse ambient delta: {}", e.what());
+        }
+    }
+    // Post-Processing actions
+    else if (action == "show_postprocess") {
+        showPostProcessPanel();
+    }
+    else if (action == "close_pp_panel") {
+        closePostProcessPanel();
+    }
+    else if (action == "adjust_bloom") {
+        try {
+            float delta = std::stof(value);
+            adjustBloomIntensity(delta);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse bloom delta: {}", e.what());
+        }
+    }
+    else if (action == "adjust_saturation") {
+        try {
+            float delta = std::stof(value);
+            adjustSaturation(delta);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse saturation delta: {}", e.what());
+        }
+    }
+    else if (action == "adjust_contrast") {
+        try {
+            float delta = std::stof(value);
+            adjustContrast(delta);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse contrast delta: {}", e.what());
+        }
+    }
+    else if (action == "adjust_brightness") {
+        try {
+            float delta = std::stof(value);
+            adjustBrightness(delta);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Failed to parse brightness delta: {}", e.what());
         }
     }
     else {
@@ -1756,6 +1868,247 @@ void EditorApplication::applyPropertyChanges() {
     }
 
     LOG_INFO("Property changes applied successfully for entity ID {}", selectedEntity->getID());
+}
+
+// ===== TIME OF DAY PANEL =====
+
+void EditorApplication::showTimeOfDayPanel() {
+    using namespace NovaEngine;
+    LOG_INFO("Opening Time of Day panel");
+
+    updateTimeOfDayPanel();
+    m_uiManager.setGroupActive("time_panel", true);
+}
+
+void EditorApplication::closeTimeOfDayPanel() {
+    using namespace NovaEngine;
+    LOG_INFO("Closing Time of Day panel");
+
+    m_uiManager.setGroupActive("time_panel", false);
+}
+
+void EditorApplication::updateTimeOfDayPanel() {
+    using namespace NovaEngine;
+
+    if (!m_dynamicLightingEffect) return;
+
+    // Get current values
+    float timeOfDay = m_lightingSystem ? m_lightingSystem->getTimeOfDay() : 0.5f;
+    float ambient = m_dynamicLightingEffect->getAmbientDarkness();
+
+    // Convert time to readable format (0.0 = midnight, 0.5 = noon)
+    int hours = static_cast<int>(timeOfDay * 24.0f);
+    int minutes = static_cast<int>((timeOfDay * 24.0f - hours) * 60.0f);
+    std::string timeStr;
+    if (timeOfDay < 0.05f || timeOfDay > 0.95f) {
+        timeStr = "Midnight";
+    } else if (timeOfDay >= 0.2f && timeOfDay <= 0.3f) {
+        timeStr = "Dawn";
+    } else if (timeOfDay >= 0.45f && timeOfDay <= 0.55f) {
+        timeStr = "Noon";
+    } else if (timeOfDay >= 0.7f && timeOfDay <= 0.8f) {
+        timeStr = "Dusk";
+    } else {
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "%02d:%02d", hours, minutes);
+        timeStr = buffer;
+    }
+
+    // Update time value text
+    auto timeValueText = m_uiManager.getComponent("time_value");
+    if (timeValueText) {
+        auto text = std::dynamic_pointer_cast<Text>(timeValueText);
+        if (text) {
+            text->setText(timeStr);
+        }
+    }
+
+    // Update ambient value text
+    auto ambientValueText = m_uiManager.getComponent("ambient_value");
+    if (ambientValueText) {
+        auto text = std::dynamic_pointer_cast<Text>(ambientValueText);
+        if (text) {
+            char buffer[16];
+            snprintf(buffer, sizeof(buffer), "%.2f", ambient);
+            text->setText(buffer);
+        }
+    }
+}
+
+void EditorApplication::setTimeOfDay(float time) {
+    using namespace NovaEngine;
+
+    if (!m_lightingSystem || !m_dynamicLightingEffect) {
+        LOG_WARN("Lighting system not initialized");
+        return;
+    }
+
+    // Clamp time to valid range [0, 1]
+    time = std::max(0.0f, std::min(1.0f, time));
+
+    m_lightingSystem->setTimeOfDay(time);
+    m_dynamicLightingEffect->setTimeOfDay(time);
+
+    LOG_INFO("Time of day set to: {}", time);
+    updateTimeOfDayPanel();
+}
+
+void EditorApplication::adjustAmbientDarkness(float delta) {
+    using namespace NovaEngine;
+
+    if (!m_dynamicLightingEffect) {
+        LOG_WARN("Dynamic lighting effect not initialized");
+        return;
+    }
+
+    float currentAmbient = m_dynamicLightingEffect->getAmbientDarkness();
+    float newAmbient = std::max(0.01f, std::min(1.0f, currentAmbient + delta));
+
+    m_dynamicLightingEffect->setAmbientDarkness(newAmbient);
+
+    LOG_INFO("Ambient darkness adjusted: {} -> {}", currentAmbient, newAmbient);
+    updateTimeOfDayPanel();
+}
+
+// ===== POST-PROCESSING PANEL =====
+
+void EditorApplication::showPostProcessPanel() {
+    using namespace NovaEngine;
+    LOG_INFO("Opening Post-Processing panel");
+
+    updatePostProcessPanel();
+    m_uiManager.setGroupActive("pp_panel", true);
+}
+
+void EditorApplication::closePostProcessPanel() {
+    using namespace NovaEngine;
+    LOG_INFO("Closing Post-Processing panel");
+
+    m_uiManager.setGroupActive("pp_panel", false);
+}
+
+void EditorApplication::updatePostProcessPanel() {
+    using namespace NovaEngine;
+
+    // Update Bloom value
+    if (m_bloomEffect) {
+        float bloom = m_bloomEffect->getIntensity();
+        auto bloomText = m_uiManager.getComponent("pp_bloom_value");
+        if (bloomText) {
+            auto text = std::dynamic_pointer_cast<Text>(bloomText);
+            if (text) {
+                char buffer[16];
+                snprintf(buffer, sizeof(buffer), "%.2f", bloom);
+                text->setText(buffer);
+            }
+        }
+    }
+
+    // Update Saturation value
+    if (m_colorGradingEffect) {
+        float saturation = m_colorGradingEffect->getSaturation();
+        auto satText = m_uiManager.getComponent("pp_saturation_value");
+        if (satText) {
+            auto text = std::dynamic_pointer_cast<Text>(satText);
+            if (text) {
+                char buffer[16];
+                snprintf(buffer, sizeof(buffer), "%.2f", saturation);
+                text->setText(buffer);
+            }
+        }
+
+        // Update Contrast value
+        float contrast = m_colorGradingEffect->getContrast();
+        auto contrastText = m_uiManager.getComponent("pp_contrast_value");
+        if (contrastText) {
+            auto text = std::dynamic_pointer_cast<Text>(contrastText);
+            if (text) {
+                char buffer[16];
+                snprintf(buffer, sizeof(buffer), "%.2f", contrast);
+                text->setText(buffer);
+            }
+        }
+
+        // Update Brightness value
+        float brightness = m_colorGradingEffect->getBrightness();
+        auto brightnessText = m_uiManager.getComponent("pp_brightness_value");
+        if (brightnessText) {
+            auto text = std::dynamic_pointer_cast<Text>(brightnessText);
+            if (text) {
+                char buffer[16];
+                snprintf(buffer, sizeof(buffer), "%.2f", brightness);
+                text->setText(buffer);
+            }
+        }
+    }
+}
+
+void EditorApplication::adjustBloomIntensity(float delta) {
+    using namespace NovaEngine;
+
+    if (!m_bloomEffect) {
+        LOG_WARN("Bloom effect not initialized");
+        return;
+    }
+
+    float currentBloom = m_bloomEffect->getIntensity();
+    float newBloom = std::max(0.0f, std::min(2.0f, currentBloom + delta));
+
+    m_bloomEffect->setIntensity(newBloom);
+
+    LOG_INFO("Bloom intensity adjusted: {} -> {}", currentBloom, newBloom);
+    updatePostProcessPanel();
+}
+
+void EditorApplication::adjustSaturation(float delta) {
+    using namespace NovaEngine;
+
+    if (!m_colorGradingEffect) {
+        LOG_WARN("Color grading effect not initialized");
+        return;
+    }
+
+    float currentSat = m_colorGradingEffect->getSaturation();
+    float newSat = std::max(0.0f, std::min(3.0f, currentSat + delta));
+
+    m_colorGradingEffect->setSaturation(newSat);
+
+    LOG_INFO("Saturation adjusted: {} -> {}", currentSat, newSat);
+    updatePostProcessPanel();
+}
+
+void EditorApplication::adjustContrast(float delta) {
+    using namespace NovaEngine;
+
+    if (!m_colorGradingEffect) {
+        LOG_WARN("Color grading effect not initialized");
+        return;
+    }
+
+    float currentContrast = m_colorGradingEffect->getContrast();
+    float newContrast = std::max(0.0f, std::min(3.0f, currentContrast + delta));
+
+    m_colorGradingEffect->setContrast(newContrast);
+
+    LOG_INFO("Contrast adjusted: {} -> {}", currentContrast, newContrast);
+    updatePostProcessPanel();
+}
+
+void EditorApplication::adjustBrightness(float delta) {
+    using namespace NovaEngine;
+
+    if (!m_colorGradingEffect) {
+        LOG_WARN("Color grading effect not initialized");
+        return;
+    }
+
+    float currentBrightness = m_colorGradingEffect->getBrightness();
+    float newBrightness = std::max(-1.0f, std::min(1.0f, currentBrightness + delta));
+
+    m_colorGradingEffect->setBrightness(newBrightness);
+
+    LOG_INFO("Brightness adjusted: {} -> {}", currentBrightness, newBrightness);
+    updatePostProcessPanel();
 }
 
 } // namespace NovaEditor
