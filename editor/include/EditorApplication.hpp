@@ -11,6 +11,8 @@
 #include "Core/EditorState.hpp"
 #include "Core/EditorConfig.hpp"
 #include "UI/EditorUIManager.hpp"
+#include "UI/TimeOfDayPanel.hpp"
+#include "UI/PostProcessPanel.hpp"
 #include "EditorCamera.hpp"
 #include <memory>
 #include <unordered_map>
@@ -94,22 +96,6 @@ private:
     void modifyEntityProperty(int propertyIndex, float delta);
     void applyPropertyChanges();
 
-    // Time of Day panel
-    void showTimeOfDayPanel();
-    void closeTimeOfDayPanel();
-    void updateTimeOfDayPanel();
-    void setTimeOfDay(float time);
-    void adjustAmbientDarkness(float delta);
-
-    // Post-Processing panel
-    void showPostProcessPanel();
-    void closePostProcessPanel();
-    void updatePostProcessPanel();
-    void adjustBloomIntensity(float delta);
-    void adjustSaturation(float delta);
-    void adjustContrast(float delta);
-    void adjustBrightness(float delta);
-
 private:
     // Core systems
     NovaEngine::SceneManager m_sceneManager;
@@ -121,6 +107,10 @@ private:
     NovaEngine::DynamicLightingEffect* m_dynamicLightingEffect;
     NovaEngine::BloomEffect* m_bloomEffect;
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
+
+    // UI Panels (NEW - eliminates 200+ lines of boilerplate!)
+    std::unique_ptr<TimeOfDayPanel> m_timeOfDayPanel;
+    std::unique_ptr<PostProcessPanel> m_postProcessPanel;
 
     // Editor subsystems
     std::unique_ptr<EditorConfig> m_editorConfig;
