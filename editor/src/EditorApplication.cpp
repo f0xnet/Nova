@@ -94,32 +94,59 @@ bool EditorApplication::onInitialize() {
 
     // Initialize post-processing pipeline
     LOG_INFO("Initializing post-processing pipeline...");
-    m_postProcessPipeline = std::make_unique<NovaEngine::PostProcessPipeline>(&GRAPHICS());
-    if (!m_postProcessPipeline->initialize(m_config.windowWidth, m_config.windowHeight)) {
-        LOG_WARN("Failed to initialize PostProcessPipeline");
-    } else {
-        // Add effects in order
-        m_dynamicLightingEffect = m_postProcessPipeline->addEffect<NovaEngine::DynamicLightingEffect>();
-        m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
-        m_colorGradingEffect = m_postProcessPipeline->addEffect<NovaEngine::ColorGradingEffect>();
+    try {
+        m_postProcessPipeline = std::make_unique<NovaEngine::PostProcessPipeline>(&GRAPHICS());
+        LOG_INFO("PostProcessPipeline created successfully");
 
-        // Set default values
-        if (m_dynamicLightingEffect) {
-            m_dynamicLightingEffect->setAmbientDarkness(0.5f);
-            m_dynamicLightingEffect->setTimeOfDay(0.5f); // Noon by default
-            m_lightingSystem->setLightingEffect(m_dynamicLightingEffect);
-            LOG_INFO("Dynamic lighting effect initialized");
+        if (!m_postProcessPipeline->initialize(m_config.windowWidth, m_config.windowHeight)) {
+            LOG_WARN("Failed to initialize PostProcessPipeline - post-processing will be disabled");
+            m_postProcessPipeline.reset();
+        } else {
+            LOG_INFO("PostProcessPipeline initialized successfully");
+
+            // Add effects in order
+            LOG_INFO("Adding DynamicLightingEffect...");
+            m_dynamicLightingEffect = m_postProcessPipeline->addEffect<NovaEngine::DynamicLightingEffect>();
+
+            LOG_INFO("Adding BloomEffect...");
+            m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
+
+            LOG_INFO("Adding ColorGradingEffect...");
+            m_colorGradingEffect = m_postProcessPipeline->addEffect<NovaEngine::ColorGradingEffect>();
+
+            // Set default values
+            if (m_dynamicLightingEffect) {
+                m_dynamicLightingEffect->setAmbientDarkness(0.5f);
+                m_dynamicLightingEffect->setTimeOfDay(0.5f); // Noon by default
+                m_lightingSystem->setLightingEffect(m_dynamicLightingEffect);
+                LOG_INFO("Dynamic lighting effect initialized");
+            } else {
+                LOG_WARN("DynamicLightingEffect is null");
+            }
+
+            if (m_bloomEffect) {
+                m_bloomEffect->setIntensity(0.4f);
+                LOG_INFO("Bloom effect initialized");
+            } else {
+                LOG_WARN("BloomEffect is null");
+            }
+
+            if (m_colorGradingEffect) {
+                m_colorGradingEffect->setSaturation(1.3f);
+                m_colorGradingEffect->setContrast(1.0f);
+                m_colorGradingEffect->setBrightness(0.0f);
+                LOG_INFO("Color grading effect initialized");
+            } else {
+                LOG_WARN("ColorGradingEffect is null");
+            }
         }
-        if (m_bloomEffect) {
-            m_bloomEffect->setIntensity(0.4f);
-            LOG_INFO("Bloom effect initialized");
-        }
-        if (m_colorGradingEffect) {
-            m_colorGradingEffect->setSaturation(1.3f);
-            m_colorGradingEffect->setContrast(1.0f);
-            m_colorGradingEffect->setBrightness(0.0f);
-            LOG_INFO("Color grading effect initialized");
-        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception during post-processing initialization: {}", e.what());
+        LOG_WARN("Post-processing will be disabled");
+        m_postProcessPipeline.reset();
+        m_dynamicLightingEffect = nullptr;
+        m_bloomEffect = nullptr;
+        m_colorGradingEffect = nullptr;
     }
 
     // Create a default empty scene
