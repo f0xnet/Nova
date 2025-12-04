@@ -147,7 +147,7 @@ void EditorApplication::onUpdate(float deltaTime) {
 
         // Update lighting system with scene entities
         if (m_lightingSystem && m_dynamicLightingEffect) {
-            m_dynamicLightingEffect->setCamera(m_camera->getPosition(), NovaEngine::VIEWPORT().getViewSize());
+            m_dynamicLightingEffect->setCamera(m_camera->getPosition(), VIEWPORT().getViewSize());
             m_lightingSystem->update(deltaTime, m_currentScene->getEntityRegistry());
         }
     }
@@ -671,7 +671,7 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
         if (btnToggleGrid) {
             auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnToggleGrid);
             if (button) {
-                button->setText(gridEnabled ? "Grid: ON" : "Grid: OFF");
+                button->setString(gridEnabled ? "Grid: ON" : "Grid: OFF");
             }
         }
     }
@@ -1041,7 +1041,7 @@ void EditorApplication::showSceneSelectionDialog() {
                     size_t sceneIdx = startIdx + i;
                     if (sceneIdx < endIdx) {
                         // Show button with scene name
-                        button->setText(m_availableScenes[sceneIdx]);
+                        button->setString(m_availableScenes[sceneIdx]);
                         button->setVisible(true);
                         button->setActive(true);
                         LOG_INFO("  [{}] {}", sceneIdx, m_availableScenes[sceneIdx]);
@@ -1177,7 +1177,7 @@ void EditorApplication::showEntitySelectionDialog(const std::string& category) {
                     size_t entityIdx = startIdx + i;
                     if (entityIdx < endIdx) {
                         // Show button with entity name
-                        button->setText(m_availableEntities[entityIdx]);
+                        button->setString(m_availableEntities[entityIdx]);
                         button->setVisible(true);
                         button->setActive(true);
                         LOG_INFO("  [{}] {}", entityIdx, m_availableEntities[entityIdx]);
@@ -1615,7 +1615,7 @@ void EditorApplication::updateLayersPanel() {
                     text = "> " + text + " <";
                 }
 
-                button->setText(text);
+                button->setString(text);
             }
         }
     }
@@ -1645,7 +1645,7 @@ void EditorApplication::updateLayersPanel() {
                         entityName = sprite->textureID + " #" + std::to_string(entity->getID());
                     }
 
-                    button->setText(entityName);
+                    button->setString(entityName);
                     button->setVisible(true);
                     button->setActive(true);
                 } else {
@@ -1919,7 +1919,7 @@ void EditorApplication::updateTimeOfDayPanel() {
     if (timeValueText) {
         auto text = std::dynamic_pointer_cast<Text>(timeValueText);
         if (text) {
-            text->setText(timeStr);
+            text->setString(timeStr);
         }
     }
 
@@ -1930,7 +1930,7 @@ void EditorApplication::updateTimeOfDayPanel() {
         if (text) {
             char buffer[16];
             snprintf(buffer, sizeof(buffer), "%.2f", ambient);
-            text->setText(buffer);
+            text->setString(buffer);
         }
     }
 }
@@ -1999,7 +1999,7 @@ void EditorApplication::updatePostProcessPanel() {
             if (text) {
                 char buffer[16];
                 snprintf(buffer, sizeof(buffer), "%.2f", bloom);
-                text->setText(buffer);
+                text->setString(buffer);
             }
         }
     }
@@ -2013,7 +2013,7 @@ void EditorApplication::updatePostProcessPanel() {
             if (text) {
                 char buffer[16];
                 snprintf(buffer, sizeof(buffer), "%.2f", saturation);
-                text->setText(buffer);
+                text->setString(buffer);
             }
         }
 
@@ -2025,7 +2025,7 @@ void EditorApplication::updatePostProcessPanel() {
             if (text) {
                 char buffer[16];
                 snprintf(buffer, sizeof(buffer), "%.2f", contrast);
-                text->setText(buffer);
+                text->setString(buffer);
             }
         }
 
@@ -2037,7 +2037,7 @@ void EditorApplication::updatePostProcessPanel() {
             if (text) {
                 char buffer[16];
                 snprintf(buffer, sizeof(buffer), "%.2f", brightness);
-                text->setText(buffer);
+                text->setString(buffer);
             }
         }
     }
