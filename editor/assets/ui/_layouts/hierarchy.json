@@ -1,0 +1,44 @@
+{
+  "name": "Hierarchy Panel",
+  "images": [
+    {
+      "ID": "hierarchy_bg",
+      "groupID": "hierarchy",
+      "image": "data/ui/ui_assets/editor_background.png",
+      "x": 0,
+      "y": 1200,
+      "width": 500,
+      "height": 960,
+      "color": "255,255,255",
+      "layer": 10,
+      "isActive": true
+    }
+  ],
+  "texts": [
+    {
+      "ID": "hierarchy_title",
+      "groupID": "hierarchy",
+      "content": "Scene Hierarchy",
+      "x": 20,
+      "y": 1220,
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 32,
+      "color": "220,220,220",
+      "layer": 11,
+      "isActive": true
+    },
+    {
+      "ID": "hierarchy_empty",
+      "groupID": "hierarchy",
+      "content": "No scene loaded",
+      "x": 20,
+      "y": 1300,
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 24,
+      "color": "150,150,150",
+      "layer": 11,
+      "isActive": true
+    }
+  ],
+  "buttons": []
+}

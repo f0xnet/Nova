@@ -1,0 +1,44 @@
+{
+  "name": "Inspector Panel",
+  "images": [
+    {
+      "ID": "inspector_bg",
+      "groupID": "inspector",
+      "image": "data/ui/ui_assets/editor_background.png",
+      "x": 3340,
+      "y": 100,
+      "width": 500,
+      "height": 2060,
+      "color": "255,255,255",
+      "layer": 10,
+      "isActive": true
+    }
+  ],
+  "texts": [
+    {
+      "ID": "inspector_title",
+      "groupID": "inspector",
+      "content": "Inspector",
+      "x": 3360,
+      "y": 120,
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 32,
+      "color": "220,220,220",
+      "layer": 11,
+      "isActive": true
+    },
+    {
+      "ID": "inspector_no_selection",
+      "groupID": "inspector",
+      "content": "No entity selected",
+      "x": 3360,
+      "y": 200,
+      "font": "C:/Windows/Fonts/arial.ttf",
+      "fontSize": 24,
+      "color": "150,150,150",
+      "layer": 11,
+      "isActive": true
+    }
+  ],
+  "buttons": []
+}

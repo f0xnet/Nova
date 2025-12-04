@@ -4,6 +4,7 @@
 #include <NovaEngine/UI/Components/Text.hpp>
 #include <NovaEngine/UI/Components/Button.hpp>
 #include <NovaEngine/Core/Logger.hpp>
+#include "../Core/DataBinding.hpp"
 #include <string>
 #include <memory>
 #include <functional>
@@ -124,10 +125,67 @@ protected:
         return std::to_string(value);
     }
 
+    // ===== DATA BINDING SUPPORT =====
+
+    /**
+     * @brief Bind a value to a text component for automatic updates
+     *
+     * When the bindable value changes, the text component is automatically updated.
+     * This eliminates the need for manual update() calls.
+     *
+     * @param bindable The bindable value to observe
+     * @param componentID The text component to update
+     * @param formatter Optional function to format the value (default: toString)
+     */
+    template<typename T>
+    void bindToText(Bindable<T>* bindable, const std::string& componentID,
+                    std::function<std::string(const T&)> formatter = nullptr) {
+        if (!formatter) {
+            // Default formatter
+            if constexpr (std::is_same_v<T, std::string>) {
+                formatter = [](const T& val) { return val; };
+            } else if constexpr (std::is_same_v<T, int>) {
+                formatter = [](const T& val) { return std::to_string(val); };
+            } else if constexpr (std::is_same_v<T, float>) {
+                formatter = [this](const T& val) { return formatFloat(val, 2); };
+            } else {
+                formatter = [](const T& val) { return std::to_string(val); };
+            }
+        }
+
+        // Create observer that updates text when value changes
+        auto observer = [this, componentID, formatter](const T& newValue) {
+            setText(componentID, formatter(newValue));
+        };
+
+        bindable->addObserver(observer);
+        m_bindingContext.addBinding(componentID, bindable, observer);
+
+        // Initial update
+        setText(componentID, formatter(bindable->get()));
+    }
+
+    /**
+     * @brief Bind a boolean to a button text (e.g., "ON"/"OFF")
+     */
+    void bindBoolToButton(Bindable<bool>* bindable, const std::string& componentID,
+                          const std::string& trueText, const std::string& falseText) {
+        auto observer = [this, componentID, trueText, falseText](const bool& value) {
+            setButtonText(componentID, value ? trueText : falseText);
+        };
+
+        bindable->addObserver(observer);
+        m_bindingContext.addBinding(componentID, bindable, observer);
+
+        // Initial update
+        setButtonText(componentID, bindable->get() ? trueText : falseText);
+    }
+
     // Member variables
     NovaEngine::UIManager& m_uiManager;
     std::string m_groupID;
     bool m_isVisible;
+    BindingContext m_bindingContext;
 };
 
 } // namespace NovaEditor

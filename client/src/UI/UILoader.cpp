@@ -57,6 +57,58 @@ bool UILoader::loadFromData(const nlohmann::json& jsonData, UIManager& uiManager
         loadTextureResource(layoutData.background, "bg_" + layoutData.uiID);
     }
 
+    // NEW: Support for modular JSON files (included modules)
+    if (jsonData.contains("modules") && jsonData["modules"].is_array()) {
+        LOG_INFO("Loading modular UI layout - {} modules found", jsonData["modules"].size());
+
+        for (const auto& moduleRef : jsonData["modules"]) {
+            if (moduleRef.contains("file")) {
+                std::string modulePath = moduleRef["file"].get<std::string>();
+                std::string groupID = moduleRef.value("groupID", "");
+
+                // Determine base path (relative to main JSON file)
+                std::string basePath = "editor/assets/ui/"; // For editor
+                std::string fullPath = basePath + modulePath;
+
+                LOG_DEBUG("Loading module: {} (groupID: {})", fullPath, groupID);
+
+                // Load module JSON
+                std::ifstream moduleFile(fullPath);
+                if (!moduleFile.is_open()) {
+                    LOG_WARN("Failed to open module file: {}", fullPath);
+                    continue;
+                }
+
+                nlohmann::json moduleData;
+                try {
+                    moduleFile >> moduleData;
+
+                    // Parse components from module
+                    if (moduleData.contains("buttons")) {
+                        parseButtons(moduleData["buttons"], uiManager, layoutData);
+                    }
+                    if (moduleData.contains("images")) {
+                        parseImages(moduleData["images"], uiManager, layoutData);
+                    }
+                    if (moduleData.contains("text")) {
+                        parseTexts(moduleData["text"], uiManager, layoutData);
+                    }
+                    if (moduleData.contains("userInput")) {
+                        parseInputs(moduleData["userInput"], uiManager, layoutData);
+                    }
+
+                    LOG_DEBUG("Module '{}' loaded successfully", modulePath);
+                } catch (const std::exception& e) {
+                    LOG_ERROR("Failed to parse module JSON {}: {}", fullPath, e.what());
+                }
+            }
+        }
+
+        LOG_INFO("All modules loaded for UI layout '{}'", layoutData.name);
+        return true;
+    }
+
+    // LEGACY: Direct component loading (non-modular)
     if (jsonData.contains("buttons")) {
         parseButtons(jsonData["buttons"], uiManager, layoutData);
     }
