@@ -671,7 +671,7 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
         if (btnToggleGrid) {
             auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnToggleGrid);
             if (button) {
-                button->setString(gridEnabled ? "Grid: ON" : "Grid: OFF");
+                button->setText(gridEnabled ? "Grid: ON" : "Grid: OFF");
             }
         }
     }
@@ -1041,7 +1041,7 @@ void EditorApplication::showSceneSelectionDialog() {
                     size_t sceneIdx = startIdx + i;
                     if (sceneIdx < endIdx) {
                         // Show button with scene name
-                        button->setString(m_availableScenes[sceneIdx]);
+                        button->setText(m_availableScenes[sceneIdx]);
                         button->setVisible(true);
                         button->setActive(true);
                         LOG_INFO("  [{}] {}", sceneIdx, m_availableScenes[sceneIdx]);
@@ -1177,7 +1177,7 @@ void EditorApplication::showEntitySelectionDialog(const std::string& category) {
                     size_t entityIdx = startIdx + i;
                     if (entityIdx < endIdx) {
                         // Show button with entity name
-                        button->setString(m_availableEntities[entityIdx]);
+                        button->setText(m_availableEntities[entityIdx]);
                         button->setVisible(true);
                         button->setActive(true);
                         LOG_INFO("  [{}] {}", entityIdx, m_availableEntities[entityIdx]);
@@ -1615,7 +1615,7 @@ void EditorApplication::updateLayersPanel() {
                     text = "> " + text + " <";
                 }
 
-                button->setString(text);
+                button->setText(text);
             }
         }
     }
@@ -1645,7 +1645,7 @@ void EditorApplication::updateLayersPanel() {
                         entityName = sprite->textureID + " #" + std::to_string(entity->getID());
                     }
 
-                    button->setString(entityName);
+                    button->setText(entityName);
                     button->setVisible(true);
                     button->setActive(true);
                 } else {
