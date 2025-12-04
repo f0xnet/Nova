@@ -10,26 +10,33 @@
 #include <NovaEngine/Rendering/Effects/ColorGradingEffect.hpp>
 #include "Core/EditorState.hpp"
 #include "Core/EditorConfig.hpp"
+#include "Core/EditorPanelManager.hpp"
+#include "Core/EntityEditorController.hpp"
+#include "Core/SceneEditorController.hpp"
+#include "Core/EditorInputHandler.hpp"
 #include "UI/EditorUIManager.hpp"
-#include "UI/TimeOfDayPanel.hpp"
-#include "UI/PostProcessPanel.hpp"
-#include "UI/EntityPropertiesPanel.hpp"
-#include "UI/LayersPanel.hpp"
 #include "EditorCamera.hpp"
 #include <memory>
-#include <unordered_map>
-#include <nlohmann/json.hpp>
 
 namespace NovaEditor {
 
 /**
- * @brief Main editor application (Phase 1: JSON-based UI foundation)
+ * @brief Main editor application - Orchestrator pattern
  *
- * Phase 1 Goals:
- * - Launch editor with JSON-based UI
- * - Display toolbar, palette, inspector, hierarchy
- * - Button actions trigger console logs
- * - Clean modular architecture
+ * REFACTORED: Now uses specialized controllers instead of doing everything directly.
+ * Acts as an orchestrator that coordinates between subsystems.
+ *
+ * Responsibilities (REDUCED from 50+ methods to ~15):
+ * - Application lifecycle management
+ * - Coordinate between controllers
+ * - Rendering orchestration
+ * - Event distribution
+ *
+ * Controllers:
+ * - EditorPanelManager: All UI panels
+ * - EntityEditorController: Entity operations
+ * - SceneEditorController: Scene operations
+ * - EditorInputHandler: Input processing
  */
 class EditorApplication : public NovaEngine::Application {
 public:
@@ -49,62 +56,45 @@ private:
     void initializeEditor();
     void printControls();
 
-    // Update
-    void updateCamera(float deltaTime);
-
-    // Render
+    // Rendering
     void renderScene();
     void renderGrid();
     void renderSelectionBox();
     void renderUI();
 
-    // Input handling
+    // Input handling (delegates to InputHandler)
     void handleEditorInput(const NovaEngine::InputEvent& input);
-    void handleKeyPress(const NovaEngine::InputEvent& input);
-    void handleMouseClick(const NovaEngine::InputEvent& input);
 
-    // UI action callback
+    // UI action routing (delegates to controllers)
     void onUIAction(const std::string& action, const std::string& value);
 
-    // Scene management
-    void newScene();
-    void loadScene();
-    void loadScene(const std::string& scenePath);
-    void saveScene();
+    // Entity selection helper
+    void selectEntityAtPosition(const NovaEngine::Vec2f& worldPos);
 
     // Scene utilities
     std::vector<std::string> getAvailableScenes() const;
     void showSceneSelectionDialog();
 
-    // Entity management
+    // Entity utilities
     std::vector<std::string> getAvailableEntities(const std::string& category) const;
     void showEntitySelectionDialog(const std::string& category);
-    void enterPlacementMode(const std::string& entityType, const std::string& entityId);
-    void exitPlacementMode();
-    void placeEntity(const NovaEngine::Vec2f& position);
-    void selectEntity(NovaEngine::Entity* entity);
-    void startDraggingEntity();
-    void updateDraggingEntity(const NovaEngine::Vec2f& worldPos);
-    void stopDraggingEntity();
-
-
 private:
     // Core systems
     NovaEngine::SceneManager m_sceneManager;
     NovaEngine::UIManager m_uiManager;
-
-    // Rendering systems
     std::unique_ptr<NovaEngine::LightingSystem> m_lightingSystem;
     std::unique_ptr<NovaEngine::PostProcessPipeline> m_postProcessPipeline;
+
+    // Effect pointers (owned by PostProcessPipeline)
     NovaEngine::DynamicLightingEffect* m_dynamicLightingEffect;
     NovaEngine::BloomEffect* m_bloomEffect;
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
 
-    // UI Panels (NEW - eliminates 400+ lines of boilerplate!)
-    std::unique_ptr<TimeOfDayPanel> m_timeOfDayPanel;
-    std::unique_ptr<PostProcessPanel> m_postProcessPanel;
-    std::unique_ptr<EntityPropertiesPanel> m_entityPropertiesPanel;
-    std::unique_ptr<LayersPanel> m_layersPanel;
+    // CONTROLLERS (NEW - Single Responsibility Pattern)
+    std::unique_ptr<EditorPanelManager> m_panelManager;
+    std::unique_ptr<EntityEditorController> m_entityController;
+    std::unique_ptr<SceneEditorController> m_sceneController;
+    std::unique_ptr<EditorInputHandler> m_inputHandler;
 
     // Editor subsystems
     std::unique_ptr<EditorConfig> m_editorConfig;
@@ -115,28 +105,15 @@ private:
     // Current scene
     NovaEngine::Scene* m_currentScene;
 
-    // Scene selection dialog
+    // UI dialog state
     std::vector<std::string> m_availableScenes;
-    size_t m_sceneDialogPage;
-    static constexpr size_t SCENES_PER_PAGE = 10;
-
-    // Entity selection and placement
-    static constexpr size_t ENTITIES_PER_PAGE = 10;
     std::vector<std::string> m_availableEntities;
+    size_t m_sceneDialogPage;
     size_t m_entityDialogPage;
     std::string m_currentEntityCategory;
-    std::string m_placementEntityType;
-    std::string m_placementEntityId;
-    bool m_isPlacementMode;
 
-    // Entity dragging
-    NovaEngine::Entity* m_draggedEntity;
-    NovaEngine::Vec2f m_dragOffset;
-    bool m_isDragging;
-
-    // NPC definitions (loaded from NPCs.json)
-    std::unordered_map<std::string, nlohmann::json> m_npcDefinitions;
-    bool loadNPCDefinitions();
+    static constexpr size_t SCENES_PER_PAGE = 10;
+    static constexpr size_t ENTITIES_PER_PAGE = 10;
 };
 
 } // namespace NovaEditor
