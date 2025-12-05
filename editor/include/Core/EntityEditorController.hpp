@@ -313,12 +313,12 @@ private:
     // Placement mode
     std::string m_placementEntityType;
     std::string m_placementEntityId;
-    bool m_isPlacementMode;
 
     // Entity dragging
     NovaEngine::Entity* m_draggedEntity;
     NovaEngine::Vec2f m_dragOffset;
     bool m_isDragging;
+    bool m_isPlacementMode;
 
     // NPC definitions
     std::unordered_map<std::string, nlohmann::json> m_npcDefinitions;
