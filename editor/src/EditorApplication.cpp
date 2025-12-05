@@ -165,7 +165,7 @@ bool EditorApplication::onInitialize() {
         m_state.get(),
         &m_sceneManager,
         [this](NovaEngine::Scene* scene) {
-            m_currentScene = scene;
+            // Update UI and camera after scene load (m_currentScene is managed by the caller)
             if (m_panelManager) m_panelManager->updateLayersPanel(scene);
             if (m_camera) {
                 m_camera->focusOn(NovaEngine::Vec2f{0.0f, 0.0f});
