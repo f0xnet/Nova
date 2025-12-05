@@ -58,7 +58,7 @@
       "x": 3360,
       "y": 80,
       "font": "C:/Windows/Fonts/arialbd.ttf",
-      "fontSize": 18,
+      "fontSize": 22,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -90,11 +90,11 @@
     {
       "ID": "inspector_section_basic",
       "groupID": "inspector",
-      "text": "═══ BASIC INFO",
+      "text": "--- BASIC INFO",
       "x": 3360,
       "y": 130,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 14,
+      "fontSize": 16,
       "color": "0,217,255",
       "layer": 12,
       "isActive": false
@@ -106,7 +106,7 @@
       "x": 3360,
       "y": 165,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
@@ -118,7 +118,7 @@
       "x": 3720,
       "y": 163,
       "font": "C:/Windows/Fonts/cour.ttf",
-      "fontSize": 16,
+      "fontSize": 18,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -126,11 +126,11 @@
     {
       "ID": "inspector_section_transform",
       "groupID": "inspector",
-      "text": "═══ TRANSFORM",
+      "text": "--- TRANSFORM",
       "x": 3360,
       "y": 205,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 14,
+      "fontSize": 16,
       "color": "0,217,255",
       "layer": 12,
       "isActive": false
@@ -142,7 +142,7 @@
       "x": 3360,
       "y": 240,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
@@ -154,7 +154,7 @@
       "x": 3720,
       "y": 238,
       "font": "C:/Windows/Fonts/cour.ttf",
-      "fontSize": 16,
+      "fontSize": 18,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -166,7 +166,7 @@
       "x": 3360,
       "y": 270,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
@@ -178,7 +178,7 @@
       "x": 3720,
       "y": 268,
       "font": "C:/Windows/Fonts/cour.ttf",
-      "fontSize": 16,
+      "fontSize": 18,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -190,7 +190,7 @@
       "x": 3360,
       "y": 300,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
@@ -202,7 +202,7 @@
       "x": 3720,
       "y": 298,
       "font": "C:/Windows/Fonts/cour.ttf",
-      "fontSize": 16,
+      "fontSize": 18,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -214,7 +214,7 @@
       "x": 3360,
       "y": 330,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
@@ -226,7 +226,7 @@
       "x": 3720,
       "y": 328,
       "font": "C:/Windows/Fonts/cour.ttf",
-      "fontSize": 16,
+      "fontSize": 18,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -238,7 +238,7 @@
       "x": 3360,
       "y": 360,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
@@ -250,7 +250,7 @@
       "x": 3720,
       "y": 358,
       "font": "C:/Windows/Fonts/cour.ttf",
-      "fontSize": 16,
+      "fontSize": 18,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -258,11 +258,11 @@
     {
       "ID": "inspector_section_rendering",
       "groupID": "inspector",
-      "text": "═══ RENDERING",
+      "text": "--- RENDERING",
       "x": 3360,
       "y": 400,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 14,
+      "fontSize": 16,
       "color": "0,217,255",
       "layer": 12,
       "isActive": false
@@ -274,7 +274,7 @@
       "x": 3360,
       "y": 435,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
@@ -286,7 +286,7 @@
       "x": 3720,
       "y": 433,
       "font": "C:/Windows/Fonts/cour.ttf",
-      "fontSize": 16,
+      "fontSize": 18,
       "color": "229,231,235",
       "layer": 12,
       "isActive": false
@@ -298,7 +298,7 @@
       "x": 3360,
       "y": 465,
       "font": "C:/Windows/Fonts/arial.ttf",
-      "fontSize": 13,
+      "fontSize": 15,
       "color": "156,163,175",
       "layer": 12,
       "isActive": false
