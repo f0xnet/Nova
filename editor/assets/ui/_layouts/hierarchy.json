@@ -23,7 +23,7 @@
       "y": 1220,
       "font": "C:/Windows/Fonts/arialbd.ttf",
       "fontSize": 28,
-      "color": "30,30,90",
+      "color": "70,90,180",
       "layer": 11,
       "isActive": true
     },
@@ -35,7 +35,7 @@
       "y": 1255,
       "font": "C:/Windows/Fonts/arial.ttf",
       "fontSize": 16,
-      "color": "100,100,100",
+      "color": "120,120,120",
       "layer": 11,
       "isActive": true
     },
@@ -47,7 +47,7 @@
       "y": 1350,
       "font": "C:/Windows/Fonts/arialbd.ttf",
       "fontSize": 24,
-      "color": "120,120,120",
+      "color": "140,140,140",
       "layer": 11,
       "isActive": true
     },
@@ -59,7 +59,7 @@
       "y": 1390,
       "font": "C:/Windows/Fonts/arial.ttf",
       "fontSize": 20,
-      "color": "150,150,150",
+      "color": "180,180,180",
       "layer": 11,
       "isActive": true
     },
@@ -71,7 +71,7 @@
       "y": 1420,
       "font": "C:/Windows/Fonts/arial.ttf",
       "fontSize": 20,
-      "color": "150,150,150",
+      "color": "180,180,180",
       "layer": 11,
       "isActive": true
     },
@@ -83,7 +83,7 @@
       "y": 1450,
       "font": "C:/Windows/Fonts/arial.ttf",
       "fontSize": 20,
-      "color": "150,150,150",
+      "color": "180,180,180",
       "layer": 11,
       "isActive": true
     }
