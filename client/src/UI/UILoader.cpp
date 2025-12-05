@@ -99,7 +99,10 @@ bool UILoader::loadFromData(const nlohmann::json& jsonData, UIManager& uiManager
                     if (moduleData.contains("images")) {
                         parseImages(moduleData["images"], uiManager, layoutData);
                     }
-                    if (moduleData.contains("text")) {
+                    // Support both "text" (singular) and "texts" (plural)
+                    if (moduleData.contains("texts")) {
+                        parseTexts(moduleData["texts"], uiManager, layoutData);
+                    } else if (moduleData.contains("text")) {
                         parseTexts(moduleData["text"], uiManager, layoutData);
                     }
                     if (moduleData.contains("userInput")) {
@@ -124,7 +127,10 @@ bool UILoader::loadFromData(const nlohmann::json& jsonData, UIManager& uiManager
     if (jsonData.contains("images")) {
         parseImages(jsonData["images"], uiManager, layoutData);
     }
-    if (jsonData.contains("text")) {
+    // Support both "text" (singular) and "texts" (plural)
+    if (jsonData.contains("texts")) {
+        parseTexts(jsonData["texts"], uiManager, layoutData);
+    } else if (jsonData.contains("text")) {
         parseTexts(jsonData["text"], uiManager, layoutData);
     }
     if (jsonData.contains("userInput")) {
