@@ -3,7 +3,7 @@
 #include "UIPanel.hpp"
 #include "../Core/EditorState.hpp"
 #include <NovaEngine/ECS/Scene.hpp>
-#include <NovaEngine/ECS/Components/SpriteComponent.hpp>
+#include <NovaEngine/ECS/Components.hpp>
 #include <vector>
 
 namespace NovaEditor {

@@ -3,8 +3,7 @@
 #include "UIPanel.hpp"
 #include "../Core/EditorState.hpp"
 #include <NovaEngine/ECS/SceneManager.hpp>
-#include <NovaEngine/ECS/Components/TransformComponent.hpp>
-#include <NovaEngine/ECS/Components/SpriteComponent.hpp>
+#include <NovaEngine/ECS/Components.hpp>
 #include <sstream>
 #include <iomanip>
 
