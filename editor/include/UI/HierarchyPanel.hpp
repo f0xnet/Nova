@@ -34,24 +34,22 @@ public:
     void update() override {
         if (!m_scene) {
             // No scene - show placeholder text, hide entity list
-            setVisible("hierarchy_empty", true);
-            setVisible("hierarchy_hint", true);
-            setVisible("hierarchy_hint_2", true);
-            setVisible("hierarchy_entity_count", false);
+            setComponentVisible("hierarchy_empty", true);
+            setComponentVisible("hierarchy_hint", true);
+            setComponentVisible("hierarchy_entity_count", false);
             hideAllEntityButtons();
             m_entityList.clear();
             return;
         }
 
         // Scene loaded - hide placeholder, show entity list
-        setVisible("hierarchy_empty", false);
-        setVisible("hierarchy_hint", false);
-        setVisible("hierarchy_hint_2", false);
-        setVisible("hierarchy_entity_count", true);
+        setComponentVisible("hierarchy_empty", false);
+        setComponentVisible("hierarchy_hint", false);
+        setComponentVisible("hierarchy_entity_count", true);
 
         // Get all entities from scene
         m_entityList.clear();
-        auto& entities = m_scene->getEntities();
+        const auto& entities = m_scene->getEntityRegistry().getAllEntities();
         for (auto* entity : entities) {
             if (entity) {
                 m_entityList.push_back(entity);
@@ -70,11 +68,11 @@ public:
                 // Show this entity button
                 NovaEngine::Entity* entity = m_entityList[i];
                 std::string entityName = getEntityDisplayName(entity);
-                setText(btnID, entityName);
-                setVisible(btnID, true);
+                setButtonText(btnID, entityName);
+                setComponentVisible(btnID, true);
             } else {
                 // Hide unused button
-                setVisible(btnID, false);
+                setComponentVisible(btnID, false);
             }
         }
 
@@ -97,12 +95,23 @@ private:
     std::vector<NovaEngine::Entity*> m_entityList;
 
     /**
+     * @brief Set component visibility
+     */
+    void setComponentVisible(const std::string& componentID, bool visible) {
+        auto comp = m_uiManager.getComponent(componentID);
+        if (comp) {
+            comp->setVisible(visible);
+            comp->setActive(visible);
+        }
+    }
+
+    /**
      * @brief Hide all entity buttons
      */
     void hideAllEntityButtons() {
         for (size_t i = 0; i < 15; ++i) {
             std::string btnID = "btn_hierarchy_entity_" + std::to_string(i);
-            setVisible(btnID, false);
+            setComponentVisible(btnID, false);
         }
     }
 

@@ -34,17 +34,15 @@ public:
 
         if (!selectedEntity) {
             // No entity selected - show placeholder text, hide property fields
-            setVisible("inspector_no_selection", true);
-            setVisible("inspector_hint", true);
-            setVisible("inspector_hint_2", true);
+            setComponentVisible("inspector_no_selection", true);
+            setComponentVisible("inspector_hint", true);
             hidePropertyFields();
             return;
         }
 
         // Entity is selected - hide placeholder, show properties
-        setVisible("inspector_no_selection", false);
-        setVisible("inspector_hint", false);
-        setVisible("inspector_hint_2", false);
+        setComponentVisible("inspector_no_selection", false);
+        setComponentVisible("inspector_hint", false);
         showPropertyFields();
 
         // Get components
@@ -79,35 +77,46 @@ private:
     NovaEngine::SceneManager* m_sceneManager;
 
     /**
+     * @brief Set component visibility
+     */
+    void setComponentVisible(const std::string& componentID, bool visible) {
+        auto comp = m_uiManager.getComponent(componentID);
+        if (comp) {
+            comp->setVisible(visible);
+            comp->setActive(visible);
+        }
+    }
+
+    /**
      * @brief Show all property field elements
      */
     void showPropertyFields() {
         // Section headers
-        setVisible("inspector_section_basic", true);
-        setVisible("inspector_section_transform", true);
-        setVisible("inspector_section_rendering", true);
+        setComponentVisible("inspector_section_basic", true);
+        setComponentVisible("inspector_section_transform", true);
+        setComponentVisible("inspector_section_rendering", true);
 
         // ID field
-        setVisible("inspector_label_id", true);
-        setVisible("inspector_value_id", true);
+        setComponentVisible("inspector_label_id", true);
+        setComponentVisible("inspector_value_id", true);
 
         // Transform fields
-        setVisible("inspector_label_pos_x", true);
-        setVisible("inspector_value_pos_x", true);
-        setVisible("inspector_label_pos_y", true);
-        setVisible("inspector_value_pos_y", true);
-        setVisible("inspector_label_scale_x", true);
-        setVisible("inspector_value_scale_x", true);
-        setVisible("inspector_label_scale_y", true);
-        setVisible("inspector_value_scale_y", true);
-        setVisible("inspector_label_rotation", true);
-        setVisible("inspector_value_rotation", true);
+        setComponentVisible("inspector_label_pos_x", true);
+        setComponentVisible("inspector_value_pos_x", true);
+        setComponentVisible("inspector_label_pos_y", true);
+        setComponentVisible("inspector_value_pos_y", true);
+        setComponentVisible("inspector_label_scale_x", true);
+        setComponentVisible("inspector_value_scale_x", true);
+        setComponentVisible("inspector_label_scale_y", true);
+        setComponentVisible("inspector_value_scale_y", true);
+        setComponentVisible("inspector_label_rotation", true);
+        setComponentVisible("inspector_value_rotation", true);
 
         // Rendering fields
-        setVisible("inspector_label_layer", true);
-        setVisible("inspector_value_layer", true);
-        setVisible("inspector_label_texture", true);
-        setVisible("inspector_value_texture", true);
+        setComponentVisible("inspector_label_layer", true);
+        setComponentVisible("inspector_value_layer", true);
+        setComponentVisible("inspector_label_texture", true);
+        setComponentVisible("inspector_value_texture", true);
     }
 
     /**
@@ -115,31 +124,31 @@ private:
      */
     void hidePropertyFields() {
         // Section headers
-        setVisible("inspector_section_basic", false);
-        setVisible("inspector_section_transform", false);
-        setVisible("inspector_section_rendering", false);
+        setComponentVisible("inspector_section_basic", false);
+        setComponentVisible("inspector_section_transform", false);
+        setComponentVisible("inspector_section_rendering", false);
 
         // ID field
-        setVisible("inspector_label_id", false);
-        setVisible("inspector_value_id", false);
+        setComponentVisible("inspector_label_id", false);
+        setComponentVisible("inspector_value_id", false);
 
         // Transform fields
-        setVisible("inspector_label_pos_x", false);
-        setVisible("inspector_value_pos_x", false);
-        setVisible("inspector_label_pos_y", false);
-        setVisible("inspector_value_pos_y", false);
-        setVisible("inspector_label_scale_x", false);
-        setVisible("inspector_value_scale_x", false);
-        setVisible("inspector_label_scale_y", false);
-        setVisible("inspector_value_scale_y", false);
-        setVisible("inspector_label_rotation", false);
-        setVisible("inspector_value_rotation", false);
+        setComponentVisible("inspector_label_pos_x", false);
+        setComponentVisible("inspector_value_pos_x", false);
+        setComponentVisible("inspector_label_pos_y", false);
+        setComponentVisible("inspector_value_pos_y", false);
+        setComponentVisible("inspector_label_scale_x", false);
+        setComponentVisible("inspector_value_scale_x", false);
+        setComponentVisible("inspector_label_scale_y", false);
+        setComponentVisible("inspector_value_scale_y", false);
+        setComponentVisible("inspector_label_rotation", false);
+        setComponentVisible("inspector_value_rotation", false);
 
         // Rendering fields
-        setVisible("inspector_label_layer", false);
-        setVisible("inspector_value_layer", false);
-        setVisible("inspector_label_texture", false);
-        setVisible("inspector_value_texture", false);
+        setComponentVisible("inspector_label_layer", false);
+        setComponentVisible("inspector_value_layer", false);
+        setComponentVisible("inspector_label_texture", false);
+        setComponentVisible("inspector_value_texture", false);
     }
 
     /**
