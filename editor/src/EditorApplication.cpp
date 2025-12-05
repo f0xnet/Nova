@@ -774,6 +774,8 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
                     if (m_entityController) {
                         m_entityController->selectEntity(entity);
                     }
+                    // Update entity properties panel to show selected entity's properties
+                    m_panelManager->updateEntityPropertiesPanel();
                 } else {
                     LOG_ERROR("Invalid entity list index: {}", index);
                 }
@@ -859,10 +861,18 @@ void EditorApplication::selectEntityAtPosition(const NovaEngine::Vec2f& worldPos
         if (m_entityController) {
             m_entityController->selectEntity(clickedEntity);
         }
+        // Update entity properties panel to show selected entity's properties
+        if (m_panelManager) {
+            m_panelManager->updateEntityPropertiesPanel();
+        }
     } else {
         LOG_INFO("No entity under mouse - deselecting");
         if (m_entityController) {
             m_entityController->selectEntity(nullptr);
+        }
+        // Update entity properties panel to clear selection
+        if (m_panelManager) {
+            m_panelManager->updateEntityPropertiesPanel();
         }
     }
 }

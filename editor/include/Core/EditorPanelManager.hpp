@@ -270,6 +270,15 @@ public:
     }
 
     /**
+     * @brief Update entity properties panel (called when entity selection changes)
+     */
+    void updateEntityPropertiesPanel() {
+        if (m_entityPropertiesPanel) {
+            m_entityPropertiesPanel->update();
+        }
+    }
+
+    /**
      * @brief Get entity from layers panel list
      */
     NovaEngine::Entity* getEntityFromLayersList(size_t index) const {
