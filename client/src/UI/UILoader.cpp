@@ -53,6 +53,15 @@ bool UILoader::loadFromData(const nlohmann::json& jsonData, UIManager& uiManager
 
     LOG_INFO("Loading UI layout: {} (UIID: {}, Layers: {})", layoutData.name, layoutData.uiID, layoutData.layers);
 
+    // DEBUG: Check what keys are in jsonData
+    LOG_INFO("JSON keys present: contains('modules')={}, contains('buttons')={}, contains('images')={}",
+             jsonData.contains("modules"), jsonData.contains("buttons"), jsonData.contains("images"));
+
+    if (jsonData.contains("modules")) {
+        LOG_INFO("modules field type: is_array={}, is_object={}, is_null={}",
+                 jsonData["modules"].is_array(), jsonData["modules"].is_object(), jsonData["modules"].is_null());
+    }
+
     if (!layoutData.background.empty()) {
         loadTextureResource(layoutData.background, "bg_" + layoutData.uiID);
     }
