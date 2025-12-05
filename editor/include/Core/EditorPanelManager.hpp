@@ -4,6 +4,8 @@
 #include "UI/PostProcessPanel.hpp"
 #include "UI/EntityPropertiesPanel.hpp"
 #include "UI/LayersPanel.hpp"
+#include "UI/InspectorPanel.hpp"
+#include "UI/HierarchyPanel.hpp"
 #include "EditorState.hpp"
 #include <NovaEngine/UI/UIManager.hpp>
 #include <NovaEngine/Systems/LightingSystem.hpp>
@@ -95,6 +97,22 @@ public:
             currentScene
         );
         LOG_INFO("LayersPanel initialized");
+
+        // Inspector panel (inline property display)
+        m_inspectorPanel = std::make_unique<InspectorPanel>(
+            m_uiManager,
+            m_editorState,
+            m_sceneManager
+        );
+        LOG_INFO("InspectorPanel initialized");
+
+        // Hierarchy panel (scene entity list)
+        m_hierarchyPanel = std::make_unique<HierarchyPanel>(
+            m_uiManager,
+            m_editorState,
+            currentScene
+        );
+        LOG_INFO("HierarchyPanel initialized");
 
         LOG_INFO("All editor panels initialized successfully");
     }
@@ -279,10 +297,36 @@ public:
     }
 
     /**
+     * @brief Update inspector panel (called when entity selection changes)
+     */
+    void updateInspectorPanel() {
+        if (m_inspectorPanel) {
+            m_inspectorPanel->update();
+        }
+    }
+
+    /**
+     * @brief Update hierarchy panel (called when scene changes)
+     */
+    void updateHierarchyPanel(NovaEngine::Scene* scene) {
+        if (m_hierarchyPanel) {
+            m_hierarchyPanel->setScene(scene);
+            m_hierarchyPanel->update();
+        }
+    }
+
+    /**
      * @brief Get entity from layers panel list
      */
     NovaEngine::Entity* getEntityFromLayersList(size_t index) const {
         return m_layersPanel ? m_layersPanel->getEntityFromList(index) : nullptr;
+    }
+
+    /**
+     * @brief Get entity from hierarchy panel list
+     */
+    NovaEngine::Entity* getEntityFromHierarchyList(size_t index) const {
+        return m_hierarchyPanel ? m_hierarchyPanel->getEntityFromList(index) : nullptr;
     }
 
 private:
@@ -295,6 +339,8 @@ private:
     std::unique_ptr<PostProcessPanel> m_postProcessPanel;
     std::unique_ptr<EntityPropertiesPanel> m_entityPropertiesPanel;
     std::unique_ptr<LayersPanel> m_layersPanel;
+    std::unique_ptr<InspectorPanel> m_inspectorPanel;
+    std::unique_ptr<HierarchyPanel> m_hierarchyPanel;
 };
 
 } // namespace NovaEditor

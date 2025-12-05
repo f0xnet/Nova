@@ -166,7 +166,10 @@ bool EditorApplication::onInitialize() {
         &m_sceneManager,
         [this](NovaEngine::Scene* scene) {
             // Update UI and camera after scene load (m_currentScene is managed by the caller)
-            if (m_panelManager) m_panelManager->updateLayersPanel(scene);
+            if (m_panelManager) {
+                m_panelManager->updateLayersPanel(scene);
+                m_panelManager->updateHierarchyPanel(scene);
+            }
             if (m_camera) {
                 m_camera->focusOn(NovaEngine::Vec2f{0.0f, 0.0f});
                 m_camera->setZoom(1.0f);
@@ -774,13 +777,38 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
                     if (m_entityController) {
                         m_entityController->selectEntity(entity);
                     }
-                    // Update entity properties panel to show selected entity's properties
+                    // Update panels to show selected entity's properties
                     m_panelManager->updateEntityPropertiesPanel();
+                    m_panelManager->updateInspectorPanel();
                 } else {
                     LOG_ERROR("Invalid entity list index: {}", index);
                 }
             } catch (const std::exception& e) {
                 LOG_ERROR("Failed to parse entity index: {}", e.what());
+            }
+        }
+        return;
+    }
+
+    // Handle entity selection from hierarchy panel
+    if (action == "select_hierarchy_entity") {
+        if (m_panelManager) {
+            try {
+                size_t index = std::stoul(value);
+                Entity* entity = m_panelManager->getEntityFromHierarchyList(index);
+                if (entity) {
+                    LOG_INFO("Selected entity from hierarchy: ID {}", entity->getID());
+                    if (m_entityController) {
+                        m_entityController->selectEntity(entity);
+                    }
+                    // Update panels to show selected entity's properties
+                    m_panelManager->updateEntityPropertiesPanel();
+                    m_panelManager->updateInspectorPanel();
+                } else {
+                    LOG_ERROR("Invalid hierarchy entity index: {}", index);
+                }
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to parse hierarchy entity index: {}", e.what());
             }
         }
         return;
@@ -861,18 +889,20 @@ void EditorApplication::selectEntityAtPosition(const NovaEngine::Vec2f& worldPos
         if (m_entityController) {
             m_entityController->selectEntity(clickedEntity);
         }
-        // Update entity properties panel to show selected entity's properties
+        // Update panels to show selected entity's properties
         if (m_panelManager) {
             m_panelManager->updateEntityPropertiesPanel();
+            m_panelManager->updateInspectorPanel();
         }
     } else {
         LOG_INFO("No entity under mouse - deselecting");
         if (m_entityController) {
             m_entityController->selectEntity(nullptr);
         }
-        // Update entity properties panel to clear selection
+        // Update panels to clear selection
         if (m_panelManager) {
             m_panelManager->updateEntityPropertiesPanel();
+            m_panelManager->updateInspectorPanel();
         }
     }
 }
