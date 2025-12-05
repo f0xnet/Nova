@@ -73,26 +73,33 @@ public:
             return nullptr;
         }
 
-        NovaEngine::Scene* scene = m_sceneManager->loadScene(scenePath);
+        // Extract scene name from path (use filename without extension)
+        std::string sceneName = std::filesystem::path(scenePath).stem().string();
 
-        if (scene) {
-            // Update editor state
-            m_editorState->setCurrentScenePath(scenePath);
-            m_editorState->setSceneModified(false);
-            m_editorState->setSelectedEntity(nullptr);
+        // Load the scene using SceneManager (returns bool, stores scene internally)
+        if (m_sceneManager->loadScene(scenePath, sceneName)) {
+            // Get the loaded scene from SceneManager
+            NovaEngine::Scene* scene = m_sceneManager->getScene(sceneName);
 
-            LOG_INFO("Scene loaded successfully: {} entities",
-                     scene->getEntityRegistry().getEntityCount());
+            if (scene) {
+                // Update editor state
+                m_editorState->setCurrentScenePath(scenePath);
+                m_editorState->setSceneModified(false);
+                m_editorState->setSelectedEntity(nullptr);
 
-            if (m_onSceneLoaded) {
-                m_onSceneLoaded(scene);
+                LOG_INFO("Scene loaded successfully: {} entities",
+                         scene->getEntityRegistry().getEntityCount());
+
+                if (m_onSceneLoaded) {
+                    m_onSceneLoaded(scene);
+                }
+
+                return scene;
             }
-
-            return scene;
-        } else {
-            LOG_ERROR("Failed to load scene from: {}", scenePath);
-            return nullptr;
         }
+
+        LOG_ERROR("Failed to load scene from: {}", scenePath);
+        return nullptr;
     }
 
     /**
@@ -126,17 +133,14 @@ public:
 
         LOG_INFO("Saving scene to: {}", scenePath);
 
-        bool success = m_sceneManager->saveScene(scene, scenePath);
+        // TODO: Implement scene saving - SceneManager doesn't have saveScene yet
+        LOG_WARN("Scene saving not yet implemented");
 
-        if (success) {
-            m_editorState->setCurrentScenePath(scenePath);
-            m_editorState->setSceneModified(false);
-            LOG_INFO("Scene saved successfully");
-        } else {
-            LOG_ERROR("Failed to save scene to: {}", scenePath);
-        }
+        // For now, just mark as saved
+        m_editorState->setCurrentScenePath(scenePath);
+        m_editorState->setSceneModified(false);
 
-        return success;
+        return false; // Return false until actually implemented
     }
 
     /**

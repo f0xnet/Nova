@@ -107,11 +107,11 @@ public:
     void handleMouseClick(const NovaEngine::InputEvent& input, bool isPlacementMode) {
         using namespace NovaEngine;
 
-        if (input.mouse.button == MouseButton::Left) {
+        if (input.mouseButton.button == MouseButton::Left) {
             m_isMousePressed = true;
-            m_mouseDownWorldPos = m_camera->screenToWorld(Vec2f{
-                static_cast<f32>(input.mouse.x),
-                static_cast<f32>(input.mouse.y)
+            m_mouseDownWorldPos = m_camera->screenToWorld(Vec2i{
+                input.mouseButton.x,
+                input.mouseButton.y
             });
 
             if (isPlacementMode) {
@@ -143,9 +143,9 @@ public:
         using namespace NovaEngine;
 
         if (m_isMousePressed && isDragging) {
-            Vec2f currentWorldPos = m_camera->screenToWorld(Vec2f{
-                static_cast<f32>(input.mouse.x),
-                static_cast<f32>(input.mouse.y)
+            Vec2f currentWorldPos = m_camera->screenToWorld(Vec2i{
+                input.mouseMove.x,
+                input.mouseMove.y
             });
 
             if (m_callbacks.onEntityDragUpdate) {
@@ -160,7 +160,7 @@ public:
     void handleMouseRelease(const NovaEngine::InputEvent& input, bool isDragging) {
         using namespace NovaEngine;
 
-        if (input.mouse.button == MouseButton::Left) {
+        if (input.mouseButton.button == MouseButton::Left) {
             m_isMousePressed = false;
 
             if (isDragging) {
@@ -200,13 +200,7 @@ public:
             m_camera->move(movement);
         }
 
-        // Camera zoom with +/- keys
-        if (INPUT().isKeyPressed(KeyCode::Add) || INPUT().isKeyPressed(KeyCode::Equal)) {
-            m_camera->zoom(1.0f + deltaTime);
-        }
-        if (INPUT().isKeyPressed(KeyCode::Subtract) || INPUT().isKeyPressed(KeyCode::Dash)) {
-            m_camera->zoom(1.0f - deltaTime);
-        }
+        // TODO: Camera zoom controls - KeyCode doesn't have zoom keys available yet
     }
 
 private:

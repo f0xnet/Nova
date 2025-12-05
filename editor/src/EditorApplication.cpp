@@ -22,9 +22,6 @@ EditorApplication::EditorApplication()
     , m_currentScene(nullptr)
     , m_sceneDialogPage(0)
     , m_entityDialogPage(0)
-    , m_isPlacementMode(false)
-    , m_draggedEntity(nullptr)
-    , m_isDragging(false)
 {
     // Configure application for 4K windowed borderless
     m_config.windowTitle = "Nova Level Editor";
@@ -62,12 +59,6 @@ bool EditorApplication::onInitialize() {
     }
     auto sceneManEnd = std::chrono::high_resolution_clock::now();
     LOG_INFO("SceneManager initialization took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(sceneManEnd - sceneManStart).count());
-
-    // Load NPC definitions
-    LOG_INFO("Loading NPC definitions...");
-    if (!loadNPCDefinitions()) {
-        LOG_WARN("Failed to load NPC definitions - NPCs may not display properly");
-    }
 
     // Initialize editor
     initializeEditor();
@@ -152,52 +143,83 @@ bool EditorApplication::onInitialize() {
     // Create a default empty scene
     m_currentScene = new NovaEngine::Scene("EditorScene");
 
-    // Initialize UI Panels (NEW ARCHITECTURE!)
-    LOG_INFO("Initializing UI panels...");
+    // Initialize controllers (NEW ARCHITECTURE!)
+    LOG_INFO("Initializing controllers...");
 
-    // Time of Day panel
-    if (m_dynamicLightingEffect) {
-        m_timeOfDayPanel = std::make_unique<TimeOfDayPanel>(
-            m_uiManager,
-            m_lightingSystem.get(),
-            m_dynamicLightingEffect
-        );
-        LOG_INFO("TimeOfDayPanel created");
-    }
+    // Initialize PanelManager
+    m_panelManager = std::make_unique<EditorPanelManager>(m_uiManager, m_state.get(), &m_sceneManager);
+    m_panelManager->initialize(m_lightingSystem.get(), m_dynamicLightingEffect, m_bloomEffect, m_colorGradingEffect, m_currentScene);
+    LOG_INFO("EditorPanelManager initialized");
 
-    // Post-processing panel
-    if (m_bloomEffect && m_colorGradingEffect) {
-        m_postProcessPanel = std::make_unique<PostProcessPanel>(
-            m_uiManager,
-            m_bloomEffect,
-            m_colorGradingEffect
-        );
-        LOG_INFO("PostProcessPanel created");
-    }
-
-    // Entity properties panel (with callback for layer changes)
-    m_entityPropertiesPanel = std::make_unique<EntityPropertiesPanel>(
-        m_uiManager,
+    // Initialize EntityEditorController
+    m_entityController = std::make_unique<EntityEditorController>(
         m_state.get(),
         &m_sceneManager,
-        [this]() {
-            // Callback when layer changes - update layers panel
-            if (m_layersPanel) {
-                m_layersPanel->update();
+        [this]() { if (m_panelManager) m_panelManager->updateLayersPanel(m_currentScene); }
+    );
+    m_entityController->loadNPCDefinitions();
+    LOG_INFO("EntityEditorController initialized");
+
+    // Initialize SceneEditorController
+    m_sceneController = std::make_unique<SceneEditorController>(
+        m_state.get(),
+        &m_sceneManager,
+        [this](NovaEngine::Scene* scene) {
+            m_currentScene = scene;
+            if (m_panelManager) m_panelManager->updateLayersPanel(scene);
+            if (m_camera) {
+                m_camera->focusOn(NovaEngine::Vec2f{0.0f, 0.0f});
+                m_camera->setZoom(1.0f);
             }
         }
     );
-    LOG_INFO("EntityPropertiesPanel created");
+    LOG_INFO("SceneEditorController initialized");
 
-    // Layers panel
-    m_layersPanel = std::make_unique<LayersPanel>(
-        m_uiManager,
-        m_state.get(),
-        m_currentScene
-    );
-    LOG_INFO("LayersPanel created");
+    // Initialize EditorInputHandler with callbacks
+    EditorInputHandler::InputCallbacks callbacks;
+    callbacks.onGridToggle = [this]() {
+        m_state->setGridEnabled(!m_state->isGridEnabled());
+        bool gridEnabled = m_state->isGridEnabled();
+        LOG_INFO("Grid toggled: {}", gridEnabled ? "ON" : "OFF");
 
-    LOG_INFO("All UI panels initialized successfully");
+        // Update button text to reflect current state
+        auto btnToggleGrid = m_uiManager.getComponent("btn_toggle_grid");
+        if (btnToggleGrid) {
+            auto button = std::dynamic_pointer_cast<NovaEngine::Button>(btnToggleGrid);
+            if (button) {
+                button->setText(gridEnabled ? "Grid: ON" : "Grid: OFF");
+            }
+        }
+    };
+    callbacks.onLayersPanelToggle = [this]() {
+        if (m_panelManager) m_panelManager->handleAction("toggle_layers", "");
+    };
+    callbacks.onPropertiesPanelToggle = [this]() {
+        if (m_panelManager) m_panelManager->handleAction("show_properties", "");
+    };
+    callbacks.onLayerChange = [this](NovaEngine::i32 layer) {
+        if (m_panelManager) m_panelManager->handleAction("set_layer", std::to_string(layer));
+    };
+    callbacks.onEntityPlacement = [this](const NovaEngine::Vec2f& pos) {
+        if (m_entityController) m_entityController->placeEntity(pos, m_currentScene);
+    };
+    callbacks.onEntitySelection = [this](const NovaEngine::Vec2f& pos) {
+        selectEntityAtPosition(pos);
+    };
+    callbacks.onEntityDragStart = [this](const NovaEngine::Vec2f& pos) {
+        if (m_entityController) m_entityController->startDragging(pos);
+    };
+    callbacks.onEntityDragUpdate = [this](const NovaEngine::Vec2f& pos) {
+        if (m_entityController) m_entityController->updateDragging(pos);
+    };
+    callbacks.onEntityDragStop = [this]() {
+        if (m_entityController) m_entityController->stopDragging();
+    };
+
+    m_inputHandler = std::make_unique<EditorInputHandler>(m_state.get(), m_camera.get(), callbacks);
+    LOG_INFO("EditorInputHandler initialized");
+
+    LOG_INFO("All controllers initialized successfully");
 
     printControls();
 
@@ -208,8 +230,15 @@ bool EditorApplication::onInitialize() {
 }
 
 void EditorApplication::onUpdate(float deltaTime) {
-    // Update camera
-    updateCamera(deltaTime);
+    // Update camera (via InputHandler)
+    if (m_inputHandler) {
+        m_inputHandler->updateCamera(deltaTime);
+    }
+
+    // Update camera viewport
+    if (m_camera) {
+        m_camera->update(deltaTime);
+    }
 
     // Update UI
     m_uiManager.update(deltaTime);
@@ -307,48 +336,11 @@ void EditorApplication::initializeEditor() {
     LOG_INFO("Editor subsystems initialized");
 }
 
-bool EditorApplication::loadNPCDefinitions() {
-    using namespace NovaEngine;
-
-    std::string path = "data/definitions/NPCs.json";
-    std::ifstream file(path);
-
-    if (!file.is_open()) {
-        LOG_WARN("NPCs definitions file not found: {} (skipping)", path);
-        return true; // Not critical if file doesn't exist
-    }
-
-    try {
-        nlohmann::json data;
-        file >> data;
-
-        if (data.contains("npcs") && data["npcs"].is_array()) {
-            for (const auto& npc : data["npcs"]) {
-                if (npc.contains("id")) {
-                    std::string id = npc["id"];
-                    m_npcDefinitions[id] = npc;
-                    LOG_DEBUG("Loaded NPC definition: {}", id);
-                }
-            }
-        }
-
-        LOG_INFO("Loaded {} NPC definitions from {}", m_npcDefinitions.size(), path);
-        return true;
-    } catch (const std::exception& e) {
-        LOG_ERROR("Failed to parse NPC definitions: {}", e.what());
-        return false;
-    }
-}
-
 void EditorApplication::printControls() {
     LOG_INFO("=== Editor Controls ===");
     LOG_INFO("Camera: WASD or Arrow keys to move");
     LOG_INFO("UI: Click buttons to trigger actions (Phase 1: logs only)");
     LOG_INFO("ESC: Exit editor");
-}
-
-void EditorApplication::updateCamera(float deltaTime) {
-    m_camera->update(deltaTime);
 }
 
 void EditorApplication::renderScene() {
@@ -532,212 +524,111 @@ void EditorApplication::renderUI() {
 void EditorApplication::handleEditorInput(const NovaEngine::InputEvent& input) {
     using namespace NovaEngine;
 
+    if (!m_inputHandler) return;
+
+    // ESC: Exit placement mode or quit
+    if (input.type == InputEventType::KeyPressed && input.key.code == KeyCode::Escape) {
+        if (m_entityController && m_entityController->isPlacementMode()) {
+            m_entityController->exitPlacementMode();
+        } else {
+            quit();
+        }
+        return;
+    }
+
+    // Ctrl+N: New scene
+    if (input.type == InputEventType::KeyPressed && input.key.code == KeyCode::N && input.key.control) {
+        if (m_sceneController) {
+            NovaEngine::Scene* newScene = m_sceneController->createNewScene();
+            if (newScene) {
+                if (m_currentScene) delete m_currentScene;
+                m_currentScene = newScene;
+            }
+        }
+        return;
+    }
+
+    // Ctrl+O: Load scene
+    if (input.type == InputEventType::KeyPressed && input.key.code == KeyCode::O && input.key.control) {
+        showSceneSelectionDialog();
+        return;
+    }
+
+    // Ctrl+S: Save scene
+    if (input.type == InputEventType::KeyPressed && input.key.code == KeyCode::S && input.key.control) {
+        if (m_sceneController) {
+            m_sceneController->saveScene(m_currentScene);
+        }
+        return;
+    }
+
+    // Delegate to InputHandler
     if (input.type == InputEventType::KeyPressed) {
-        handleKeyPress(input);
+        m_inputHandler->handleKeyPress(input);
     }
     else if (input.type == InputEventType::MouseButtonPressed) {
         // Only handle editor clicks if not over UI
         Vec2i mousePos{input.mouseButton.x, input.mouseButton.y};
         if (!m_uiManager.isMouseOverUI(mousePos)) {
-            handleMouseClick(input);
+            bool isPlacementMode = m_entityController && m_entityController->isPlacementMode();
+            m_inputHandler->handleMouseClick(input, isPlacementMode);
         }
     }
     else if (input.type == InputEventType::MouseMoved) {
-        // Handle dragging
-        if (m_isDragging) {
-            Vec2i screenPos{input.mouseMove.x, input.mouseMove.y};
-            Vec2f worldPos = m_camera->screenToWorld(screenPos);
-            updateDraggingEntity(worldPos);
-        }
+        bool isDragging = m_entityController && m_entityController->isDragging();
+        m_inputHandler->handleMouseMove(input, isDragging);
     }
     else if (input.type == InputEventType::MouseButtonReleased) {
-        // Stop dragging
-        if (input.mouseButton.button == MouseButton::Left) {
-            stopDraggingEntity();
-        }
-    }
-    // Note: Mouse wheel scrolling not supported in current InputEvent
-}
-
-void EditorApplication::handleKeyPress(const NovaEngine::InputEvent& input) {
-    using namespace NovaEngine;
-
-    // ESC: Exit placement mode or quit
-    if (input.key.code == KeyCode::Escape) {
-        if (m_isPlacementMode) {
-            exitPlacementMode();
-        } else {
-            quit();
-        }
-    }
-
-    // Ctrl+N: New scene
-    if (input.key.code == KeyCode::N && input.key.control) {
-        newScene();
-    }
-
-    // Ctrl+O: Load scene
-    if (input.key.code == KeyCode::O && input.key.control) {
-        loadScene();
-    }
-
-    // Ctrl+S: Save scene
-    if (input.key.code == KeyCode::S && input.key.control) {
-        saveScene();
-    }
-
-    // G: Toggle grid
-    if (input.key.code == KeyCode::G) {
-        m_state->setGridEnabled(!m_state->isGridEnabled());
-        LOG_INFO("Grid: {}", m_state->isGridEnabled() ? "ON" : "OFF");
-    }
-
-    // L: Toggle layers panel
-    if (input.key.code == KeyCode::L) {
-        if (m_layersPanel) m_layersPanel->toggle();
-    }
-
-    // P: Show properties of selected entity
-    if (input.key.code == KeyCode::P) {
-        if (m_entityPropertiesPanel) {
-            if (m_state->getSelectedEntity()) {
-                m_entityPropertiesPanel->show();
-            } else {
-                LOG_INFO("No entity selected - press P when an entity is selected to see properties");
-            }
-        }
-    }
-
-    // Layer shortcuts (number keys 0-9 for layers 0-9)
-    if (input.key.code >= KeyCode::Num0 && input.key.code <= KeyCode::Num9) {
-        int layer = static_cast<int>(input.key.code) - static_cast<int>(KeyCode::Num0);
-
-        // If Shift is held, use negative layer
-        if (input.key.shift) {
-            layer = -layer;
-        }
-
-        m_state->setCurrentLayer(layer);
-        LOG_INFO("Current layer set to: {}", layer);
+        bool isDragging = m_entityController && m_entityController->isDragging();
+        m_inputHandler->handleMouseRelease(input, isDragging);
     }
 }
 
-void EditorApplication::handleMouseClick(const NovaEngine::InputEvent& input) {
-    using namespace NovaEngine;
-
-    Vec2i screenPos{input.mouseButton.x, input.mouseButton.y};
-    Vec2f worldPos = m_camera->screenToWorld(screenPos);
-
-    LOG_INFO("=== MOUSE CLICK ===");
-    LOG_INFO("Screen: ({}, {})", screenPos.x, screenPos.y);
-    LOG_INFO("World: ({}, {})", worldPos.x, worldPos.y);
-    LOG_INFO("Camera pos: ({}, {}), zoom: {}",
-             m_camera->getPosition().x, m_camera->getPosition().y, m_camera->getZoom());
-
-    // Handle placement mode
-    if (m_isPlacementMode) {
-        placeEntity(worldPos);
-        return;
-    }
-
-    // Handle entity selection and dragging
-    if (input.mouseButton.button == MouseButton::Left) {
-        if (m_currentScene) {
-            // Check if clicking on an entity
-            Entity* clickedEntity = nullptr;
-            float closestDistance = std::numeric_limits<float>::max();
-
-            // Iterate through all entities to find one under the mouse
-            const auto& entities = m_currentScene->getEntityRegistry().getAllEntities();
-            LOG_INFO("Checking {} entities for selection", entities.size());
-
-            for (auto* entity : entities) {
-                if (entity) {
-                    auto* transform = entity->getComponent<TransformComponent>();
-                    if (!transform) continue;
-
-                    Vec2f entityPos = transform->position;
-                    Vec2f scale = transform->scale;
-                    Vec2f origin = transform->origin;
-
-                    // Get sprite size if available for accurate hit detection
-                    auto* sprite = entity->getComponent<SpriteComponent>();
-                    Vec2f spriteSize{100.0f, 100.0f}; // Default size
-                    if (sprite && sprite->size.x > 0 && sprite->size.y > 0) {
-                        spriteSize = sprite->size;
-                    }
-
-                    // Calculate actual bounds accounting for origin
-                    Vec2f scaledSize{spriteSize.x * scale.x, spriteSize.y * scale.y};
-                    Vec2f scaledOrigin{origin.x * scale.x, origin.y * scale.y};
-
-                    // Top-left corner of the sprite
-                    Vec2f topLeft{entityPos.x - scaledOrigin.x, entityPos.y - scaledOrigin.y};
-                    // Bottom-right corner
-                    Vec2f bottomRight{topLeft.x + scaledSize.x, topLeft.y + scaledSize.y};
-
-                    LOG_DEBUG("Entity {}: pos({}, {}), origin({}, {}), size({}, {}), bounds[({}, {}) to ({}, {})]",
-                             entity->getID(), entityPos.x, entityPos.y,
-                             origin.x, origin.y, scaledSize.x, scaledSize.y,
-                             topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
-
-                    // Check if click is within sprite bounds (AABB test accounting for origin)
-                    if (worldPos.x >= topLeft.x &&
-                        worldPos.x <= bottomRight.x &&
-                        worldPos.y >= topLeft.y &&
-                        worldPos.y <= bottomRight.y) {
-
-                        LOG_INFO("Entity {} is under mouse!", entity->getID());
-
-                        // Calculate distance to center for z-ordering
-                        float distance = std::sqrt(
-                            (worldPos.x - entityPos.x) * (worldPos.x - entityPos.x) +
-                            (worldPos.y - entityPos.y) * (worldPos.y - entityPos.y)
-                        );
-
-                        if (distance < closestDistance) {
-                            clickedEntity = entity;
-                            closestDistance = distance;
-                        }
-                    }
-                }
-            }
-
-            if (clickedEntity) {
-                LOG_INFO("Selected entity: {}", clickedEntity->getID());
-                selectEntity(clickedEntity);
-                startDraggingEntity();
-            } else {
-                LOG_INFO("No entity under mouse - deselecting");
-                // Clicked on empty space - deselect
-                selectEntity(nullptr);
-            }
-        }
-    }
-}
 
 void EditorApplication::onUIAction(const std::string& action, const std::string& value) {
     using namespace NovaEngine;
 
     LOG_INFO("=== UI ACTION === '{}' with value '{}'", action, value);
 
-    // Handle UI actions
+    // Route scene actions to SceneController
     if (action == "scene_new") {
-        newScene();
+        if (m_sceneController) {
+            NovaEngine::Scene* newScene = m_sceneController->createNewScene();
+            if (newScene) {
+                if (m_currentScene) delete m_currentScene;
+                m_currentScene = newScene;
+            }
+        }
+        return;
     }
-    else if (action == "scene_load") {
-        loadScene();
+    if (action == "scene_load") {
+        showSceneSelectionDialog();
+        return;
     }
-    else if (action == "scene_save") {
-        saveScene();
+    if (action == "scene_save") {
+        if (m_sceneController) {
+            m_sceneController->saveScene(m_currentScene);
+        }
+        return;
     }
-    else if (action == "edit_undo") {
+
+    // Route panel actions to PanelManager
+    if (m_panelManager && m_panelManager->handleAction(action, value)) {
+        return;
+    }
+
+    // Handle undo/redo (not yet implemented)
+    if (action == "edit_undo") {
         LOG_INFO("Undo requested (not yet implemented)");
+        return;
     }
-    else if (action == "edit_redo") {
+    if (action == "edit_redo") {
         LOG_INFO("Redo requested (not yet implemented)");
+        return;
     }
-    else if (action == "toggle_grid") {
+
+    // Handle grid toggle
+    if (action == "toggle_grid") {
         m_state->setGridEnabled(!m_state->isGridEnabled());
         bool gridEnabled = m_state->isGridEnabled();
         LOG_INFO("Grid toggled: {}", gridEnabled ? "ON" : "OFF");
@@ -750,53 +641,24 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
                 button->setText(gridEnabled ? "Grid: ON" : "Grid: OFF");
             }
         }
+        return;
     }
-    else if (action == "toggle_layers") {
-        if (m_layersPanel) m_layersPanel->toggle();
-    }
-    else if (action == "show_properties") {
-        if (m_entityPropertiesPanel) {
-            if (m_state->getSelectedEntity()) {
-                m_entityPropertiesPanel->show();
-            } else {
-                LOG_INFO("No entity selected - select an entity first to view properties");
-            }
-        }
-    }
-    else if (action == "close_properties") {
-        if (m_entityPropertiesPanel) m_entityPropertiesPanel->hide();
-    }
-    else if (action == "apply_properties") {
-        if (m_entityPropertiesPanel) m_entityPropertiesPanel->applyChanges();
-    }
-    else if (action == "modify_property") {
-        if (m_entityPropertiesPanel) {
-            // value format: "propertyIndex:delta"
-            try {
-                size_t colonPos = value.find(':');
-                if (colonPos != std::string::npos) {
-                    int propIndex = std::stoi(value.substr(0, colonPos));
-                    float delta = std::stof(value.substr(colonPos + 1));
-                    m_entityPropertiesPanel->modifyProperty(propIndex, delta);
-                }
-            } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse modify_property value: {}", e.what());
-            }
-        }
-    }
-    else if (action == "palette_category") {
+
+    // Handle entity palette category selection
+    if (action == "palette_category") {
         m_uiManager_editor->updateEntityPalette(value);
         // Clear previous entity list when changing category
         m_availableEntities.clear();
         m_entityDialogPage = 0;
         // Show entity selection dialog
         showEntitySelectionDialog(value);
+        return;
     }
-    else if (action == "load_scene_by_index") {
-        // Load scene by index from available scenes list
+
+    // Handle scene selection dialog
+    if (action == "load_scene_by_index") {
         try {
             size_t index = std::stoul(value);
-            // Calculate actual scene index based on current page
             size_t actualIndex = (m_sceneDialogPage * SCENES_PER_PAGE) + index;
 
             if (actualIndex < m_availableScenes.size()) {
@@ -808,44 +670,51 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
                 m_availableScenes.clear();
                 m_sceneDialogPage = 0;
 
-                // Load the scene
-                loadScene(scenePath);
+                // Load the scene via SceneController
+                if (m_sceneController) {
+                    NovaEngine::Scene* loadedScene = m_sceneController->loadScene(scenePath);
+                    if (loadedScene) {
+                        if (m_currentScene) delete m_currentScene;
+                        m_currentScene = loadedScene;
+                    }
+                }
             } else {
                 LOG_ERROR("Invalid scene index: {}", actualIndex);
             }
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to parse scene index: {}", e.what());
         }
+        return;
     }
-    else if (action == "scene_next_page") {
-        // Go to next page of scenes
+    if (action == "scene_next_page") {
         size_t totalPages = (m_availableScenes.size() + SCENES_PER_PAGE - 1) / SCENES_PER_PAGE;
         if (m_sceneDialogPage < totalPages - 1) {
             m_sceneDialogPage++;
             showSceneSelectionDialog();
             LOG_INFO("Scene dialog: next page {}", m_sceneDialogPage + 1);
         }
+        return;
     }
-    else if (action == "scene_prev_page") {
-        // Go to previous page of scenes
+    if (action == "scene_prev_page") {
         if (m_sceneDialogPage > 0) {
             m_sceneDialogPage--;
             showSceneSelectionDialog();
             LOG_INFO("Scene dialog: previous page {}", m_sceneDialogPage + 1);
         }
+        return;
     }
-    else if (action == "close_scene_dialog") {
-        // Close the scene selection dialog and clear state
+    if (action == "close_scene_dialog") {
         m_uiManager.setGroupActive("scene_dialog", false);
         m_availableScenes.clear();
         m_sceneDialogPage = 0;
         LOG_INFO("Scene selection dialog closed");
+        return;
     }
-    else if (action == "select_entity_by_index") {
-        // Select entity by index from available entities list
+
+    // Handle entity selection dialog (routes to EntityController)
+    if (action == "select_entity_by_index") {
         try {
             size_t index = std::stoul(value);
-            // Calculate actual entity index based on current page
             size_t actualIndex = (m_entityDialogPage * ENTITIES_PER_PAGE) + index;
 
             if (actualIndex < m_availableEntities.size()) {
@@ -857,59 +726,54 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
                 m_availableEntities.clear();
                 m_entityDialogPage = 0;
 
-                // Enter placement mode with selected entity
-                enterPlacementMode(m_currentEntityCategory, entityId);
+                // Enter placement mode via EntityController
+                if (m_entityController) {
+                    m_entityController->enterPlacementMode(m_currentEntityCategory, entityId);
+                }
             } else {
                 LOG_ERROR("Invalid entity index: {}", actualIndex);
             }
         } catch (const std::exception& e) {
             LOG_ERROR("Failed to parse entity index: {}", e.what());
         }
+        return;
     }
-    else if (action == "entity_next_page") {
-        // Go to next page of entities
+    if (action == "entity_next_page") {
         size_t totalPages = (m_availableEntities.size() + ENTITIES_PER_PAGE - 1) / ENTITIES_PER_PAGE;
         if (m_entityDialogPage < totalPages - 1) {
             m_entityDialogPage++;
             showEntitySelectionDialog(m_currentEntityCategory);
             LOG_INFO("Entity dialog: next page {}", m_entityDialogPage + 1);
         }
+        return;
     }
-    else if (action == "entity_prev_page") {
-        // Go to previous page of entities
+    if (action == "entity_prev_page") {
         if (m_entityDialogPage > 0) {
             m_entityDialogPage--;
             showEntitySelectionDialog(m_currentEntityCategory);
             LOG_INFO("Entity dialog: previous page {}", m_entityDialogPage + 1);
         }
+        return;
     }
-    else if (action == "close_entity_dialog") {
-        // Close the entity selection dialog and clear state
+    if (action == "close_entity_dialog") {
         m_uiManager.setGroupActive("entity_dialog", false);
         m_availableEntities.clear();
         m_entityDialogPage = 0;
         LOG_INFO("Entity selection dialog closed");
+        return;
     }
-    else if (action == "set_layer") {
-        // Set the current layer for entity placement
-        try {
-            i32 layer = std::stoi(value);
-            m_state->setCurrentLayer(layer);
-            LOG_INFO("Current layer set to: {}", layer);
-            if (m_layersPanel) m_layersPanel->update();
-        } catch (const std::exception& e) {
-            LOG_ERROR("Failed to parse layer value: {}", e.what());
-        }
-    }
-    else if (action == "select_entity_from_list") {
-        // Select entity from the layers panel list
-        if (m_layersPanel) {
+
+    // Handle entity selection from layers panel
+    if (action == "select_entity_from_list") {
+        if (m_panelManager) {
             try {
                 size_t index = std::stoul(value);
-                Entity* entity = m_layersPanel->getEntityFromList(index);
+                Entity* entity = m_panelManager->getEntityFromLayersList(index);
                 if (entity) {
                     LOG_INFO("Selected entity from list: ID {}", entity->getID());
-                    selectEntity(entity);
+                    if (m_entityController) {
+                        m_entityController->selectEntity(entity);
+                    }
                 } else {
                     LOG_ERROR("Invalid entity list index: {}", index);
                 }
@@ -917,159 +781,90 @@ void EditorApplication::onUIAction(const std::string& action, const std::string&
                 LOG_ERROR("Failed to parse entity index: {}", e.what());
             }
         }
+        return;
     }
-    // Time of Day actions (NEW - using panels!)
-    else if (action == "show_time_of_day") {
-        if (m_timeOfDayPanel) m_timeOfDayPanel->show();
-    }
-    else if (action == "close_time_panel") {
-        if (m_timeOfDayPanel) m_timeOfDayPanel->hide();
-    }
-    else if (action == "set_time") {
-        if (m_timeOfDayPanel) {
-            try {
-                float time = std::stof(value);
-                m_timeOfDayPanel->setTimeOfDay(time);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse time value: {}", e.what());
-            }
-        }
-    }
-    else if (action == "adjust_ambient") {
-        if (m_timeOfDayPanel) {
-            try {
-                float delta = std::stof(value);
-                m_timeOfDayPanel->adjustAmbientDarkness(delta);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse ambient delta: {}", e.what());
-            }
-        }
-    }
-    // Post-Processing actions (NEW - using panels!)
-    else if (action == "show_postprocess") {
-        if (m_postProcessPanel) m_postProcessPanel->show();
-    }
-    else if (action == "close_pp_panel") {
-        if (m_postProcessPanel) m_postProcessPanel->hide();
-    }
-    else if (action == "adjust_bloom") {
-        if (m_postProcessPanel) {
-            try {
-                float delta = std::stof(value);
-                m_postProcessPanel->adjustBloomIntensity(delta);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse bloom delta: {}", e.what());
-            }
-        }
-    }
-    else if (action == "adjust_saturation") {
-        if (m_postProcessPanel) {
-            try {
-                float delta = std::stof(value);
-                m_postProcessPanel->adjustSaturation(delta);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse saturation delta: {}", e.what());
-            }
-        }
-    }
-    else if (action == "adjust_contrast") {
-        if (m_postProcessPanel) {
-            try {
-                float delta = std::stof(value);
-                m_postProcessPanel->adjustContrast(delta);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse contrast delta: {}", e.what());
-            }
-        }
-    }
-    else if (action == "adjust_brightness") {
-        if (m_postProcessPanel) {
-            try {
-                float delta = std::stof(value);
-                m_postProcessPanel->adjustBrightness(delta);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Failed to parse brightness delta: {}", e.what());
-            }
-        }
-    }
-    else {
-        LOG_WARN("Unknown action: '{}'", action);
-    }
+
+    LOG_WARN("Unknown action: '{}'", action);
 }
 
-void EditorApplication::newScene() {
-    LOG_INFO("New scene requested");
+// Helper method to select entity at world position
+void EditorApplication::selectEntityAtPosition(const NovaEngine::Vec2f& worldPos) {
+    using namespace NovaEngine;
 
-    // Phase 1: Just log
-    // Future: Clear current scene, create new empty scene
-}
-
-void EditorApplication::loadScene() {
-    LOG_INFO("Load scene requested");
-
-    // Show scene selection dialog
-    showSceneSelectionDialog();
-}
-
-void EditorApplication::loadScene(const std::string& scenePath) {
-    LOG_INFO("Attempting to load scene from: {}", scenePath);
-
-    std::string sceneName = "LoadedScene";
-
-    // Unload previous scene from SceneManager if it exists
-    if (m_currentScene) {
-        LOG_INFO("Unloading previous scene from SceneManager...");
-        m_sceneManager.unloadScene(sceneName);
-        m_currentScene = nullptr;
+    if (!m_currentScene) {
+        return;
     }
 
-    // Load scene using SceneManager
-    if (m_sceneManager.loadScene(scenePath, sceneName)) {
-        // Get the loaded scene
-        m_currentScene = m_sceneManager.getScene(sceneName);
+    // Find entity under the mouse
+    Entity* clickedEntity = nullptr;
+    float closestDistance = std::numeric_limits<float>::max();
 
-        if (m_currentScene) {
-            // Set as active scene for rendering
-            m_sceneManager.setActiveScene(sceneName);
+    const auto& entities = m_currentScene->getEntityRegistry().getAllEntities();
+    LOG_INFO("Checking {} entities for selection", entities.size());
 
-            // Update editor state
-            m_state->setCurrentScenePath(scenePath);
-            m_state->setSceneModified(false);
+    for (auto* entity : entities) {
+        if (!entity) continue;
 
-            // Center camera on scene (0,0 for now)
-            m_camera->focusOn(NovaEngine::Vec2f{0.0f, 0.0f});
-            m_camera->setZoom(1.0f);
+        auto* transform = entity->getComponent<TransformComponent>();
+        if (!transform) continue;
 
-            // Refresh UI
-            m_uiManager_editor->refreshSceneHierarchy();
+        Vec2f entityPos = transform->position;
+        Vec2f scale = transform->scale;
+        Vec2f origin = transform->origin;
 
-            LOG_INFO("Scene loaded successfully: {} entities",
-                     m_currentScene->getEntityRegistry().getEntityCount());
+        // Get sprite size for accurate hit detection
+        auto* sprite = entity->getComponent<SpriteComponent>();
+        Vec2f spriteSize{100.0f, 100.0f}; // Default size
+        if (sprite && sprite->size.x > 0 && sprite->size.y > 0) {
+            spriteSize = sprite->size;
+        }
 
-            // Update layers panel to show entities in loaded scene
-            if (m_layersPanel) {
-                m_layersPanel->setScene(m_currentScene);
-                m_layersPanel->update();
+        // Calculate actual bounds accounting for origin
+        Vec2f scaledSize{spriteSize.x * scale.x, spriteSize.y * scale.y};
+        Vec2f scaledOrigin{origin.x * scale.x, origin.y * scale.y};
+
+        // Top-left corner of the sprite
+        Vec2f topLeft{entityPos.x - scaledOrigin.x, entityPos.y - scaledOrigin.y};
+        // Bottom-right corner
+        Vec2f bottomRight{topLeft.x + scaledSize.x, topLeft.y + scaledSize.y};
+
+        LOG_DEBUG("Entity {}: pos({}, {}), origin({}, {}), size({}, {}), bounds[({}, {}) to ({}, {})]",
+                 entity->getID(), entityPos.x, entityPos.y,
+                 origin.x, origin.y, scaledSize.x, scaledSize.y,
+                 topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
+
+        // Check if click is within sprite bounds (AABB test)
+        if (worldPos.x >= topLeft.x &&
+            worldPos.x <= bottomRight.x &&
+            worldPos.y >= topLeft.y &&
+            worldPos.y <= bottomRight.y) {
+
+            LOG_INFO("Entity {} is under mouse!", entity->getID());
+
+            // Calculate distance to center for z-ordering
+            float distance = std::sqrt(
+                (worldPos.x - entityPos.x) * (worldPos.x - entityPos.x) +
+                (worldPos.y - entityPos.y) * (worldPos.y - entityPos.y)
+            );
+
+            if (distance < closestDistance) {
+                clickedEntity = entity;
+                closestDistance = distance;
             }
-        } else {
-            LOG_ERROR("Scene was loaded but could not be retrieved from SceneManager");
+        }
+    }
+
+    if (clickedEntity) {
+        LOG_INFO("Selected entity: {}", clickedEntity->getID());
+        if (m_entityController) {
+            m_entityController->selectEntity(clickedEntity);
         }
     } else {
-        LOG_ERROR("Failed to load scene from: {}", scenePath);
-        LOG_INFO("Creating empty scene instead...");
-
-        // Create empty scene as fallback
-        m_currentScene = new NovaEngine::Scene("EditorScene");
-        m_state->setCurrentScenePath("");
-        m_state->setSceneModified(false);
+        LOG_INFO("No entity under mouse - deselecting");
+        if (m_entityController) {
+            m_entityController->selectEntity(nullptr);
+        }
     }
-}
-
-void EditorApplication::saveScene() {
-    LOG_INFO("Save scene requested");
-
-    // Phase 1: Just log
-    // Future: Show save dialog if needed, save scene to JSON
 }
 
 std::vector<std::string> EditorApplication::getAvailableScenes() const {
@@ -1337,324 +1132,5 @@ void EditorApplication::showEntitySelectionDialog(const std::string& category) {
     }
 }
 
-void EditorApplication::enterPlacementMode(const std::string& entityType, const std::string& entityId) {
-    LOG_INFO("Entering placement mode: {} - {}", entityType, entityId);
-
-    m_placementEntityType = entityType;
-    m_placementEntityId = entityId;
-    m_isPlacementMode = true;
-
-    // Update editor state
-    m_state->setMode(EditorState::Mode::Place);
-    m_state->setPlacementType(entityType + ":" + entityId);
-
-    LOG_INFO("Placement mode active. Click to place entity.");
-}
-
-void EditorApplication::exitPlacementMode() {
-    if (m_isPlacementMode) {
-        LOG_INFO("Exiting placement mode");
-        m_isPlacementMode = false;
-        m_placementEntityType.clear();
-        m_placementEntityId.clear();
-        m_state->setMode(EditorState::Mode::Select);
-        m_state->setPlacementType("");
-    }
-}
-
-void EditorApplication::placeEntity(const NovaEngine::Vec2f& position) {
-    using namespace NovaEngine;
-
-    if (!m_isPlacementMode || !m_currentScene) {
-        LOG_WARN("Cannot place entity: not in placement mode or no scene loaded");
-        return;
-    }
-
-    LOG_INFO("=== PLACING ENTITY ===");
-    LOG_INFO("Position requested: ({}, {})", position.x, position.y);
-    LOG_INFO("Camera position: ({}, {})", m_camera->getPosition().x, m_camera->getPosition().y);
-    LOG_INFO("Camera zoom: {}", m_camera->getZoom());
-    LOG_INFO("Placement type: {}, ID: {}", m_placementEntityType, m_placementEntityId);
-    LOG_INFO("Note: Sprites will be centered at cursor position (origin set to center)");
-
-    try {
-        // Create entity based on type
-        if (m_placementEntityType == "sprites") {
-            // Create entity
-            Entity* entity = m_currentScene->getEntityRegistry().createEntity();
-
-            // Initialize sprite from definition first to get all properties
-            const auto* definition = m_sceneManager.getDefinitionManager().getSpriteDefinition(m_placementEntityId);
-
-            // Add transform component
-            auto transform = std::make_unique<TransformComponent>();
-            transform->position = position;
-
-            // Apply scale from definition if present
-            if (definition && definition->contains("scale")) {
-                float scale = (*definition)["scale"].get<f32>();
-                transform->scale = Vec2f{scale, scale};
-            }
-
-            // Will set origin after we know sprite size
-            Vec2f spriteSize{0.0f, 0.0f};
-
-            // Add sprite component
-            auto sprite = std::make_unique<SpriteComponent>();
-
-            // Initialize sprite properties from definition
-            if (definition) {
-                // Load texture and set properties from definition
-                if (definition->contains("texture")) {
-                    std::string texturePath = (*definition)["texture"].get<std::string>();
-                    sprite->textureHandle = RESOURCES().loadTexture(texturePath);
-                    sprite->textureID = m_placementEntityId;
-                }
-
-                // Set size from definition
-                if (definition->contains("width") && definition->contains("height")) {
-                    sprite->size = Vec2f{
-                        (*definition)["width"].get<f32>(),
-                        (*definition)["height"].get<f32>()
-                    };
-                    spriteSize = sprite->size;
-                } else if (definition->contains("size")) {
-                    auto& size = (*definition)["size"];
-                    sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
-                    spriteSize = sprite->size;
-                }
-
-                // Set origin from definition, or default to center
-                if (definition->contains("origin")) {
-                    auto& origin = (*definition)["origin"];
-                    transform->origin = Vec2f{origin[0].get<f32>(), origin[1].get<f32>()};
-                    LOG_INFO("Using origin from definition: ({}, {})", transform->origin.x, transform->origin.y);
-                } else {
-                    // Default to center of sprite for better placement UX
-                    transform->origin = Vec2f{spriteSize.x * 0.5f, spriteSize.y * 0.5f};
-                    LOG_INFO("Using centered origin: ({}, {}) (sprite size: {}, {})",
-                             transform->origin.x, transform->origin.y, spriteSize.x, spriteSize.y);
-                }
-            }
-
-            // Apply current layer as zOrder (overrides definition)
-            sprite->zOrder = m_state->getCurrentLayer();
-
-            entity->addComponent(std::move(transform));
-            entity->addComponent(std::move(sprite));
-
-            LOG_INFO("Sprite entity created successfully (ID: {})", entity->getID());
-            m_state->setSceneModified(true);
-            if (m_layersPanel) m_layersPanel->update();
-
-            // Exit placement mode after placing entity
-            exitPlacementMode();
-        }
-        else if (m_placementEntityType == "lights") {
-            // Create entity
-            Entity* entity = m_currentScene->getEntityRegistry().createEntity();
-
-            // Add transform component
-            auto transform = std::make_unique<TransformComponent>();
-            transform->position = position;
-            entity->addComponent(std::move(transform));
-
-            // Add light component
-            auto light = std::make_unique<LightComponent>();
-
-            // Initialize light from definition
-            const auto* definition = m_sceneManager.getDefinitionManager().getLightDefinition(m_placementEntityId);
-            if (definition) {
-                // Load light properties from definition
-                if (definition->contains("type")) {
-                    std::string typeStr = (*definition)["type"].get<std::string>();
-                    if (typeStr == "point") light->type = LightComponent::LightType::Point;
-                    else if (typeStr == "directional") light->type = LightComponent::LightType::Directional;
-                    else if (typeStr == "spot") light->type = LightComponent::LightType::Spot;
-                }
-
-                if (definition->contains("color")) {
-                    auto& color = (*definition)["color"];
-                    light->color = Color{
-                        static_cast<u8>(color[0].get<int>()),
-                        static_cast<u8>(color[1].get<int>()),
-                        static_cast<u8>(color[2].get<int>()),
-                        static_cast<u8>(color[3].get<int>())
-                    };
-                }
-
-                if (definition->contains("radius")) {
-                    light->radius = (*definition)["radius"].get<f32>();
-                }
-
-                if (definition->contains("intensity")) {
-                    light->intensity = (*definition)["intensity"].get<f32>();
-                }
-
-                if (definition->contains("castShadows")) {
-                    light->castShadows = (*definition)["castShadows"].get<bool>();
-                }
-            }
-
-            entity->addComponent(std::move(light));
-
-            LOG_INFO("Light entity created successfully (ID: {})", entity->getID());
-            m_state->setSceneModified(true);
-            if (m_layersPanel) m_layersPanel->update();
-
-            // Exit placement mode after placing entity
-            exitPlacementMode();
-        }
-        else if (m_placementEntityType == "npcs") {
-            // Create entity
-            Entity* entity = m_currentScene->getEntityRegistry().createEntity();
-
-            // First, look up the NPC definition to get the sprite ID
-            std::string spriteId;
-            auto npcDefIt = m_npcDefinitions.find(m_placementEntityId);
-            if (npcDefIt != m_npcDefinitions.end() && npcDefIt->second.contains("sprite")) {
-                spriteId = npcDefIt->second["sprite"].get<std::string>();
-                LOG_INFO("NPC '{}' uses sprite '{}'", m_placementEntityId, spriteId);
-            } else {
-                LOG_WARN("NPC definition not found or missing sprite field: {}", m_placementEntityId);
-                spriteId = m_placementEntityId; // Fallback to using NPC ID as sprite ID
-            }
-
-            // Now load the sprite definition using the correct sprite ID
-            const auto* spriteDef = m_sceneManager.getDefinitionManager().getSpriteDefinition(spriteId);
-
-            // Add transform component
-            auto transform = std::make_unique<TransformComponent>();
-            transform->position = position;
-
-            // Apply scale from definition if present
-            if (spriteDef && spriteDef->contains("scale")) {
-                float scale = (*spriteDef)["scale"].get<f32>();
-                transform->scale = Vec2f{scale, scale};
-            }
-
-            // Will set origin after we know sprite size
-            Vec2f spriteSize{0.0f, 0.0f};
-
-            // Add tag component for NPC identification
-            auto tag = std::make_unique<TagComponent>();
-            tag->tag = "npc";
-            entity->addComponent(std::move(tag));
-
-            // Add sprite component for visual representation
-            auto sprite = std::make_unique<SpriteComponent>();
-            if (spriteDef) {
-                if (spriteDef->contains("texture")) {
-                    std::string texturePath = (*spriteDef)["texture"].get<std::string>();
-                    sprite->textureHandle = RESOURCES().loadTexture(texturePath);
-                    sprite->textureID = spriteId; // Use the sprite ID, not the NPC ID
-                }
-                if (spriteDef->contains("width") && spriteDef->contains("height")) {
-                    sprite->size = Vec2f{
-                        (*spriteDef)["width"].get<f32>(),
-                        (*spriteDef)["height"].get<f32>()
-                    };
-                    spriteSize = sprite->size;
-                } else if (spriteDef->contains("size")) {
-                    auto& size = (*spriteDef)["size"];
-                    sprite->size = Vec2f{size[0].get<f32>(), size[1].get<f32>()};
-                    spriteSize = sprite->size;
-                }
-
-                // Set origin from definition, or default to center
-                if (spriteDef->contains("origin")) {
-                    auto& origin = (*spriteDef)["origin"];
-                    transform->origin = Vec2f{origin[0].get<f32>(), origin[1].get<f32>()};
-                    LOG_INFO("Using origin from definition: ({}, {})", transform->origin.x, transform->origin.y);
-                } else {
-                    // Default to center of sprite for better placement UX
-                    transform->origin = Vec2f{spriteSize.x * 0.5f, spriteSize.y * 0.5f};
-                    LOG_INFO("Using centered origin: ({}, {}) (sprite size: {}, {})",
-                             transform->origin.x, transform->origin.y, spriteSize.x, spriteSize.y);
-                }
-            }
-
-            // Apply current layer as zOrder (overrides definition)
-            sprite->zOrder = m_state->getCurrentLayer();
-
-            entity->addComponent(std::move(transform));
-            entity->addComponent(std::move(sprite));
-
-            LOG_INFO("NPC entity created successfully (ID: {})", entity->getID());
-            m_state->setSceneModified(true);
-            if (m_layersPanel) m_layersPanel->update();
-
-            // Exit placement mode after placing entity
-            exitPlacementMode();
-        }
-
-    } catch (const std::exception& e) {
-        LOG_ERROR("Exception while placing entity: {}", e.what());
-    }
-}
-
-void EditorApplication::selectEntity(NovaEngine::Entity* entity) {
-    if (entity) {
-        LOG_INFO("Entity selected: ID {}", entity->getID());
-        m_state->setSelectedEntity(entity);
-    } else {
-        LOG_INFO("Entity deselected");
-        m_state->clearSelection();
-    }
-}
-
-void EditorApplication::startDraggingEntity() {
-    using namespace NovaEngine;
-
-    if (!m_state->hasSelection() || !m_currentScene) {
-        return;
-    }
-
-    auto* entity = m_state->getSelectedEntity();
-    if (entity) {
-        auto* transform = entity->getComponent<TransformComponent>();
-        if (!transform) return;
-
-        m_draggedEntity = entity;
-        m_isDragging = true;
-
-        // Calculate offset between mouse and entity position
-        // Note: We get the world position from the last mouse event
-        // For now, set offset to zero - it will be calculated on first move
-        m_dragOffset = Vec2f{0.0f, 0.0f};
-
-        LOG_INFO("Started dragging entity ID {}", entity->getID());
-    }
-}
-
-void EditorApplication::updateDraggingEntity(const NovaEngine::Vec2f& worldPos) {
-    using namespace NovaEngine;
-
-    if (m_isDragging && m_draggedEntity) {
-        auto* transform = m_draggedEntity->getComponent<TransformComponent>();
-        if (!transform) {
-            stopDraggingEntity();
-            return;
-        }
-
-        // On first update, calculate offset
-        if (m_dragOffset.x == 0.0f && m_dragOffset.y == 0.0f) {
-            m_dragOffset = transform->position - worldPos;
-        }
-
-        Vec2f newPos = worldPos + m_dragOffset;
-        transform->position = newPos;
-        m_state->setSceneModified(true);
-    }
-}
-
-void EditorApplication::stopDraggingEntity() {
-    if (m_isDragging) {
-        LOG_INFO("Stopped dragging entity");
-        m_isDragging = false;
-        m_draggedEntity = nullptr;
-        m_dragOffset = NovaEngine::Vec2f{0.0f, 0.0f};
-    }
-}
 
 } // namespace NovaEditor
