@@ -333,3 +333,207 @@ Deux formats coexistent dans `entities[]` :
 ]}
 ```
 Utilisé par `JourneySystem` pour planifier les voyages multi-scènes des NPC.
+
+---
+
+## 6. Backend — couche d'abstraction graphique/audio/IO
+
+`BackendManager` est un singleton (`BACKEND()`) qui owne 7 sous-backends, accessibles via macros :
+
+| Macro | Type | Quoi |
+|---|---|---|
+| `WINDOW()` | `IWindowBackend` | open/close/resize/setVSync/setFramerateLimit/clear/display |
+| `INPUT()` | `IInputBackend` | `pollEvent(InputEvent&)`, état clavier/souris |
+| `GRAPHICS()` | `IGraphicsBackend` | `loadTexture`, `drawSprite/Rect/Text`, shaders, RenderTextures |
+| `RESOURCES()` | `IResourceBackend` | (gestion handles) |
+| `AUDIO()` | `IAudioBackend` | `loadSound`, `playSound`, music |
+| `FONTS()` | `IFontBackend` | `loadFont`, mesures texte |
+| `VIEWPORT()` | `IViewportBackend` | `setView(ViewportData)`, `setViewCenter`, `resetView` |
+
+Init :
+```cpp
+BACKEND().initialize(BackendType::SFML, width, height, "Title", fullscreen);
+```
+Une seule impl à ce jour (`SFML*Backend`). L'enum `BackendType` prévoit `SDL` et `Custom` mais ils ne sont pas implémentés.
+
+### Types graphiques (`Backend/Core/BackendTypes.hpp`)
+
+- **Math** : `Vec2f`, `Vec2i`, `Vec2u`, `Vec3f` (avec opérateurs), `Rect`, `IntRect`.
+- **Color** : `r/g/b/a` u8 + statics `Black/White/Red/Green/Blue/Yellow/Transparent`.
+- **Handles** : `TextureHandle`, `FontHandle`, `SoundHandle`, `MusicHandle`, `ShaderHandle`, `RenderTextureHandle` (tous u64). `INVALID_HANDLE = 0`.
+- **Drawing** : `SpriteData`, `RectData`, `TextData`, `TextMetrics`, `ViewportData`.
+- **Input** : `KeyCode` (A-Z, Num0-9, Escape, Modifiers, Arrow keys, Space, Enter), `MouseButton`, `InputEventType`, `InputEvent` (union par type).
+- **Style** : `BlendMode` (Alpha/Add/Multiply/None), `TextStyle` (Regular/Bold/Italic/Underlined/StrikeThrough, flags combinables).
+
+### Aliases de types (`Core/Types.hpp`)
+`i8/16/32/64`, `u8/16/32/64`, `f32/64`, `String = std::string`, `ID = std::string`, `Ref<T>` = `shared_ptr`, `Unique<T>` = `unique_ptr`, `Weak<T>` = `weak_ptr`.
+
+⚠️ Il y a une **double déclaration** de ces types : à la fois dans `Core/Types.hpp` ET dans `Backend/Core/BackendTypes.hpp`. C'est inoffensif tant que les déclarations sont identiques, mais à surveiller.
+
+---
+
+## 7. Rendering — pipeline post-processing
+
+### Architecture
+```
+SceneRender → RenderTexture A (m_renderTexture)
+                    ↓
+              Effect 1 (SSAO)        si enabled  → A → B
+                    ↓
+              Effect 2 (Bloom)       si enabled  → B → A
+                    ↓
+              Effect 3 (ColorGrading)si enabled  → A → B
+                    ↓
+              Effect 4 (DynamicLighting) si enabled → B → A
+                    ↓
+              Final blit → écran
+```
+
+Ping-pong entre `m_renderTexture` et `m_tempTexture` (`PostProcessPipeline.cpp`). Si **aucun** effet activé → blit direct.
+
+### API
+```cpp
+m_pipeline = std::make_unique<PostProcessPipeline>(&GRAPHICS());
+m_pipeline->initialize(width, height);
+auto* ssao  = m_pipeline->addEffect<SSAOEffect>();      // T* retourné, owne par pipeline
+auto* bloom = m_pipeline->addEffect<BloomEffect>();
+ssao->setEnabled(true);
+ssao->setStrength(0.4f);
+
+// Dans onRender :
+m_pipeline->beginSceneRender();   // bind RT
+sceneManager.render();
+m_pipeline->endSceneRender(dt);   // applique chaîne, blit final
+```
+
+### Effets disponibles (`Rendering/Effects/`)
+
+| Effet | Shader | Paramètres clés |
+|---|---|---|
+| `SSAOEffect` | `ssao.vert/frag` | `radius`, `bias`, `strength`, `samples` |
+| `BloomEffect` | `bloom.frag` | `intensity`, `threshold`, `blurRadius` |
+| `ColorGradingEffect` | `color_grading.frag` | `saturation`, `contrast`, `brightness`, `gamma`, color balance |
+| `DynamicLightingEffect` | `dynamic_lighting.frag` | jusqu'à N lights (LightData), `ambientDarkness`, camera (world↔screen) |
+| `CRTEffect` | `crt.vert/frag` | scanlines, distortion (TODO bind AO secondary, voir `CRTEffect.cpp:183`) |
+| `PassthroughEffect` | `passthrough.vert/frag` | identité, debug |
+
+### Créer un effet custom
+Hériter de `PostProcessEffect`, implémenter :
+```cpp
+bool initialize(IGraphicsBackend* g, u32 w, u32 h) override;  // load shader, create uniforms
+void apply(RenderTextureHandle in, RenderTextureHandle out, f32 dt) override;
+void shutdown() override;
+const char* getName() const override { return "MyEffect"; }
+```
+Ajouter via `pipeline.addEffect<MyEffect>()`.
+
+### Lighting (Dynamic, via ECS)
+
+`Systems/LightingSystem` parcourt les entités avec `LightComponent` à chaque frame, les pousse vers `DynamicLightingEffect`. La caméra est fournie par `m_dynamicLightingEffect->setCamera(viewportCenter, viewportSize)` (depuis `Game::onUpdate`) pour la conversion world→screen dans le shader.
+
+Time-of-day : `LightingSystem::setTimeOfDay(0.0..1.0)` (0 = minuit, 0.5 = midi). Touche `T` ajoute 1h dans le jeu.
+
+---
+
+## 8. UI System
+
+### Modèle
+- `UIManager` owne tous les composants. Chaque composant porte 4 "axes" : `id` (unique), `uiID` (ex `"loginmenu"`), `groupID` (ex `"buttons"`), `layer` (i32, ordre de rendu).
+- `setUIActive(uiID, bool)`, `setGroupActive(groupID, bool)`, `setLayerActive(layer, bool)` permettent d'activer/désactiver des sous-ensembles.
+- `dispatchEvent(Event)` route vers tous les composants actifs.
+- Cache de rendu interne (`m_renderCache`, invalidé sur changement) → tri par layer.
+
+### Composants UI (`UI/Components/`)
+`Button`, `Text`, `TextInput`, `Panel`, `Image`, `Slider`, `Animation`. Tous héritent de `UIComponent` (lui-même `EventHandler`).
+
+Méthodes obligatoires : `render() const`, `onEvent(Event&)`, `getBounds()`. Le `update(dt)` est virtuel non-pure (override possible).
+
+### Action callback
+```cpp
+m_uiManager.setActionCallback([this](const std::string& action,
+                                     const std::string& value,
+                                     const ID& componentID) {
+    if (action == "connect") toggleConnectionState();
+});
+```
+Les boutons configurent un `action` dans le JSON, transmis quand cliqués.
+
+### Format JSON UI
+`client/assets/ui/json/dialogue.json`, `loginmenu.json`. Sections : `buttons`, `images`, `text`, `userInput`. Chaque entrée porte `id`, `position`, `size`, `groupID`, `layer`, etc. — voir `UILoader.cpp:50` (`parseButtons`, `parseImages`, etc.).
+
+Charger :
+```cpp
+m_uiLoader.loadFromFile("data/ui/json/dialogue.json", m_uiManager);
+// ou
+m_uiLoader.loadUI("dialogue", m_uiManager);  // résout en data/ui/json/dialogue.json
+```
+
+---
+
+## 9. Events
+
+`Event` (`Events/Event.hpp`) est une struct simple :
+```cpp
+EventType type;        // Unknown / Input / UI / Engine / Custom
+InputEvent inputEvent; // pour Input
+std::string name;      // pour UI/Custom
+std::string payload;
+```
+
+Source : `Application::processEvents` poll `INPUT().pollEvent(InputEvent)`, wrap dans un `Event`, appelle `onEvent(event)`. Le ESC / Closed sont court-circuités vers `quit()` avant.
+
+`EventDispatcher` / `EventHandler` (`Events/`) : pattern observer pour propagation interne (utilisé par UIComponent).
+
+---
+
+## 10. Configuration (`engine.ini`)
+
+Localisation : `client/bin/Release/config/engine.ini` (relatif au cwd). Chargé par `ConfigManager::initializeGlobalConfig`.
+
+Sections et clés :
+
+```ini
+[Display]
+width=3840           ; résolution fenêtre
+height=2160
+fullscreen=false
+vsync=true
+frameRateLimit=60
+antialiasingLevel=0
+nativeWidth=3840     ; résolution logique (viewport letterbox)
+nativeHeight=2160
+
+[Audio]
+masterVolume=100     ; 0-100
+musicVolume=80
+soundVolume=100
+muteAll=false
+audioDevice=default
+
+[Input]
+mouseSensitivity=1
+invertMouse=false
+moveUp=W,Up          ; bindings, séparateur virgule
+moveDown=S,Down
+moveLeft=A,Left
+moveRight=D,Right
+interact=E,Enter,Space
+menu=Escape,M
+
+[Debug]
+enableLogging=false
+logLevel=FATAL       ; TRACE/DEBUG/INFO/WARN/ERROR/FATAL
+logFile=logs/nova.log
+showFPS=false
+showDebugInfo=false
+enableProfiler=false
+
+[Game]
+language=en
+playerName=Player
+autoSave=true
+autoSaveInterval=300
+savePath=saves/
+```
+
+Accès en code via macros : `DISPLAY_CONFIG`, `AUDIO_CONFIG`, `INPUT_CONFIG`, `DEBUG_CONFIG`, `GAME_CONFIG`. Singleton via `ConfigManager::getInstance()`.
