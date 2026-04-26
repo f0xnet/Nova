@@ -175,12 +175,13 @@ void UIManager::render() const {
         updateRenderCache();
     }
 
-    // Rendu par layer de 0 à maxLayers
+    GRAPHICS().beginRectBatch();
     for (const auto& [layer, component] : m_renderCache) {
         if (component->isVisible() && component->isActive()) {
             component->render();
         }
     }
+    GRAPHICS().endRectBatch();
 }
 
 void UIManager::dispatchEvent(const Event& event) {

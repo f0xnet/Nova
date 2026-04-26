@@ -47,6 +47,9 @@ public:
     void drawRenderTextureToRenderTexture(RenderTextureHandle source, RenderTextureHandle dest, ShaderHandle shader) override;
     void unloadRenderTexture(RenderTextureHandle handle) override;
 
+    void beginRectBatch() override;
+    void endRectBatch() override;
+
     sf::Texture* getSFMLTexture(TextureHandle handle) const;
     sf::Font* getSFMLFont(FontHandle handle) const;
     void registerFont(FontHandle handle, sf::Font* font);
@@ -63,5 +66,7 @@ private:
     u64 m_nextShaderHandle = 1;
     u64 m_nextRenderTextureHandle = 1;
     ShaderHandle m_boundShader = INVALID_HANDLE;
+    sf::VertexArray m_rectBatch;
+    bool m_rectBatchActive = false;
 };
 }

@@ -41,5 +41,12 @@ public:
     virtual void drawRenderTextureToScreen(RenderTextureHandle handle, ShaderHandle shader) = 0;
     virtual void drawRenderTextureToRenderTexture(RenderTextureHandle source, RenderTextureHandle dest, ShaderHandle shader) = 0;
     virtual void unloadRenderTexture(RenderTextureHandle handle) = 0;
+
+    // Rect batching — drawRect() calls between begin/end are accumulated and
+    // flushed as a single draw call in endRectBatch(). Rects that cannot be
+    // batched (outline, rotation) are drawn immediately as usual.
+    // Default implementation is a no-op so alternative backends need not override.
+    virtual void beginRectBatch() {}
+    virtual void endRectBatch() {}
 };
 }

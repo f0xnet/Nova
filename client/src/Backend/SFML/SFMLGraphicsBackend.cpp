@@ -135,6 +135,21 @@ void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
 void SFMLGraphicsBackend::drawRect(const RectData& rect) {
     if(!m_activeRenderTarget) return;
 
+    if (m_rectBatchActive && rect.outlineThickness == 0.0f && rect.rotation == 0.0f && m_boundShader == INVALID_HANDLE) {
+        float x = rect.position.x - rect.origin.x;
+        float y = rect.position.y - rect.origin.y;
+        float w = rect.size.x;
+        float h = rect.size.y;
+        sf::Color color = SFMLConv::toSFML(rect.fillColor);
+        std::size_t base = m_rectBatch.getVertexCount();
+        m_rectBatch.resize(base + 4);
+        m_rectBatch[base + 0] = {{x,     y},     color};
+        m_rectBatch[base + 1] = {{x + w, y},     color};
+        m_rectBatch[base + 2] = {{x + w, y + h}, color};
+        m_rectBatch[base + 3] = {{x,     y + h}, color};
+        return;
+    }
+
     sf::RectangleShape shape(SFMLConv::toSFML(rect.size));
     shape.setPosition(SFMLConv::toSFML(rect.position));
     shape.setRotation(rect.rotation);
@@ -151,6 +166,19 @@ void SFMLGraphicsBackend::drawRect(const RectData& rect) {
         }
     }
     m_activeRenderTarget->draw(shape, states);
+}
+
+void SFMLGraphicsBackend::beginRectBatch() {
+    m_rectBatchActive = true;
+    m_rectBatch = sf::VertexArray(sf::Quads, 0);
+}
+
+void SFMLGraphicsBackend::endRectBatch() {
+    if (!m_rectBatchActive || !m_activeRenderTarget) return;
+    m_rectBatchActive = false;
+    if (m_rectBatch.getVertexCount() > 0)
+        m_activeRenderTarget->draw(m_rectBatch);
+    m_rectBatch = sf::VertexArray();
 }
 
 void SFMLGraphicsBackend::drawText(const TextData& text) {
