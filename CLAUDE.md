@@ -222,3 +222,114 @@ client/main.cpp
        │
        └─ onShutdown() → BACKEND().shutdown()
 ```
+
+---
+
+## 5. ECS — Entity-Component-System
+
+### Modèle conceptuel
+- **Entity** = `u64 id` + `unordered_map<ComponentTypeID, unique_ptr<Component>>`. Pas de logique.
+- **Component** = data pure + `serialize/deserialize(json)`. Identifié par une string (le nom de la classe via `COMPONENT_TYPE_ID(MyComp)`).
+- **System** = logique stateless (idéalement) qui itère sur des entités via `registry.getEntitiesWith({"TransformComponent", "..."})`.
+- **EntityRegistry** = dictionnaire d'entités, requêtable par set de components.
+- **Scene** = owne 1 EntityRegistry + N Systems + 1 WaypointGraph (pathfinding intra-scène).
+- **SceneManager** = owne N Scenes + 1 DefinitionManager + 1 SceneGraph (inter-scènes).
+
+### Components built-in (`sdk/include/NovaEngine/ECS/Components.hpp`)
+
+| Component | Champs principaux | Notes |
+|---|---|---|
+| `TransformComponent` | `position`, `rotation`, `scale`, `origin` | requis pour tout ce qui est dans le monde |
+| `SpriteComponent` | `textureID` (ID définition) + `textureHandle` (runtime), `textureRect`, `size`, `tint`, `blendMode`, `zOrder`, `visible` | sortie sort par zOrder dans `RenderSystem` |
+| `LightComponent` | `type` (Point/Directional/Spot), `color`, `radius`, `intensity`, `direction`, `angle`, `castShadows`, `enabled` | collecté par `LightingSystem` → `DynamicLightingEffect` |
+| `AnimationComponent` | `animationID`, `frames` (vector<IntRect>), `frameDuration`, `currentFrame`, `loop`, `playing` | met à jour `SpriteComponent::textureRect` |
+| `ColliderComponent` | `type` (Box/Circle), `size` ou `radius`, `offset`, `isTrigger`, `enabled` | `PhysicsSystem` fait AABB pair-à-pair (O(n²), simple) |
+| `AudioComponent` | `soundID`, `soundHandle`, `playOnStart`, `loop`, `volume`, `pitch`, `playing` | `AudioSystem` joue via `AUDIO()` |
+| `ActivatorComponent` | `type` (Proximity/Manual/Automatic), `shape` (Box/Circle), `size`/`radius`, `targetTag`, `actionID`, `cooldownTime`, `onActivateEvent`/`onDeactivateEvent`, `showDebugZone` | détection par tag |
+| `TagComponent` | `tag` (string) | identification — ex `"player"` |
+| `SceneTransitionComponent` | `targetScene`, `targetPosition`, `isTransitioning` | utilisé par `JourneySystem` pour transferts |
+| `ShaderComponent` | `shader` (ShaderHandle), `enabled` | shader custom par entité dans `RenderSystem::update` |
+| `JourneyComponent` | `scenePath`, `currentSceneIndex`, `currentDestination`, `localWaypointPath`, `currentLocalWaypointIndex`, `preferredPathTags`, `isOnJourney`, `finalDestinationScene`/`Pos` | voyages multi-scènes pour NPC |
+
+### Components custom (jeu, pas dans le SDK)
+- `DialogueComponent` (`client/src/Dialogue/DialogueComponent.hpp`) — `npcName` + `dialogueLines` + `currentLine`. Construit en code (pas via JSON `definitions/`).
+
+### Pour ajouter un nouveau component custom
+```cpp
+class MyComponent : public NovaEngine::Component {
+public:
+    int data = 0;
+    COMPONENT_TYPE_ID(MyComponent)   // ← obligatoire (identifiant pour registry.getEntitiesWith)
+    void serialize(nlohmann::json& j) const override   { j["data"] = data; }
+    void deserialize(const nlohmann::json& j) override { if (j.contains("data")) data = j["data"]; }
+};
+```
+Puis l'attacher : `entity->addComponent(std::make_unique<MyComponent>())`.
+
+### Systems built-in (`sdk/include/NovaEngine/ECS/Systems.hpp`)
+
+| System | Composants requis | Rôle |
+|---|---|---|
+| `RenderSystem` | Transform + Sprite (+Shader optionnel) | tri zOrder + `GRAPHICS().drawSprite(SpriteData)` |
+| `AnimationSystem` | Sprite + Animation | avance `currentFrame`, met à jour `Sprite::textureRect` |
+| `PhysicsSystem` | Transform + Collider | AABB box-box O(n²), log only (pas de résolution) |
+| `ActivatorSystem` | Transform + Activator (+ Tag pour triggers) | détection zone, cooldown, événements |
+| `AudioSystem` | Audio | `playOnStart` → `AUDIO().playSound` |
+| `LightSystem` | Transform + Light | rendu de cercle semi-transparent (visualisation simple, pas le vrai lighting) |
+| `JourneySystem` | Transform + SceneTransition + Journey | pathfinding multi-scènes, suivi waypoints, prépare transferts |
+
+⚠️ Le `JourneySystem` n'est **PAS** dans la liste par défaut de `Scene::Scene()` — il faut l'ajouter manuellement et lui passer un `SceneGraph*` (constructeur explicite).
+
+Ordre d'init des systems d'une `Scene` (`Scene.hpp:41`) :
+```
+Animation → Physics → Activator → Audio → Light → Render
+```
+
+### Format JSON — Définitions (Tier 1)
+
+`client/assets/data/definitions/Sprites.json` :
+```json
+{ "sprites": [
+  { "id": "player", "texture": "data/sprites/player.png",
+    "width": 114, "height": 225, "scale": 2.0, "zOrder": 10 },
+  { "id": "floor_wood", "texture": "tileset_floors",
+    "textureRect": [0,0,32,32], "origin": [0,0], "size": [32,32],
+    "scale": [1.0,1.0], "zOrder": -10 }
+]}
+```
+Mêmes structures pour `NPCs.json` (avec dialogues), `Lights.json`, `Animations.json`, `Audio.json`, `Activators.json`. Chargé une seule fois au démarrage par `DefinitionManager`.
+
+### Format JSON — Scènes (Tier 2)
+
+`client/assets/data/scenes/test.json` :
+```json
+{
+  "name": "Test Scene",
+  "type": "interior",
+  "backgroundColor": [0, 0, 0, 255],
+  "entities": [
+    { "type": "sprite", "spriteID": "floor", "x": 1000, "y": 1100, "zOrder": 0 },
+    { "type": "player", "spriteID": "player", "x": 1000, "y": 1080, "zOrder": 10 },
+    { "components": {
+        "transform": { "position": [1000, 800] },
+        "light": { "type": "point", "color": [255,200,100,255],
+                   "radius": 520.0, "intensity": 0.8, "enabled": true } } }
+  ]
+}
+```
+
+Deux formats coexistent dans `entities[]` :
+- **Forme courte** (héritée) : `{ "type": "sprite|player|npc|...", "spriteID": "...", "x": ..., "y": ..., "zOrder": ... }` — résolue via `DefinitionManager`.
+- **Forme étendue** : `{ "components": { "transform": {...}, "light": {...}, ... } }` — clés en lowercase mappées au composant correspondant.
+
+### Format JSON — SceneGraph (inter-scènes)
+
+`client/assets/data/scenegraph.json` :
+```json
+{ "connections": [
+  { "from": "ville", "to": "taverne",
+    "exitPortal": [800, 300], "entryPortal": [400, 580],
+    "travelTime": 1.0, "bidirectional": true }
+]}
+```
+Utilisé par `JourneySystem` pour planifier les voyages multi-scènes des NPC.
