@@ -537,3 +537,362 @@ savePath=saves/
 ```
 
 Accès en code via macros : `DISPLAY_CONFIG`, `AUDIO_CONFIG`, `INPUT_CONFIG`, `DEBUG_CONFIG`, `GAME_CONFIG`. Singleton via `ConfigManager::getInstance()`.
+
+---
+
+## 11. Pièges & gotchas critiques
+
+### Bug critique : deltaTime toujours 0.016f (hardcodé)
+
+`Application::runMainLoop()` (`sdk/include/NovaEngine/Core/Application.hpp:148`) :
+
+```cpp
+f32 currentTime = m_lastTime + 0.016f;  // ← pas de vraie clock
+m_deltaTime = currentTime - m_lastTime; // toujours 0.016f
+m_lastTime = currentTime;
+```
+
+Il n'y a **pas d'horloge réelle** — `deltaTime` est toujours exactement `0.016f`. Tout movement/physics/animation est donc temps-indépendant, et cassé si le framerate dévie. Fix : utiliser `std::chrono::steady_clock`. `endSceneRender` dans `Game::onRender()` hardcode aussi `0.016f`.
+
+### Fuite d'abstraction : ResourceManager expose sf::
+
+`sdk/include/NovaEngine/Resources/ResourceManager.hpp:33-41` retourne `sf::Texture&`, `sf::Font&`, `sf::SoundBuffer&` directement. Toute unité de compilation incluant `ResourceManager.hpp` dépend de `<SFML/Graphics.hpp>` et `<SFML/Audio.hpp>`, court-circuitant la couche d'abstraction backend. Il faudrait retourner des handles opaques (`TextureHandle` etc.).
+
+### JourneySystem absent par défaut
+
+`Scene::Scene()` initialise : Animation → Physics → Activator → Audio → Light → Render. `JourneySystem` **n'est pas inclus**. Son constructeur exige un `SceneGraph*` — il faut l'instancier et l'ajouter manuellement : `scene->addSystem(std::make_unique<JourneySystem>(sceneGraph))`.
+
+### Chemins toujours relatifs au cwd
+
+Tous les chemins (assets, config, shaders, logs) sont relatifs au répertoire courant. Le binaire **doit être lancé depuis `client/bin/Release/`** — depuis un autre dossier tout échoue silencieusement.
+
+### Linux build flags incorrects
+
+`compile_client.sh` linke avec `-lopengl32`, `-lwinmm`, `-lgdi32` (Windows uniquement). Pour un vrai build Linux natif, remplacer par `-lGL -lpthread -lX11`.
+
+### `NOVA_LOGGING_ENABLED` hardcodé dans le header
+
+`Logger.hpp:16` : `#define NOVA_LOGGING_ENABLED true`. Pour désactiver le logging à la compilation, modifier ce fichier ou passer `-DNOVA_LOGGING_ENABLED=0`. Le `logLevel=FATAL` dans `engine.ini` filtre au runtime seulement.
+
+### Escape hardcodé — non surchargeable
+
+`Application::processEvents()` (`Application.hpp:173`) intercepte `KeyCode::Escape` **avant** de propager l'event à `onEvent`. ESC quitte toujours l'application, impossible à surcharger sans modifier `Application.hpp`.
+
+### CRTEffect : AO secondaire non branché
+
+`client/src/Rendering/Effects/CRTEffect.cpp:183` : TODO non résolu — l'effet CRT ne peut pas accéder à la texture SSAO intermédiaire car `IGraphicsBackend` n'expose pas de méthode pour binder plusieurs textures à un shader.
+
+---
+
+## 12. Modules jeu (custom, hors SDK)
+
+### DialogueSystem (`client/src/Dialogue/`)
+
+Système non-ECS qui orchestre les dialogues NPC via `UIManager`. Deux fichiers :
+- `DialogueComponent.hpp` — component ECS custom (`npcName`, `dialogueLines[]`, `currentLine`). Attaché aux entités NPC en code, pas via JSON definitions.
+- `DialogueSystem.{hpp,cpp}` — logique de dialogue.
+
+**État interne** :
+```
+m_dialogueActive    bool    — dialogue en cours ou non
+m_currentNPCName    string  — nom du NPC courant
+m_currentDialogue   []      — lignes du dialogue courant
+m_currentDialogueLine size_t — index ligne courante
+m_npcIndicatorVisible bool  — état du "[E]" indicator (évite updates UI redondants)
+m_uiManager         ptr     — injecté via initialize()
+```
+
+**Flux d'un dialogue** :
+1. `initialize(uiManager)` — cache la référence, masque les groupes UI `"dialogue_active"` et `"npc_nearby"`.
+2. `startDialogue(npc*)` — lit le `DialogueComponent`, copie les lignes, appelle `updateDialogueUI()` puis `showDialogueGroup()` (active le groupe `"dialogue_active"`).
+3. `advanceDialogue()` — incrémente l'index ; si dépassé, appelle `reset()` et retourne `false` ; sinon re-`updateDialogueUI()` et retourne `true`.
+4. `reset()` — vide l'état, appelle `hideDialogueGroup()`.
+5. `showNPCIndicator(bool)` — active/désactive le groupe UI `"npc_nearby"` (avec cache pour éviter appels redondants).
+
+**Composants UI requis** (dans `data/ui/json/dialogue.json`) :
+- Text id=`"npc_name"` — nom du NPC affiché
+- Text id=`"dialogue_text"` — ligne de dialogue courante
+- Groupe `"dialogue_active"` — panel + textes dialogue
+- Groupe `"npc_nearby"` — indicateur "[E] Parler"
+
+**Intégration dans Game.cpp** :
+```cpp
+// onInitialize :
+m_uiLoader.loadFromFile("data/ui/json/dialogue.json", m_uiManager);
+m_dialogueSystem->initialize(&m_uiManager);
+
+// onEvent (KeyPressed E) :
+if (m_dialogueSystem->isActive()) {
+    m_dialogueSystem->advanceDialogue();
+} else if (m_playerController->getNearestNPC()) {
+    m_dialogueSystem->startDialogue(m_playerController->getNearestNPC());
+}
+
+// onUpdate :
+m_dialogueSystem->showNPCIndicator(
+    m_playerController->getNearestNPC() != nullptr && !m_dialogueSystem->isActive()
+);
+```
+
+---
+
+### PlayerController (`client/src/Player/`)
+
+Gère le mouvement du joueur et la détection de NPC. Non-ECS (opère directement sur les composants de l'entité player).
+
+**État interne** :
+```
+m_playerID          u64     — ID de l'entité player dans la scène active
+m_nearestNPC        Entity* — NPC le plus proche dans le rayon, ou nullptr
+m_moveSpeed         float   — 200.0f px/sec
+m_npcDetectionRadius float  — 80.0f px
+```
+
+**`updateMovement(scene, dt, allowMovement)`** :
+- Récupère l'entité player via `scene->getEntityRegistry().getEntity(m_playerID)`.
+- Lit `INPUT().isKeyPressed(W/S/A/D/Up/Down/Left/Right)`.
+- Normalise le vecteur diagonal, applique `position += dir * speed * dt`.
+- Ne fait rien si `allowMovement = false` (passé `false` quand `dialogueSystem->isActive()`).
+
+**`updateNPCDetection(scene)`** :
+- Itère **toutes** les entités via `registry.getAllEntities()`.
+- Filtre celles avec `DialogueComponent` + `TransformComponent`.
+- Retient la plus proche dans `m_npcDetectionRadius` → `m_nearestNPC`.
+- Complexité O(n) sur toutes les entités, à chaque frame.
+
+**`getPlayerPosition(scene)`** : lit `TransformComponent::position` de l'entité player.
+
+---
+
+## 13. Logger
+
+Singleton thread-safe, défini dans `sdk/include/NovaEngine/Core/Logger.hpp`.
+
+### Macros (usage normal)
+
+```cpp
+LOG_TRACE("msg {}", valeur);   // très verbeux, boucles, hot path
+LOG_DEBUG("Player pos: ({}, {})", x, y);
+LOG_INFO("Scene loaded: {}", name);
+LOG_WARN("Texture not found: {}", id);
+LOG_ERROR("DialogueSystem: UIManager is null");
+LOG_FATAL("Failed to initialize NovaEngine");
+```
+
+Format `{}` style Python/fmtlib, implémenté en C++17 pur (fold expressions). Supporte : `std::string`, `const char*`, `bool`, et tout type streamable via `operator<<`.
+
+### Configuration
+
+| Méthode | Description |
+|---|---|
+| `Logger::getInstance().setLogLevel(LogLevel::Debug)` | Filtre runtime — messages sous ce niveau ignorés |
+| `Logger::getInstance().setLogFile("logs/nova.log")` | Active l'écriture fichier en plus de la console |
+| `Logger::getInstance().enableAnsiColors(false)` | Désactive les couleurs ANSI (utile pour fichiers logs) |
+
+`client/main.cpp` fait `Logger::getInstance().setLogLevel(LogLevel::Trace)` au démarrage.
+
+### Désactivation complète à la compilation
+
+`Logger.hpp:16` : `#define NOVA_LOGGING_ENABLED true`. Si mis à `false`, toutes les macros deviennent des no-ops, zéro overhead.
+
+### Module affiché dans les logs
+
+Le logger affiche automatiquement le **nom du fichier source** (via `__FILE__` + `NOVA_FILENAME` macro qui extrait la partie après le dernier `/` ou `\`).
+
+---
+
+## 14. Axes d'amélioration
+
+Liste des problèmes identifiés, classés par priorité.
+
+### Critique (bugs / comportements incorrects)
+
+1. **Faux deltaTime** — `Application::runMainLoop()` utilise `m_lastTime + 0.016f` au lieu d'une vraie horloge. Fix : `std::chrono::steady_clock::now()`. Impact : toute la physique/animation suppose exactement 60 FPS.
+
+2. **`endSceneRender(0.016f)` hardcodé** — `Game::onRender()` passe un deltaTime fixe au pipeline. Doit utiliser `getDeltaTime()` ou le vrai dt mesuré.
+
+3. **ESC non surchargeable** — `Application::processEvents()` capture ESC avant `onEvent`. Blocker pour tout menu qui veut gérer ESC. Fix : exposer un flag `m_escapeExits` ou propager l'event avant le `quit()`.
+
+### Architecture (dette technique)
+
+4. **ResourceManager expose `sf::`** — fuite d'abstraction majeure. Retourner `TextureHandle`/`FontHandle`/`SoundHandle` opaques, résolvables via `GRAPHICS().getTexture(handle)`.
+
+5. **Deux déclarations de types** — `Core/Types.hpp` et `Backend/Core/BackendTypes.hpp` redéclarent `Vec2f`, `Color`, etc. Risque de conflits. Consolider dans un seul header.
+
+6. **`JourneySystem` hors de l'init par défaut** — oblige chaque scène multi-NPC à l'ajouter manuellement. Soit l'inclure dans `Scene::Scene()` avec `SceneGraph* = nullptr`, soit documenter clairement le pattern requis.
+
+7. **`PhysicsSystem` sans résolution** — le système détecte les collisions AABB mais ne résout rien (O(n²), log only). Inutilisable en production pour un vrai jeu.
+
+8. **Linux build script incomplet** — flags Windows dans `compile_client.sh`. Soit un vrai script Linux, soit le supprimer et documenter que le build cible Windows via MinGW.
+
+### Qualité / maintenabilité
+
+9. **Chemins relatifs au cwd partout** — aucune gestion de base path. Ajouter un `PathManager` ou `Application::setBasePath()` qui préfixe tous les accès fichier.
+
+10. **`NOVA_LOGGING_ENABLED` non configurable à la compilation** — doit être passé via flag de compile (`-DNOVA_LOGGING_ENABLED=0`), pas hardcodé dans le header.
+
+11. **`configPath` inutilisé** — `Application::Config::configPath` est stocké mais `initializeEngine()` ignore la branche `if (!m_config.configPath.empty())` (les deux branches font la même chose, `Application.hpp:121-123`).
+
+12. **`CRTEffect` AO non branché** — `CRTEffect.cpp:183` TODO bloqué par le manque de support multi-texture dans `IGraphicsBackend`.
+
+### Fonctionnalités manquantes
+
+13. **Pas de vraie résolution de collision** — `PhysicsSystem` détecte sans résoudre.
+
+14. **SDL / Custom backends non implémentés** — `BackendType::SDL` et `BackendType::Custom` existent dans l'enum mais n'ont aucune implémentation.
+
+15. **Pas de save/load** — `engine.ini` définit `savePath=saves/` et `autoSave=true`, mais aucun code de sérialisation de progression n'existe côté jeu.
+
+---
+
+## 15. Cookbook — tâches courantes
+
+### Ajouter un component custom
+
+```cpp
+// client/src/MyFeature/MyComponent.hpp
+#pragma once
+#include <NovaEngine/ECS/Component.hpp>
+
+namespace NovaEngine {
+class MyComponent : public Component {
+public:
+    int myData = 0;
+
+    COMPONENT_TYPE_ID(MyComponent)
+
+    void serialize(nlohmann::json& j) const override   { j["myData"] = myData; }
+    void deserialize(const nlohmann::json& j) override { myData = j.value("myData", 0); }
+};
+} // namespace NovaEngine
+```
+
+Attacher à une entité :
+```cpp
+entity->addComponent(std::make_unique<MyComponent>());
+```
+
+Récupérer dans un system :
+```cpp
+auto entities = registry.getEntitiesWith({"TransformComponent", "MyComponent"});
+for (auto* e : entities) {
+    auto* comp = e->getComponent<MyComponent>();
+}
+```
+
+---
+
+### Ajouter une scène
+
+1. Créer `client/assets/data/scenes/mascene.json` :
+```json
+{
+  "name": "Ma Scène",
+  "type": "interior",
+  "backgroundColor": [20, 20, 30, 255],
+  "entities": [
+    { "type": "player", "spriteID": "player", "x": 500, "y": 500, "zOrder": 10 }
+  ]
+}
+```
+
+2. Ajouter une connexion dans `client/assets/data/scenegraph.json` si la scène est accessible depuis une autre :
+```json
+{ "from": "ville", "to": "mascene", "exitPortal": [300, 300], "entryPortal": [500, 500], "travelTime": 1.0, "bidirectional": true }
+```
+
+3. Charger dans `Game::onInitialize()` si c'est la scène de démarrage :
+```cpp
+m_sceneManager.loadScene("data/scenes/mascene.json", "mascene");
+m_sceneManager.setActiveScene("mascene");
+```
+
+---
+
+### Ajouter un effet post-process custom
+
+1. Créer `client/src/Rendering/Effects/MyEffect.hpp` et `.cpp` :
+```cpp
+class MyEffect : public PostProcessEffect {
+public:
+    bool initialize(IGraphicsBackend* g, u32 w, u32 h) override;
+    void apply(RenderTextureHandle in, RenderTextureHandle out, f32 dt) override;
+    void shutdown() override;
+    const char* getName() const override { return "MyEffect"; }
+};
+```
+
+2. Ajouter dans `Game::onInitialize()` après les autres effets :
+```cpp
+auto* myEffect = m_pipeline->addEffect<MyEffect>();
+myEffect->setEnabled(true);
+```
+
+3. Ajouter `client/assets/shaders/my_effect.frag` (les shaders sont chargés depuis le cwd `data/shaders/`).
+
+---
+
+### Ajouter un composant UI
+
+1. Dans `client/assets/ui/json/monui.json` :
+```json
+{
+  "text": [
+    {
+      "id": "mon_texte",
+      "uiID": "monui",
+      "groupID": "mon_groupe",
+      "layer": 10,
+      "position": [100, 100],
+      "content": "Hello",
+      "fontSize": 24,
+      "color": [255, 255, 255, 255]
+    }
+  ]
+}
+```
+
+2. Charger :
+```cpp
+m_uiLoader.loadFromFile("data/ui/json/monui.json", m_uiManager);
+```
+
+3. Activer/désactiver :
+```cpp
+m_uiManager.setGroupActive("mon_groupe", true);
+```
+
+4. Modifier le texte en runtime :
+```cpp
+auto textComp = std::dynamic_pointer_cast<Text>(m_uiManager.getComponent("mon_texte"));
+if (textComp) textComp->setString("Nouveau contenu");
+```
+
+---
+
+### Corriger le deltaTime (bug §11)
+
+Dans `sdk/include/NovaEngine/Core/Application.hpp`, remplacer `runMainLoop()` :
+
+```cpp
+#include <chrono>
+
+void runMainLoop() {
+    using Clock = std::chrono::steady_clock;
+    auto lastTime = Clock::now();
+
+    while (WINDOW().isOpen()) {
+        auto now = Clock::now();
+        m_deltaTime = std::chrono::duration<float>(now - lastTime).count();
+        lastTime = now;
+
+        processEvents();
+        onUpdate(m_deltaTime);
+        WINDOW().clear(m_config.clearColor);
+        onRender();
+        WINDOW().display();
+    }
+}
+```
+
+Et dans `Game::onRender()`, remplacer `m_pipeline->endSceneRender(0.016f)` par `m_pipeline->endSceneRender(getDeltaTime())`.
