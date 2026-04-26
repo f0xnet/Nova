@@ -3,6 +3,7 @@
 #include "../PostProcessEffect.hpp"
 #include "LightData.hpp"
 #include <vector>
+#include <optional>
 
 namespace NovaEngine {
 
@@ -19,7 +20,7 @@ public:
     const char* getName() const override { return "DynamicLighting"; }
 
     // Gestion des lumières
-    i32 addLight(const LightData& light);
+    std::optional<i32> addLight(const LightData& light);
     void removeLight(i32 index);
     void updateLight(i32 index, const LightData& light);
     void clearLights();

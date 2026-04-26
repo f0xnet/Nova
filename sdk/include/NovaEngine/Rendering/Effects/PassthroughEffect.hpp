@@ -20,9 +20,11 @@ public:
 
     void shutdown() override {}
 
-    void apply(RenderTextureHandle renderTexture, f32 deltaTime) override {
-        // Dessiner sans shader (passthrough)
-        m_graphicsBackend->drawRenderTextureToScreen(renderTexture, INVALID_HANDLE);
+    void apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) override {
+        if(outputTexture == INVALID_HANDLE)
+            m_graphicsBackend->drawRenderTextureToScreen(inputTexture, INVALID_HANDLE);
+        else
+            m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, INVALID_HANDLE);
     }
 
     const char* getName() const override { return "Passthrough"; }
