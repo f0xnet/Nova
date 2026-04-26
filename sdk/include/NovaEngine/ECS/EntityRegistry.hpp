@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <set>
 
 namespace NovaEngine {
 
@@ -15,11 +17,54 @@ namespace NovaEngine {
  *
  * The EntityRegistry is responsible for creating, destroying, and querying entities.
  * It provides efficient lookups for entities with specific component combinations.
+ *
+ * Queries via getEntitiesWith() are cached by component signature (archetype cache).
+ * The cache is rebuilt automatically when it is invalidated.
+ *
+ * INVALIDATION RULES:
+ *   - Automatic: createEntity(), destroyEntity(), clear()
+ *   - Manual: call invalidateQueryCache() after adding/removing components at runtime
+ *
+ * For scenes where entities are created at load time and not modified afterwards,
+ * the cache hit rate is ~100% after the first frame.
  */
 class EntityRegistry {
 private:
     std::unordered_map<u64, std::unique_ptr<Entity>> m_entities;
     u64 m_nextID = 1;
+
+    // Archetype cache: maps a set of required component type IDs → cached entity list
+    using Signature = std::set<ComponentTypeID>;
+    struct CacheEntry {
+        std::vector<Entity*> entities;
+        bool dirty = true;
+    };
+    mutable std::map<Signature, CacheEntry> m_queryCache;
+
+    void invalidateCache() const {
+        for (auto& [sig, entry] : m_queryCache) {
+            entry.dirty = true;
+        }
+    }
+
+    const std::vector<Entity*>& rebuildCache(CacheEntry& entry, const Signature& sig) const {
+        entry.entities.clear();
+        for (auto& pair : m_entities) {
+            Entity* entity = pair.second.get();
+            bool hasAll = true;
+            for (const auto& typeID : sig) {
+                if (!entity->hasComponent(typeID)) {
+                    hasAll = false;
+                    break;
+                }
+            }
+            if (hasAll) {
+                entry.entities.push_back(entity);
+            }
+        }
+        entry.dirty = false;
+        return entry.entities;
+    }
 
 public:
     /**
@@ -32,6 +77,7 @@ public:
         Entity* ptr = entity.get();
         m_entities[id] = std::move(entity);
 
+        invalidateCache();
         LOG_DEBUG("Created entity with ID: {}", id);
         return ptr;
     }
@@ -45,6 +91,7 @@ public:
         if (it != m_entities.end()) {
             LOG_DEBUG("Destroyed entity with ID: {}", entityID);
             m_entities.erase(it);
+            invalidateCache();
         } else {
             LOG_WARN("Tried to destroy non-existent entity: {}", entityID);
         }
@@ -71,30 +118,34 @@ public:
     }
 
     /**
-     * @brief Get all entities that have specific components
+     * @brief Get all entities that have specific components (archetype-cached)
+     *
+     * The first call with a given signature scans all entities (O(n)).
+     * Subsequent calls return the cached result in O(1) until the cache is invalidated.
+     * Call invalidateQueryCache() after adding or removing components on existing entities.
+     *
      * @param componentTypes Vector of component type IDs that must be present
      * @return Vector of pointers to matching entities
      */
     std::vector<Entity*> getEntitiesWith(const std::vector<ComponentTypeID>& componentTypes) {
-        std::vector<Entity*> result;
+        Signature sig(componentTypes.begin(), componentTypes.end());
 
-        for (auto& pair : m_entities) {
-            Entity* entity = pair.second.get();
-            bool hasAll = true;
-
-            for (const auto& typeID : componentTypes) {
-                if (!entity->hasComponent(typeID)) {
-                    hasAll = false;
-                    break;
-                }
-            }
-
-            if (hasAll) {
-                result.push_back(entity);
-            }
+        auto& entry = m_queryCache[sig];
+        if (!entry.dirty) {
+            return entry.entities;
         }
 
-        return result;
+        return rebuildCache(entry, sig);
+    }
+
+    /**
+     * @brief Invalidate the archetype query cache manually
+     *
+     * Call this after adding or removing components on existing entities at runtime,
+     * so that subsequent getEntitiesWith() calls reflect the change.
+     */
+    void invalidateQueryCache() {
+        invalidateCache();
     }
 
     /**
@@ -121,11 +172,12 @@ public:
     }
 
     /**
-     * @brief Clear all entities
+     * @brief Clear all entities and the query cache
      */
     void clear() {
         LOG_DEBUG("Clearing all entities (count: {})", m_entities.size());
         m_entities.clear();
+        m_queryCache.clear();
         m_nextID = 1;
     }
 };
