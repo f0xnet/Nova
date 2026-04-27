@@ -13,3 +13,4 @@ server/bin/Release/data/
 # Logs
 server/bin/Release/server.log
 *.log
+sdk/tests/nova_tests
