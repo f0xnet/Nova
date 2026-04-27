@@ -7,8 +7,6 @@ CRTEffect::CRTEffect()
     : m_shader(INVALID_HANDLE)
     , m_ssaoShader(INVALID_HANDLE)
     , m_blurShader(INVALID_HANDLE)
-    , m_aoTexture(INVALID_HANDLE)
-    , m_blurredAOTexture(INVALID_HANDLE)
     , m_width(0)
     , m_height(0)
     , m_scanlineIntensity(0.0f)
@@ -67,29 +65,14 @@ bool CRTEffect::initialize(IGraphicsBackend* graphicsBackend, u32 width, u32 hei
         LOG_WARN("CRTEffect: Failed to load blur shader");
     }
 
-    // Create render textures for multi-pass AO (downsampled for performance)
-    u32 aoWidth = width / 2;   // Half resolution for better performance
-    u32 aoHeight = height / 2;
-
-    if(m_ssaoShader != INVALID_HANDLE) {
-        m_aoTexture = m_graphicsBackend->createRenderTexture(aoWidth, aoHeight);
-        if(m_aoTexture == INVALID_HANDLE) {
-            LOG_WARN("CRTEffect: Failed to create AO texture");
-        }
-    }
-
-    if(m_blurShader != INVALID_HANDLE && m_aoTexture != INVALID_HANDLE) {
-        m_blurredAOTexture = m_graphicsBackend->createRenderTexture(aoWidth, aoHeight);
-        if(m_blurredAOTexture == INVALID_HANDLE) {
-            LOG_WARN("CRTEffect: Failed to create blurred AO texture");
-        }
-    }
+    // Les textures scratch AO sont empruntées au pool partagé pendant apply(),
+    // pas allouées ici, afin d'éviter la fragmentation de la mémoire GPU.
 
     // Initialiser les paramètres
     updateParameters();
     updateAOParameters();
 
-    LOG_INFO("CRTEffect initialized ({}x{}, AO: {}x{})", width, height, aoWidth, aoHeight);
+    LOG_INFO("CRTEffect initialized ({}x{}, AO: {}x{})", width, height, width / 2, height / 2);
     return true;
 }
 
@@ -108,16 +91,7 @@ void CRTEffect::shutdown() {
         m_graphicsBackend->unloadShader(m_blurShader);
         m_blurShader = INVALID_HANDLE;
     }
-
-    if(m_aoTexture != INVALID_HANDLE) {
-        m_graphicsBackend->unloadRenderTexture(m_aoTexture);
-        m_aoTexture = INVALID_HANDLE;
-    }
-
-    if(m_blurredAOTexture != INVALID_HANDLE) {
-        m_graphicsBackend->unloadRenderTexture(m_blurredAOTexture);
-        m_blurredAOTexture = INVALID_HANDLE;
-    }
+    // Les textures scratch AO sont gérées par le pool (pipeline) — pas à libérer ici.
 }
 
 void CRTEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle outputTexture, f32 deltaTime) {
@@ -131,43 +105,39 @@ void CRTEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle outp
     float time = elapsed.count();
 
     // ========================================================================
-    // PASS 1: Generate SSAO map (if available)
+    // PASS 1 & 2: SSAO + blur (textures empruntées au pool partagé)
     // ========================================================================
-    if(m_ssaoShader != INVALID_HANDLE && m_aoTexture != INVALID_HANDLE && m_aoStrength > 0.0f) {
-        // Clear and bind AO texture
-        m_graphicsBackend->clearRenderTexture(m_aoTexture, Color::White);  // White = no occlusion
-        m_graphicsBackend->bindRenderTexture(m_aoTexture);
+    u32 aoWidth  = m_width  / 2;
+    u32 aoHeight = m_height / 2;
 
-        // Set SSAO shader parameters
-        m_graphicsBackend->setShaderParameter(m_ssaoShader, "resolution",
-            Vec2f(static_cast<f32>(m_width / 2), static_cast<f32>(m_height / 2)));
+    RenderTextureHandle aoTex     = INVALID_HANDLE;
+    RenderTextureHandle blurredTex = INVALID_HANDLE;
 
-        // Draw scene with SSAO shader to generate AO map
-        m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_ssaoShader);
-
-        // Display and unbind
-        m_graphicsBackend->displayRenderTexture(m_aoTexture);
-        m_graphicsBackend->unbindRenderTexture();
-
-        // ====================================================================
-        // PASS 2: Blur the AO map (if available)
-        // ====================================================================
-        if(m_blurShader != INVALID_HANDLE && m_blurredAOTexture != INVALID_HANDLE) {
-            // Clear and bind blurred AO texture
-            m_graphicsBackend->clearRenderTexture(m_blurredAOTexture, Color::White);
-            m_graphicsBackend->bindRenderTexture(m_blurredAOTexture);
-
-            // Set blur shader parameters
-            m_graphicsBackend->setShaderParameter(m_blurShader, "resolution",
-                Vec2f(static_cast<f32>(m_width / 2), static_cast<f32>(m_height / 2)));
-            m_graphicsBackend->setShaderParameter(m_blurShader, "blurRadius", 1.5f);
-
-            // Blur the AO map
-            m_graphicsBackend->drawRenderTextureToScreen(m_aoTexture, m_blurShader);
-
-            // Display and unbind
-            m_graphicsBackend->displayRenderTexture(m_blurredAOTexture);
+    if(m_ssaoShader != INVALID_HANDLE && m_pool && m_aoStrength > 0.0f) {
+        aoTex = m_pool->acquire(aoWidth, aoHeight);
+        if(aoTex != INVALID_HANDLE) {
+            m_graphicsBackend->clearRenderTexture(aoTex, Color::White);
+            m_graphicsBackend->bindRenderTexture(aoTex);
+            m_graphicsBackend->setShaderParameter(m_ssaoShader, "resolution",
+                Vec2f(static_cast<f32>(aoWidth), static_cast<f32>(aoHeight)));
+            m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_ssaoShader);
+            m_graphicsBackend->displayRenderTexture(aoTex);
             m_graphicsBackend->unbindRenderTexture();
+
+            // PASS 2: blur the AO map
+            if(m_blurShader != INVALID_HANDLE) {
+                blurredTex = m_pool->acquire(aoWidth, aoHeight);
+                if(blurredTex != INVALID_HANDLE) {
+                    m_graphicsBackend->clearRenderTexture(blurredTex, Color::White);
+                    m_graphicsBackend->bindRenderTexture(blurredTex);
+                    m_graphicsBackend->setShaderParameter(m_blurShader, "resolution",
+                        Vec2f(static_cast<f32>(aoWidth), static_cast<f32>(aoHeight)));
+                    m_graphicsBackend->setShaderParameter(m_blurShader, "blurRadius", 1.5f);
+                    m_graphicsBackend->drawRenderTextureToScreen(aoTex, m_blurShader);
+                    m_graphicsBackend->displayRenderTexture(blurredTex);
+                    m_graphicsBackend->unbindRenderTexture();
+                }
+            }
         }
     }
 
@@ -188,6 +158,12 @@ void CRTEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle outp
         m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_shader);
     } else {
         m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, m_shader);
+    }
+
+    // Rendre les textures scratch au pool
+    if(m_pool) {
+        if(blurredTex != INVALID_HANDLE) m_pool->release(blurredTex);
+        if(aoTex      != INVALID_HANDLE) m_pool->release(aoTex);
     }
 }
 
