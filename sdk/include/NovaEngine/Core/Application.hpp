@@ -5,6 +5,7 @@
 #include "../Events/Event.hpp"
 #include "Logger.hpp"
 
+#include <chrono>
 #include <string>
 #include <functional>
 
@@ -27,13 +28,14 @@ protected:
     Config m_config;
     float m_deltaTime;
     bool m_initialized;
-    f32 m_lastTime;
+
+private:
+    std::chrono::steady_clock::time_point m_lastFrameTime;
 
 public:
     Application()
         : m_deltaTime(0.0f)
         , m_initialized(false)
-        , m_lastTime(0.0f)
     {
         LOG_TRACE("Application base class constructed");
     }
@@ -42,7 +44,6 @@ public:
         : m_config(config)
         , m_deltaTime(0.0f)
         , m_initialized(false)
-        , m_lastTime(0.0f)
     {
         LOG_TRACE("Application constructed with custom config");
     }
@@ -141,22 +142,25 @@ private:
 
     void runMainLoop() {
         LOG_DEBUG("Entering main loop");
-        
-        m_lastTime = 0.0f;
-        
+
+        m_lastFrameTime = std::chrono::steady_clock::now();
+
         while (WINDOW().isOpen()) {
-            f32 currentTime = m_lastTime + 0.016f;
-            m_deltaTime = currentTime - m_lastTime;
-            m_lastTime = currentTime;
-            
+            auto now = std::chrono::steady_clock::now();
+            m_deltaTime = std::chrono::duration<float>(now - m_lastFrameTime).count();
+            m_lastFrameTime = now;
+
+            // Cap à 100ms pour éviter les explosions physiques lors de pauses debugger
+            if (m_deltaTime > 0.1f) m_deltaTime = 0.1f;
+
             processEvents();
             onUpdate(m_deltaTime);
-            
+
             WINDOW().clear(m_config.clearColor);
             onRender();
             WINDOW().display();
         }
-        
+
         LOG_DEBUG("Exited main loop");
     }
 
