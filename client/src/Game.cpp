@@ -104,7 +104,7 @@ bool Game::onInitialize() {
     });
 
     // Load dialogue UI
-    if (!m_uiLoader.loadFromFile("data/ui/json/dialogue.json", m_uiManager)) {
+    if (!m_uiLoader.loadFromFile("data/ui/json/menu.json", m_uiManager)) {
         LOG_WARN("Failed to load dialogue UI");
     }
 
@@ -126,15 +126,15 @@ bool Game::onInitialize() {
         m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
         if (m_ssaoEffect) {
             // COMMENTED FOR TESTING: Let constructor values take effect
-            // m_ssaoEffect->setStrength(0.4f);
-            // m_ssaoEffect->setRadius(12.0f);
+             m_ssaoEffect->setStrength(0.40f);
+             m_ssaoEffect->setRadius(3.80f);
             LOG_INFO("SSAO effect added successfully");
         }
 
         // 2. Bloom - Glow effect
         m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
         if (m_bloomEffect) {
-            m_bloomEffect->setIntensity(0.4f);
+            m_bloomEffect->setIntensity(0.2f);
             LOG_INFO("Bloom effect added successfully");
         }
 

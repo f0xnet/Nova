@@ -86,8 +86,12 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
             m_lightingEffect->updateLight(it->second, lightData);
         } else {
             // New light → add it
-            i32 lightIndex = m_lightingEffect->addLight(lightData);
-            m_entityToLightIndex[entityID] = lightIndex;
+            auto lightIndex = m_lightingEffect->addLight(lightData);
+            if (lightIndex.has_value()) {
+                m_entityToLightIndex[entityID] = lightIndex.value();
+            } else {
+                LOG_WARN("LightingSystem: Max lights reached, entity {} light ignored", entityID);
+            }
         }
     }
 

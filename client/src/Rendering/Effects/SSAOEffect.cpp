@@ -5,14 +5,10 @@ namespace NovaEngine {
 
 SSAOEffect::SSAOEffect()
     : m_ssaoShader(INVALID_HANDLE)
-    , m_blurShader(INVALID_HANDLE)
-    , m_aoTexture(INVALID_HANDLE)
-    , m_blurredAOTexture(INVALID_HANDLE)
     , m_width(0)
     , m_height(0)
-    , m_downsampleFactor(1)  // Pas de downsample, single-pass
-    , m_strength(2.0f)    // TEST: Valeur TRÈS forte pour vérifier que les uniforms fonctionnent
-    , m_radius(50.0f)     // TEST: Rayon ÉNORME pour vérifier que les uniforms fonctionnent
+    , m_strength(1.0f)
+    , m_radius(50.0f)
 {
 }
 
@@ -65,12 +61,6 @@ void SSAOEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle out
         Vec2f(static_cast<f32>(m_width), static_cast<f32>(m_height)));
     m_graphicsBackend->setShaderParameter(m_ssaoShader, "aoStrength", m_strength);
     m_graphicsBackend->setShaderParameter(m_ssaoShader, "aoRadius", m_radius);
-
-    // Debug: log uniforms once per second
-    static int logCounter = 0;
-    if(++logCounter % 60 == 0) {
-        LOG_INFO("SSAO uniforms sent: aoStrength={}, aoRadius={}", m_strength, m_radius);
-    }
 
     // Apply SSAO shader (computes + applies AO in single pass)
     if(outputTexture == INVALID_HANDLE) {

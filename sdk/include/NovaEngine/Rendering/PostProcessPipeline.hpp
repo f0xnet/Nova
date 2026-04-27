@@ -1,5 +1,6 @@
 #pragma once
 #include "PostProcessEffect.hpp"
+#include "RenderTexturePool.hpp"
 #include <vector>
 #include <memory>
 
@@ -48,6 +49,7 @@ public:
 
         auto effect = std::make_unique<T>();
         T* ptr = effect.get();
+        ptr->setPool(&m_pool);
         m_effects.push_back(std::move(effect));
 
         // Initialiser l'effet immédiatement si le pipeline est déjà initialisé
@@ -100,6 +102,7 @@ private:
     IGraphicsBackend* m_graphicsBackend;
     RenderTextureHandle m_renderTexture;      // Texture principale (scène)
     RenderTextureHandle m_tempTexture;        // Texture temporaire pour ping-pong
+    RenderTexturePool m_pool;                 // Pool partagé entre les effets
     std::vector<std::unique_ptr<PostProcessEffect>> m_effects;
 
     u32 m_width;

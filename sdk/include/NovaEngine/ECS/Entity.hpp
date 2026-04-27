@@ -58,15 +58,8 @@ public:
     T* getComponent() {
         static_assert(std::is_base_of<Component, T>::value,
                       "T must derive from Component");
-
-        T temp_instance;
-        ComponentTypeID typeID = temp_instance.getTypeID();
-
-        auto it = m_components.find(typeID);
-        if (it != m_components.end()) {
-            return static_cast<T*>(it->second.get());
-        }
-        return nullptr;
+        auto it = m_components.find(T::staticTypeID());
+        return (it != m_components.end()) ? static_cast<T*>(it->second.get()) : nullptr;
     }
 
     /**
@@ -78,15 +71,8 @@ public:
     const T* getComponent() const {
         static_assert(std::is_base_of<Component, T>::value,
                       "T must derive from Component");
-
-        T temp_instance;
-        ComponentTypeID typeID = temp_instance.getTypeID();
-
-        auto it = m_components.find(typeID);
-        if (it != m_components.end()) {
-            return static_cast<const T*>(it->second.get());
-        }
-        return nullptr;
+        auto it = m_components.find(T::staticTypeID());
+        return (it != m_components.end()) ? static_cast<const T*>(it->second.get()) : nullptr;
     }
 
     /**
@@ -98,10 +84,7 @@ public:
     bool hasComponent() const {
         static_assert(std::is_base_of<Component, T>::value,
                       "T must derive from Component");
-
-        T temp_instance;
-        ComponentTypeID typeID = temp_instance.getTypeID();
-        return m_components.find(typeID) != m_components.end();
+        return m_components.find(T::staticTypeID()) != m_components.end();
     }
 
     /**
@@ -121,10 +104,7 @@ public:
     void removeComponent() {
         static_assert(std::is_base_of<Component, T>::value,
                       "T must derive from Component");
-
-        T temp_instance;
-        ComponentTypeID typeID = temp_instance.getTypeID();
-        m_components.erase(typeID);
+        m_components.erase(T::staticTypeID());
     }
 
     /**

@@ -22,6 +22,8 @@ bool PostProcessPipeline::initialize(u32 width, u32 height) {
     m_width = width;
     m_height = height;
 
+    m_pool.initialize(m_graphicsBackend);
+
     // Créer la render texture pour la scène
     m_renderTexture = m_graphicsBackend->createRenderTexture(width, height);
     if(m_renderTexture == INVALID_HANDLE) {
@@ -54,6 +56,9 @@ void PostProcessPipeline::shutdown() {
         effect->shutdown();
     }
     m_effects.clear();
+
+    // Libérer les textures du pool partagé
+    m_pool.shutdown();
 
     // Nettoyer les render textures
     if(m_renderTexture != INVALID_HANDLE) {

@@ -16,8 +16,8 @@ echo.
 :: CONFIGURATION
 :: ============================================
 
-set "PROJECT_DIR=C:\Nova"
-set "SOURCE_DIR=C:\Nova\client"
+set "PROJECT_DIR=C:\Nova-claude-cleaned"
+set "SOURCE_DIR=C:\Nova-claude-cleaned\client"
 set "BIN_DIR=%SOURCE_DIR%\bin\Release"
 set "OBJ_DIR=%SOURCE_DIR%\obj\Release"
 set "SDK_DIR=%PROJECT_DIR%\sdk\include"

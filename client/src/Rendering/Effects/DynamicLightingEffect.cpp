@@ -1,6 +1,7 @@
 #include "NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp"
 #include "NovaEngine/Core/Logger.hpp"
 #include <algorithm>
+#include <optional>
 
 namespace NovaEngine {
 
@@ -132,10 +133,10 @@ void DynamicLightingEffect::updateShaderUniforms() {
     m_graphicsBackend->setShaderParameterArray(m_lightingShader, "lightAngles", angles.data(), MAX_LIGHTS);
 }
 
-i32 DynamicLightingEffect::addLight(const LightData& light) {
+std::optional<i32> DynamicLightingEffect::addLight(const LightData& light) {
     if (m_lights.size() >= MAX_LIGHTS) {
         LOG_WARN("Cannot add light: maximum of {} lights reached", MAX_LIGHTS);
-        return -1;
+        return std::nullopt;
     }
 
     m_lights.push_back(light);

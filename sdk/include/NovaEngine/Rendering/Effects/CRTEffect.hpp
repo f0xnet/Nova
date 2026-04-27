@@ -44,11 +44,9 @@ private:
     // Main shader
     ShaderHandle m_shader;
 
-    // Multi-pass SSAO
+    // Multi-pass SSAO (textures scratch empruntées au pool, non possédées)
     ShaderHandle m_ssaoShader;
     ShaderHandle m_blurShader;
-    RenderTextureHandle m_aoTexture;
-    RenderTextureHandle m_blurredAOTexture;
 
     u32 m_width;
     u32 m_height;

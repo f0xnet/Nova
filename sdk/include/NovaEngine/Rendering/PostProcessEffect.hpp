@@ -1,6 +1,7 @@
 #pragma once
 #include "../Backend/Core/BackendTypes.hpp"
 #include "../Backend/Interfaces/IGraphicsBackend.hpp"
+#include "RenderTexturePool.hpp"
 
 namespace NovaEngine {
 
@@ -51,9 +52,12 @@ public:
      */
     virtual const char* getName() const = 0;
 
+    void setPool(RenderTexturePool* pool) { m_pool = pool; }
+
 protected:
     bool m_enabled = true;
     IGraphicsBackend* m_graphicsBackend = nullptr;
+    RenderTexturePool* m_pool = nullptr;
 };
 
 }
