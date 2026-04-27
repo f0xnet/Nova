@@ -176,11 +176,13 @@ void UIManager::render() const {
     }
 
     GRAPHICS().beginRectBatch();
+    GRAPHICS().beginSpriteBatch();
     for (const auto& [layer, component] : m_renderCache) {
         if (component->isVisible() && component->isActive()) {
             component->render();
         }
     }
+    GRAPHICS().endSpriteBatch();
     GRAPHICS().endRectBatch();
 }
 

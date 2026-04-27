@@ -48,5 +48,13 @@ public:
     // Default implementation is a no-op so alternative backends need not override.
     virtual void beginRectBatch() {}
     virtual void endRectBatch() {}
+
+    // Sprite batching — drawSprite() calls between begin/end are grouped by
+    // texture and flushed with one draw call per texture group. Sprites with
+    // rotation, a per-sprite shader, or a non-Alpha blend mode are drawn
+    // immediately. Cross-type ordering (rect vs sprite) is preserved by
+    // automatic flushing when the draw type changes.
+    virtual void beginSpriteBatch() {}
+    virtual void endSpriteBatch() {}
 };
 }

@@ -82,11 +82,59 @@ void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
     auto it = m_textures.find(sprite.texture);
     if(it == m_textures.end() || !it->second) return;
 
+    bool batchable = m_spriteBatchActive
+        && sprite.rotation == 0.0f
+        && sprite.shader == INVALID_HANDLE
+        && m_boundShader == INVALID_HANDLE
+        && sprite.blendMode == BlendMode::Alpha;
+
+    if (batchable) {
+        // Flush pending rects first to maintain layer order
+        if (m_rectBatchActive && m_rectBatch.getVertexCount() > 0) {
+            m_activeRenderTarget->draw(m_rectBatch);
+            m_rectBatch = sf::VertexArray(sf::Quads, 0);
+        }
+        // Flush sprite batch when texture changes
+        if (m_spriteBatchTexture != INVALID_HANDLE && m_spriteBatchTexture != sprite.texture) {
+            auto fit = m_textures.find(m_spriteBatchTexture);
+            if (fit != m_textures.end() && fit->second) {
+                sf::RenderStates st; st.texture = fit->second.get();
+                m_activeRenderTarget->draw(m_spriteBatch, st);
+            }
+            m_spriteBatch = sf::VertexArray(sf::Quads, 0);
+        }
+        m_spriteBatchTexture = sprite.texture;
+
+        sf::Vector2u texSize = it->second->getSize();
+        float tx, ty, tw, th;
+        if (sprite.textureRect.width > 0 && sprite.textureRect.height > 0) {
+            tx = static_cast<float>(sprite.textureRect.left);
+            ty = static_cast<float>(sprite.textureRect.top);
+            tw = static_cast<float>(sprite.textureRect.width);
+            th = static_cast<float>(sprite.textureRect.height);
+        } else {
+            tx = 0.0f; ty = 0.0f;
+            tw = static_cast<float>(texSize.x);
+            th = static_cast<float>(texSize.y);
+        }
+        float w = (sprite.size.x > 0) ? sprite.size.x * sprite.scale.x : tw * sprite.scale.x;
+        float h = (sprite.size.y > 0) ? sprite.size.y * sprite.scale.y : th * sprite.scale.y;
+        float x = sprite.position.x - sprite.origin.x;
+        float y = sprite.position.y - sprite.origin.y;
+        sf::Color color = SFMLConv::toSFML(sprite.color);
+        std::size_t base = m_spriteBatch.getVertexCount();
+        m_spriteBatch.resize(base + 4);
+        m_spriteBatch[base + 0] = {{x,     y},     color, {tx,      ty}};
+        m_spriteBatch[base + 1] = {{x + w, y},     color, {tx + tw, ty}};
+        m_spriteBatch[base + 2] = {{x + w, y + h}, color, {tx + tw, ty + th}};
+        m_spriteBatch[base + 3] = {{x,     y + h}, color, {tx,      ty + th}};
+        return;
+    }
+
     sf::Sprite sfSprite(*it->second);
     sfSprite.setPosition(SFMLConv::toSFML(sprite.position));
     sfSprite.setRotation(sprite.rotation);
 
-    // ✅ AJOUT: Appliquer sprite.size si spécifié
     if(sprite.size.x > 0 && sprite.size.y > 0) {
         sf::Vector2u texSize = it->second->getSize();
         if(texSize.x > 0 && texSize.y > 0) {
@@ -108,18 +156,10 @@ void SFMLGraphicsBackend::drawSprite(const SpriteData& sprite) {
     sf::RenderStates states;
     states.blendMode = SFMLConv::toSFML(sprite.blendMode);
 
-    // Check for per-sprite shader first, then global bound shader
-    ShaderHandle shaderToUse = INVALID_HANDLE;
-    if(sprite.shader != INVALID_HANDLE) {
-        shaderToUse = sprite.shader;
-    } else if(m_boundShader != INVALID_HANDLE) {
-        shaderToUse = m_boundShader;
-    }
-
+    ShaderHandle shaderToUse = (sprite.shader != INVALID_HANDLE) ? sprite.shader : m_boundShader;
     if(shaderToUse != INVALID_HANDLE) {
         auto sit = m_shaders.find(shaderToUse);
         if(sit != m_shaders.end() && sit->second) {
-            // Set required uniforms (pattern to avoid black screen)
             sit->second->setUniform("tex", sf::Shader::CurrentTexture);
             sf::Vector2u texSize = it->second->getSize();
             sit->second->setUniform("texSize", sf::Vector2f(
@@ -136,6 +176,16 @@ void SFMLGraphicsBackend::drawRect(const RectData& rect) {
     if(!m_activeRenderTarget) return;
 
     if (m_rectBatchActive && rect.outlineThickness == 0.0f && rect.rotation == 0.0f && m_boundShader == INVALID_HANDLE) {
+        // Flush pending sprites first to maintain layer order
+        if (m_spriteBatchActive && m_spriteBatch.getVertexCount() > 0) {
+            auto fit = m_textures.find(m_spriteBatchTexture);
+            if (fit != m_textures.end() && fit->second) {
+                sf::RenderStates st; st.texture = fit->second.get();
+                m_activeRenderTarget->draw(m_spriteBatch, st);
+            }
+            m_spriteBatch = sf::VertexArray(sf::Quads, 0);
+            m_spriteBatchTexture = INVALID_HANDLE;
+        }
         float x = rect.position.x - rect.origin.x;
         float y = rect.position.y - rect.origin.y;
         float w = rect.size.x;
@@ -179,6 +229,26 @@ void SFMLGraphicsBackend::endRectBatch() {
     if (m_rectBatch.getVertexCount() > 0)
         m_activeRenderTarget->draw(m_rectBatch);
     m_rectBatch = sf::VertexArray();
+}
+
+void SFMLGraphicsBackend::beginSpriteBatch() {
+    m_spriteBatchActive = true;
+    m_spriteBatch = sf::VertexArray(sf::Quads, 0);
+    m_spriteBatchTexture = INVALID_HANDLE;
+}
+
+void SFMLGraphicsBackend::endSpriteBatch() {
+    if (!m_spriteBatchActive || !m_activeRenderTarget) return;
+    m_spriteBatchActive = false;
+    if (m_spriteBatch.getVertexCount() > 0 && m_spriteBatchTexture != INVALID_HANDLE) {
+        auto fit = m_textures.find(m_spriteBatchTexture);
+        if (fit != m_textures.end() && fit->second) {
+            sf::RenderStates st; st.texture = fit->second.get();
+            m_activeRenderTarget->draw(m_spriteBatch, st);
+        }
+    }
+    m_spriteBatch = sf::VertexArray();
+    m_spriteBatchTexture = INVALID_HANDLE;
 }
 
 void SFMLGraphicsBackend::drawText(const TextData& text) {

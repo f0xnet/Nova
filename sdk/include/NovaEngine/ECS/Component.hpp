@@ -38,9 +38,13 @@ public:
 };
 
 /**
- * @brief Helper macro to implement getTypeID() for components
+ * @brief Helper macro to implement getTypeID() for components.
+ *
+ * Also generates staticTypeID() so Entity's template methods can look up the
+ * type ID without constructing a temporary instance.
  */
 #define COMPONENT_TYPE_ID(TypeName) \
-    ComponentTypeID getTypeID() const override { return #TypeName; }
+    static NovaEngine::ComponentTypeID staticTypeID() { return #TypeName; } \
+    NovaEngine::ComponentTypeID getTypeID() const override { return staticTypeID(); }
 
 } // namespace NovaEngine

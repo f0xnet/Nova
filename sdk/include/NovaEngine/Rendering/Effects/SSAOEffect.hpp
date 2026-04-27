@@ -30,13 +30,9 @@ private:
     void updateParameters();
 
     ShaderHandle m_ssaoShader;
-    ShaderHandle m_blurShader;           // Non utilisé en single-pass
-    RenderTextureHandle m_aoTexture;      // Non utilisé en single-pass
-    RenderTextureHandle m_blurredAOTexture; // Non utilisé en single-pass
 
     u32 m_width;
     u32 m_height;
-    u32 m_downsampleFactor;  // Non utilisé en single-pass
 
     f32 m_strength;
     f32 m_radius;

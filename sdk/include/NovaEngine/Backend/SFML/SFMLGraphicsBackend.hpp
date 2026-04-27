@@ -49,6 +49,8 @@ public:
 
     void beginRectBatch() override;
     void endRectBatch() override;
+    void beginSpriteBatch() override;
+    void endSpriteBatch() override;
 
     sf::Texture* getSFMLTexture(TextureHandle handle) const;
     sf::Font* getSFMLFont(FontHandle handle) const;
@@ -68,5 +70,8 @@ private:
     ShaderHandle m_boundShader = INVALID_HANDLE;
     sf::VertexArray m_rectBatch;
     bool m_rectBatchActive = false;
+    sf::VertexArray m_spriteBatch;
+    TextureHandle m_spriteBatchTexture = INVALID_HANDLE;
+    bool m_spriteBatchActive = false;
 };
 }
