@@ -82,12 +82,16 @@ public:
 
             if (sceneData.contains("backgroundColor")) {
                 auto& bg = sceneData["backgroundColor"];
-                m_backgroundColor = Color{
-                    static_cast<u8>(bg[0].get<int>()),
-                    static_cast<u8>(bg[1].get<int>()),
-                    static_cast<u8>(bg[2].get<int>()),
-                    static_cast<u8>(bg[3].get<int>())
-                };
+                if (bg.is_array() && bg.size() >= 4) {
+                    m_backgroundColor = Color{
+                        static_cast<u8>(bg[0].get<int>()),
+                        static_cast<u8>(bg[1].get<int>()),
+                        static_cast<u8>(bg[2].get<int>()),
+                        static_cast<u8>(bg[3].get<int>())
+                    };
+                } else {
+                    LOG_WARN("Scene '{}': 'backgroundColor' must be a 4-element array", m_name);
+                }
             }
 
             // Load waypoint graph for pathfinding
@@ -190,10 +194,12 @@ private:
 
         // Position: support both "position": [x, y] and "x", "y"
         if (entityData.contains("position")) {
-            transform->position = Vec2f{
-                entityData["position"][0].get<f32>(),
-                entityData["position"][1].get<f32>()
-            };
+            auto& pos = entityData["position"];
+            if (pos.is_array() && pos.size() >= 2) {
+                transform->position = Vec2f{pos[0].get<f32>(), pos[1].get<f32>()};
+            } else {
+                LOG_WARN("Entity 'position' must be a 2-element array");
+            }
         } else if (entityData.contains("x") && entityData.contains("y")) {
             transform->position = Vec2f{
                 entityData["x"].get<f32>(),
@@ -207,14 +213,16 @@ private:
 
         // Scale: support both "scale": [x, y] and "scale": value (uniform)
         if (entityData.contains("scale")) {
-            if (entityData["scale"].is_array()) {
+            if (entityData["scale"].is_array() && entityData["scale"].size() >= 2) {
                 transform->scale = Vec2f{
                     entityData["scale"][0].get<f32>(),
                     entityData["scale"][1].get<f32>()
                 };
-            } else {
+            } else if (!entityData["scale"].is_array()) {
                 f32 uniformScale = entityData["scale"].get<f32>();
                 transform->scale = Vec2f{uniformScale, uniformScale};
+            } else {
+                LOG_WARN("Entity 'scale' array must have at least 2 elements");
             }
         }
 
@@ -295,12 +303,16 @@ private:
             // Color
             if (lightData.contains("color")) {
                 auto& color = lightData["color"];
-                light->color = Color{
-                    static_cast<u8>(color[0].get<int>()),
-                    static_cast<u8>(color[1].get<int>()),
-                    static_cast<u8>(color[2].get<int>()),
-                    static_cast<u8>(color[3].get<int>())
-                };
+                if (color.is_array() && color.size() >= 4) {
+                    light->color = Color{
+                        static_cast<u8>(color[0].get<int>()),
+                        static_cast<u8>(color[1].get<int>()),
+                        static_cast<u8>(color[2].get<int>()),
+                        static_cast<u8>(color[3].get<int>())
+                    };
+                } else {
+                    LOG_WARN("Light 'color' must be a 4-element array");
+                }
             }
 
             // Radius
@@ -316,10 +328,11 @@ private:
             // Direction
             if (lightData.contains("direction")) {
                 auto& dir = lightData["direction"];
-                light->direction = Vec2f{
-                    dir[0].get<f32>(),
-                    dir[1].get<f32>()
-                };
+                if (dir.is_array() && dir.size() >= 2) {
+                    light->direction = Vec2f{dir[0].get<f32>(), dir[1].get<f32>()};
+                } else {
+                    LOG_WARN("Light 'direction' must be a 2-element array");
+                }
             }
 
             // Angle
@@ -488,19 +501,28 @@ private:
         // Create light component from definition
         auto light = std::make_unique<LightComponent>();
 
-        std::string typeStr = (*lightDef)["type"];
-        if (typeStr == "point") light->type = LightComponent::LightType::Point;
-        else if (typeStr == "directional") light->type = LightComponent::LightType::Directional;
-        else if (typeStr == "spot") light->type = LightComponent::LightType::Spot;
+        if (lightDef->contains("type")) {
+            std::string typeStr = (*lightDef)["type"];
+            if (typeStr == "point") light->type = LightComponent::LightType::Point;
+            else if (typeStr == "directional") light->type = LightComponent::LightType::Directional;
+            else if (typeStr == "spot") light->type = LightComponent::LightType::Spot;
+            else LOG_WARN("Light '{}': unknown type '{}'", lightID, typeStr);
+        } else {
+            LOG_WARN("Light definition '{}' missing 'type' field, defaulting to Point", lightID);
+        }
 
         if (lightDef->contains("color")) {
             auto& color = (*lightDef)["color"];
-            light->color = Color{
-                static_cast<u8>(color[0].get<int>()),
-                static_cast<u8>(color[1].get<int>()),
-                static_cast<u8>(color[2].get<int>()),
-                static_cast<u8>(color[3].get<int>())
-            };
+            if (color.is_array() && color.size() >= 4) {
+                light->color = Color{
+                    static_cast<u8>(color[0].get<int>()),
+                    static_cast<u8>(color[1].get<int>()),
+                    static_cast<u8>(color[2].get<int>()),
+                    static_cast<u8>(color[3].get<int>())
+                };
+            } else {
+                LOG_WARN("Light '{}': 'color' must be a 4-element array", lightID);
+            }
         }
 
         if (lightDef->contains("radius")) {
@@ -513,7 +535,11 @@ private:
 
         if (lightDef->contains("direction")) {
             auto& dir = (*lightDef)["direction"];
-            light->direction = Vec2f{dir[0].get<f32>(), dir[1].get<f32>()};
+            if (dir.is_array() && dir.size() >= 2) {
+                light->direction = Vec2f{dir[0].get<f32>(), dir[1].get<f32>()};
+            } else {
+                LOG_WARN("Light '{}': 'direction' must be a 2-element array", lightID);
+            }
         }
 
         if (lightDef->contains("angle")) {
@@ -555,10 +581,14 @@ private:
 
         if (animDef->contains("frames")) {
             for (const auto& frame : (*animDef)["frames"]) {
-                animation->frames.push_back(IntRect{
-                    frame[0].get<i32>(), frame[1].get<i32>(),
-                    frame[2].get<i32>(), frame[3].get<i32>()
-                });
+                if (frame.is_array() && frame.size() >= 4) {
+                    animation->frames.push_back(IntRect{
+                        frame[0].get<i32>(), frame[1].get<i32>(),
+                        frame[2].get<i32>(), frame[3].get<i32>()
+                    });
+                } else {
+                    LOG_WARN("Animation '{}': each frame must be a 4-element array [x, y, w, h]", animID);
+                }
             }
         }
 
