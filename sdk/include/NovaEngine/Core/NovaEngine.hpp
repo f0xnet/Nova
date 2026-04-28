@@ -2,7 +2,6 @@
 
 #include "Types.hpp"
 #include "Logger.hpp"
-#include <SFML/Graphics.hpp>
 #include <string>
 #include <memory>
 
@@ -46,11 +45,6 @@ namespace NovaEngine {
          * @brief Arrête le moteur proprement.
          */
         void shutdown();
-
-        /**
-         * @brief Retourne la fenêtre SFML.
-         */
-        sf::RenderWindow& getWindow();
 
         /**
          * @brief Accès au gestionnaire de ressources.
@@ -113,14 +107,8 @@ namespace NovaEngine {
         NovaEngine();
         ~NovaEngine();
 
-        bool m_running;
-        u32 m_width;
-        u32 m_height;
-        bool m_isFullscreen = false;
-
-        std::unique_ptr<sf::RenderWindow> m_window;
-        std::unique_ptr<ResourceManager> m_resourceManager;
-        std::unique_ptr<EventDispatcher> m_eventDispatcher;
+        struct Impl;
+        std::unique_ptr<Impl> m_impl;
     };
 
 } // namespace NovaEngine

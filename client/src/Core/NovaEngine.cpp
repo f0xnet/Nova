@@ -2,8 +2,20 @@
 #include "NovaEngine/Core/ConfigManager.hpp"
 #include "NovaEngine/Resources/ResourceManager.hpp"
 #include "NovaEngine/Events/EventDispatcher.hpp"
+#include <SFML/Graphics.hpp>
 
 namespace NovaEngine {
+
+    struct NovaEngine::Impl {
+        bool running = false;
+        u32  width   = 1920;
+        u32  height  = 1080;
+        bool isFullscreen = false;
+
+        std::unique_ptr<sf::RenderWindow> window;
+        std::unique_ptr<ResourceManager>  resourceManager;
+        std::unique_ptr<EventDispatcher>  eventDispatcher;
+    };
 
     NovaEngine& NovaEngine::get() {
         static NovaEngine instance;
@@ -11,13 +23,7 @@ namespace NovaEngine {
     }
 
     NovaEngine::NovaEngine()
-        : m_running(false),
-          m_width(1920),
-          m_height(1080),
-          m_isFullscreen(false),
-          m_window(nullptr),
-          m_resourceManager(nullptr),
-          m_eventDispatcher(nullptr)
+        : m_impl(std::make_unique<Impl>())
     {
         LOG_TRACE("NovaEngine instance created");
     }
@@ -33,23 +39,21 @@ namespace NovaEngine {
             LOG_WARN("Failed to load configuration, using provided parameters");
         } else {
             const auto& displayConfig = DISPLAY_CONFIG;
-            width = displayConfig.width;
-            height = displayConfig.height;
+            width     = displayConfig.width;
+            height    = displayConfig.height;
             fullscreen = displayConfig.fullscreen;
             LOG_INFO("Using configuration: {}x{} (fullscreen: {})", width, height, fullscreen);
         }
 
-        m_width = width;
-        m_height = height;
-        m_isFullscreen = fullscreen;
+        m_impl->width       = width;
+        m_impl->height      = height;
+        m_impl->isFullscreen = fullscreen;
 
         sf::VideoMode videoMode(width, height);
         sf::Uint32 style;
-        
+
         if (fullscreen) {
-            // Borderless fullscreen window
             style = sf::Style::None;
-            // Utiliser la résolution native pour éviter les problèmes de scaling
             auto desktopMode = sf::VideoMode::getDesktopMode();
             videoMode = sf::VideoMode(desktopMode.width, desktopMode.height);
             LOG_INFO("Creating borderless fullscreen: {}x{}", videoMode.width, videoMode.height);
@@ -58,46 +62,46 @@ namespace NovaEngine {
             LOG_INFO("Creating windowed mode: {}x{}", width, height);
         }
 
-        m_window = std::make_unique<sf::RenderWindow>(videoMode, title, style);
-        
+        m_impl->window = std::make_unique<sf::RenderWindow>(videoMode, title, style);
+
         if (fullscreen) {
-            m_window->setPosition(sf::Vector2i(0, 0));
+            m_impl->window->setPosition(sf::Vector2i(0, 0));
         }
-        if (!m_window || !m_window->isOpen()) {
+        if (!m_impl->window || !m_impl->window->isOpen()) {
             LOG_FATAL("Failed to create SFML window");
             return false;
         }
 
         const auto& displayConfig = DISPLAY_CONFIG;
-        m_window->setVerticalSyncEnabled(displayConfig.vsync);
-        
+        m_impl->window->setVerticalSyncEnabled(displayConfig.vsync);
+
         if (!displayConfig.vsync && displayConfig.frameRateLimit > 0) {
-            m_window->setFramerateLimit(displayConfig.frameRateLimit);
+            m_impl->window->setFramerateLimit(displayConfig.frameRateLimit);
         }
 
-        LOG_DEBUG("SFML Window created: {}x{} ({})", width, height, 
+        LOG_DEBUG("SFML Window created: {}x{} ({})", width, height,
                  fullscreen ? "fullscreen" : "windowed");
 
-        m_resourceManager = std::make_unique<ResourceManager>();
-        m_eventDispatcher = std::make_unique<EventDispatcher>();
+        m_impl->resourceManager = std::make_unique<ResourceManager>();
+        m_impl->eventDispatcher = std::make_unique<EventDispatcher>();
 
         const auto& debugConfig = DEBUG_CONFIG;
         if (debugConfig.enableLogging && !debugConfig.logFile.empty()) {
             Logger::getInstance().setLogFile(debugConfig.logFile);
-            
+
             LogLevel logLevel = LogLevel::Info;
-            if (debugConfig.logLevel == "TRACE") logLevel = LogLevel::Trace;
+            if      (debugConfig.logLevel == "TRACE") logLevel = LogLevel::Trace;
             else if (debugConfig.logLevel == "DEBUG") logLevel = LogLevel::Debug;
-            else if (debugConfig.logLevel == "INFO") logLevel = LogLevel::Info;
-            else if (debugConfig.logLevel == "WARN") logLevel = LogLevel::Warning;
+            else if (debugConfig.logLevel == "INFO")  logLevel = LogLevel::Info;
+            else if (debugConfig.logLevel == "WARN")  logLevel = LogLevel::Warning;
             else if (debugConfig.logLevel == "ERROR") logLevel = LogLevel::Error;
             else if (debugConfig.logLevel == "FATAL") logLevel = LogLevel::Fatal;
-            
+
             Logger::getInstance().setLogLevel(logLevel);
             LOG_DEBUG("Logging configured: Level={}, File={}", debugConfig.logLevel, debugConfig.logFile);
         }
 
-        m_running = true;
+        m_impl->running = true;
         LOG_INFO("NovaEngine initialized successfully");
         return true;
     }
@@ -115,13 +119,13 @@ namespace NovaEngine {
     }
 
     void NovaEngine::shutdown() {
-        if (!m_running) return;
+        if (!m_impl->running) return;
         LOG_INFO("Shutting down NovaEngine");
 
-        m_running = false;
+        m_impl->running = false;
 
-        if (m_window && m_window->isOpen()) {
-            m_window->close();
+        if (m_impl->window && m_impl->window->isOpen()) {
+            m_impl->window->close();
         }
 
         const auto& config = ConfigManager::getInstance();
@@ -129,23 +133,23 @@ namespace NovaEngine {
             LOG_WARN("Failed to save configuration on shutdown");
         }
 
-        m_resourceManager.reset();
-        m_eventDispatcher.reset();
-        m_window.reset();
+        m_impl->resourceManager.reset();
+        m_impl->eventDispatcher.reset();
+        m_impl->window.reset();
 
         LOG_INFO("NovaEngine shutdown complete");
     }
 
     void NovaEngine::applyDisplaySettings(const DisplayConfig& config) {
-        if (!m_window) {
+        if (!m_impl->window) {
             LOG_ERROR("Cannot apply display settings: window not created");
             return;
         }
 
-        sf::VideoMode currentMode = sf::VideoMode(m_width, m_height);
+        sf::VideoMode currentMode = sf::VideoMode(m_impl->width, m_impl->height);
         sf::VideoMode newMode(config.width, config.height);
         sf::Uint32 style;
-        
+
         if (config.fullscreen) {
             style = sf::Style::None;
             auto desktopMode = sf::VideoMode::getDesktopMode();
@@ -153,31 +157,31 @@ namespace NovaEngine {
         } else {
             style = sf::Style::Close | sf::Style::Titlebar;
         }
-        
-        if (currentMode.width != newMode.width || 
-            currentMode.height != newMode.height ||
-            m_isFullscreen != config.fullscreen) {
-            
+
+        if (currentMode.width  != newMode.width  ||
+            currentMode.height != newMode.height  ||
+            m_impl->isFullscreen != config.fullscreen) {
+
             LOG_INFO("Recreating window with new settings: {}x{} (fullscreen: {})",
                     config.width, config.height, config.fullscreen);
-            
-            m_window->create(newMode, "NovaEngine", style);
-            
+
+            m_impl->window->create(newMode, "NovaEngine", style);
+
             if (config.fullscreen) {
-                m_window->setPosition(sf::Vector2i(0, 0));
+                m_impl->window->setPosition(sf::Vector2i(0, 0));
             }
-            
-            m_width = config.width;
-            m_height = config.height;
-            m_isFullscreen = config.fullscreen;
+
+            m_impl->width       = config.width;
+            m_impl->height      = config.height;
+            m_impl->isFullscreen = config.fullscreen;
         }
 
-        m_window->setVerticalSyncEnabled(config.vsync);
-        
+        m_impl->window->setVerticalSyncEnabled(config.vsync);
+
         if (!config.vsync && config.frameRateLimit > 0) {
-            m_window->setFramerateLimit(config.frameRateLimit);
+            m_impl->window->setFramerateLimit(config.frameRateLimit);
         } else if (!config.vsync) {
-            m_window->setFramerateLimit(0);
+            m_impl->window->setFramerateLimit(0);
         }
 
         LOG_DEBUG("Display settings applied successfully");
@@ -192,32 +196,28 @@ namespace NovaEngine {
         applyDisplaySettings(config);
     }
 
-    sf::RenderWindow& NovaEngine::getWindow() {
-        return *m_window;
-    }
-
     ResourceManager& NovaEngine::getResourceManager() {
-        return *m_resourceManager;
+        return *m_impl->resourceManager;
     }
 
     EventDispatcher& NovaEngine::getEventDispatcher() {
-        return *m_eventDispatcher;
+        return *m_impl->eventDispatcher;
     }
 
     bool NovaEngine::isRunning() const {
-        return m_running;
+        return m_impl->running;
     }
 
     u32 NovaEngine::getWidth() const {
-        return m_width;
+        return m_impl->width;
     }
 
     u32 NovaEngine::getHeight() const {
-        return m_height;
+        return m_impl->height;
     }
 
     bool NovaEngine::isFullscreen() const {
-        return m_isFullscreen;
+        return m_impl->isFullscreen;
     }
 
     void NovaEngine::toggleFullscreen() {
@@ -228,8 +228,8 @@ namespace NovaEngine {
     }
 
     void NovaEngine::setTitle(const std::string& title) {
-        if (m_window) {
-            m_window->setTitle(title);
+        if (m_impl->window) {
+            m_impl->window->setTitle(title);
             LOG_DEBUG("Window title changed to: {}", title);
         }
     }
