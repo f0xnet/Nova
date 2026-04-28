@@ -97,6 +97,20 @@ public:
     }
 
     /**
+     * @brief Get a component by type ID string — utilisé par le scripting
+     * @return Pointeur vers le composant (base), ou nullptr si absent
+     */
+    Component* getComponent(const ComponentTypeID& typeID) {
+        auto it = m_components.find(typeID);
+        return (it != m_components.end()) ? it->second.get() : nullptr;
+    }
+
+    const Component* getComponent(const ComponentTypeID& typeID) const {
+        auto it = m_components.find(typeID);
+        return (it != m_components.end()) ? it->second.get() : nullptr;
+    }
+
+    /**
      * @brief Remove a component from this entity
      * @tparam T The component type
      */
@@ -105,6 +119,10 @@ public:
         static_assert(std::is_base_of<Component, T>::value,
                       "T must derive from Component");
         m_components.erase(T::staticTypeID());
+    }
+
+    void removeComponent(const ComponentTypeID& typeID) {
+        m_components.erase(typeID);
     }
 
     /**
