@@ -3,55 +3,70 @@
 
 namespace NovaEngine {
 
-    AudioManager::AudioManager(ResourceManager& resourceManager)
-        : m_resourceManager(resourceManager),
-          m_soundPlayer(),
-          m_musicPlayer() {
+    AudioManager::AudioManager() {
         LOG_INFO("AudioManager initialized");
     }
 
     AudioManager::~AudioManager() {
-        m_musicPlayer.stop();
+        AUDIO().stopMusic();
         LOG_INFO("AudioManager destroyed");
     }
 
-    void AudioManager::playSound(const ID& id) {
-        try {
-            sf::SoundBuffer& buffer = m_resourceManager.getSoundBuffer(id);
-            m_soundPlayer.play(buffer);
-            LOG_DEBUG("Playing sound '{}'", id);
-        } catch (const std::exception& e) {
-            LOG_ERROR("Sound '{}' not found in ResourceManager: {}", id, e.what());
+    bool AudioManager::registerSound(const ID& id, const std::string& path) {
+        SoundHandle handle = RESOURCES().loadSound(path);
+        if (handle == INVALID_HANDLE) {
+            LOG_ERROR("AudioManager: failed to load sound '{}' from: {}", id, path);
+            return false;
         }
+        m_sounds[id] = handle;
+        LOG_DEBUG("AudioManager: sound '{}' registered", id);
+        return true;
+    }
+
+    bool AudioManager::registerMusic(const ID& id, const std::string& path) {
+        MusicHandle handle = RESOURCES().loadMusic(path);
+        if (handle == INVALID_HANDLE) {
+            LOG_ERROR("AudioManager: failed to register music '{}' from: {}", id, path);
+            return false;
+        }
+        m_musics[id] = handle;
+        LOG_DEBUG("AudioManager: music '{}' registered", id);
+        return true;
+    }
+
+    void AudioManager::playSound(const ID& id) {
+        auto it = m_sounds.find(id);
+        if (it == m_sounds.end()) {
+            LOG_ERROR("AudioManager: sound '{}' not registered", id);
+            return;
+        }
+        AUDIO().playSound(it->second);
+        LOG_DEBUG("AudioManager: playing sound '{}'", id);
     }
 
     void AudioManager::playMusic(const ID& id, bool loop) {
-        std::string path = m_resourceManager.getMusicPath(id);
-        if (path.empty()) {
-            LOG_ERROR("Music '{}' not found or not registered in ResourceManager", id);
+        auto it = m_musics.find(id);
+        if (it == m_musics.end()) {
+            LOG_ERROR("AudioManager: music '{}' not registered", id);
             return;
         }
-
-        if (!m_musicPlayer.play(path, loop)) {
-            LOG_ERROR("Failed to play music '{}'", id);
-        } else {
-            LOG_INFO("Playing music '{}' (loop: {})", id, loop);
-        }
+        AUDIO().playMusic(it->second, loop);
+        LOG_INFO("AudioManager: playing music '{}' (loop: {})", id, loop);
     }
 
     void AudioManager::stopMusic() {
-        m_musicPlayer.stop();
-        LOG_DEBUG("Music stopped via AudioManager");
+        AUDIO().stopMusic();
+        LOG_DEBUG("AudioManager: music stopped");
     }
 
     void AudioManager::setSoundVolume(float volume) {
-        m_soundPlayer.setVolume(volume);
-        LOG_DEBUG("Sound volume set to {}", volume);
+        AUDIO().setSoundVolume(volume);
+        LOG_DEBUG("AudioManager: sound volume set to {}", volume);
     }
 
     void AudioManager::setMusicVolume(float volume) {
-        m_musicPlayer.setVolume(volume);
-        LOG_DEBUG("Music volume set to {}", volume);
+        AUDIO().setMusicVolume(volume);
+        LOG_DEBUG("AudioManager: music volume set to {}", volume);
     }
 
 } // namespace NovaEngine
