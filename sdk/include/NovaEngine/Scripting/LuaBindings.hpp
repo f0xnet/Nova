@@ -215,6 +215,25 @@ private:
         lua.new_usertype<Entity>("Entity",
             "id",           sol::property(&Entity::getID),
 
+            // --- Visibilité / activation ---
+            // Désactive sprite + collider (entité invisible et sans collision)
+            "enable",       [](Entity& e) {
+                auto* s = e.getComponent<SpriteComponent>();
+                if (s) s->visible = true;
+                auto* c = e.getComponent<ColliderComponent>();
+                if (c) c->enabled = true;
+            },
+            "disable",      [](Entity& e) {
+                auto* s = e.getComponent<SpriteComponent>();
+                if (s) s->visible = false;
+                auto* c = e.getComponent<ColliderComponent>();
+                if (c) c->enabled = false;
+            },
+            "isEnabled",    [](Entity& e) -> bool {
+                auto* s = e.getComponent<SpriteComponent>();
+                return s ? s->visible : true;
+            },
+
             // --- Raccourcis position (évite entity:getTransform().position) ---
             "getPosition",  [](Entity& e) -> Vec2f {
                 auto* t = e.getComponent<TransformComponent>();

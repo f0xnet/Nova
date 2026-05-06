@@ -103,6 +103,9 @@ public:
     void update(float deltaTime, EntityRegistry& registry) override {
         m_lua["Registry"] = &registry;
 
+        // Réinitialise les états "just pressed/released" avant la détection
+        callTableMethod("InputEx", "_clear", 0.0f);
+
         updateActivatorBridge(registry);
         updateInputBridge();
         updateNovaRuntime(deltaTime);
@@ -377,6 +380,9 @@ end
             { "Persist",      "nova/persist"      },
             { "Game",         "nova/game"         },
             { "Stats",        "nova/stats"        },
+            { "InputEx",      "nova/input_ext"    },
+            { "Effect",       "nova/effect"       },
+            { "Cooldown",     "nova/cooldown"     },
         };
         for (auto& [global, mod] : modules) {
             std::string code = std::string(global) + " = require('" + mod + "')";
@@ -396,6 +402,8 @@ end
         callTableMethod("Scheduler", "update", dt);
         callTableMethod("Tween",     "update", dt);
         callTableMethod("Game",      "_update", dt);
+        callTableMethod("Effect",    "update",  dt);
+        callTableMethod("Cooldown",  "update",  dt);
     }
 
     void callTableMethod(const char* table, const char* method, float dt) {
@@ -539,6 +547,11 @@ end
                 else if (val.is_boolean())        self[key] = val.get<bool>();
             }
             script->env["self"] = self;
+
+            // `entity` global — accessible depuis TOUTES les fonctions du script
+            // (init, update, OnKeyDown, OnMessage, etc.) sans le passer en paramètre.
+            // C'est l'équivalent de `self` qui est l'ObjectReference en Papyrus.
+            script->env.set("entity", entity);
 
             // RegisterForUpdate(interval) / UnregisterForUpdate() / ResumeUpdate()
             // Permettent au script de contrôler sa propre fréquence d'update

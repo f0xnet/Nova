@@ -57,6 +57,32 @@ function World.destroy(entityId)
     Registry:destroyEntity(entityId)
 end
 
+-- Itère toutes les entités avec ce tag et appelle callback(entity)
+-- Arrête si callback retourne false explicitement
+function World.forEach(tag, callback)
+    for _, e in ipairs(Registry:getAllEntities()) do
+        local t = e:getTag()
+        if t and t.tag == tag then
+            local ok, result = pcall(callback, e)
+            if not ok then
+                Log.error("World.forEach('" .. tag .. "'): " .. tostring(result))
+            elseif result == false then
+                break  -- le callback peut retourner false pour arrêter
+            end
+        end
+    end
+end
+
+-- Compte les entités avec ce tag
+function World.count(tag)
+    local n = 0
+    for _, e in ipairs(Registry:getAllEntities()) do
+        local t = e:getTag()
+        if t and t.tag == tag then n = n + 1 end
+    end
+    return n
+end
+
 -- Entité la plus proche ayant un tag donné
 function World.nearest(origin, tag)
     local best, bestDist = nil, math.huge
