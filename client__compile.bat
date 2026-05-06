@@ -21,6 +21,8 @@ set "SOURCE_DIR=C:\Nova\client"
 set "BIN_DIR=%SOURCE_DIR%\bin\Release"
 set "OBJ_DIR=%SOURCE_DIR%\obj\Release"
 set "SDK_DIR=%PROJECT_DIR%\sdk\include"
+set "LIB_DIR=%PROJECT_DIR%\sdk\libs"
+set "LUA_SRC=%PROJECT_DIR%\deps\lua-5.4.7\src"
 set "TOOLS_DIR=%PROJECT_DIR%\tools"
 set "RH_DIR=%TOOLS_DIR%\ResourceHacker"
 set "RH_EXE=%RH_DIR%\ResourceHacker.exe"
@@ -145,6 +147,31 @@ if not exist "%SOURCE_DIR%\icon\appicon.res" (
     echo    [WARNING] Icon resource compilation failed
 )
 
+:: Lua 5.4 — compile si la lib est absente
+if not exist "%LIB_DIR%\lua54.lib" (
+    echo    Compiling Lua 5.4.7...
+    if not exist "%OBJ_DIR%\lua" mkdir "%OBJ_DIR%\lua"
+    gcc -O2 -c ^
+        "%LUA_SRC%\lapi.c"    "%LUA_SRC%\lauxlib.c" "%LUA_SRC%\lbaselib.c" ^
+        "%LUA_SRC%\lcode.c"   "%LUA_SRC%\lcorolib.c" "%LUA_SRC%\lctype.c" ^
+        "%LUA_SRC%\ldblib.c"  "%LUA_SRC%\ldebug.c"  "%LUA_SRC%\ldo.c" ^
+        "%LUA_SRC%\ldump.c"   "%LUA_SRC%\lfunc.c"   "%LUA_SRC%\lgc.c" ^
+        "%LUA_SRC%\linit.c"   "%LUA_SRC%\liolib.c"  "%LUA_SRC%\llex.c" ^
+        "%LUA_SRC%\lmathlib.c" "%LUA_SRC%\lmem.c"   "%LUA_SRC%\loadlib.c" ^
+        "%LUA_SRC%\lobject.c" "%LUA_SRC%\lopcodes.c" "%LUA_SRC%\loslib.c" ^
+        "%LUA_SRC%\lparser.c" "%LUA_SRC%\lstate.c"  "%LUA_SRC%\lstring.c" ^
+        "%LUA_SRC%\lstrlib.c" "%LUA_SRC%\ltable.c"  "%LUA_SRC%\ltablib.c" ^
+        "%LUA_SRC%\ltm.c"     "%LUA_SRC%\lundump.c" "%LUA_SRC%\lutf8lib.c" ^
+        "%LUA_SRC%\lvm.c"     "%LUA_SRC%\lzio.c"
+    if %ERRORLEVEL% NEQ 0 ( echo    [ERROR] Lua compilation failed & goto :build_failed )
+    move *.o "%OBJ_DIR%\lua\" >nul
+    ar rcs "%LIB_DIR%\lua54.lib" "%OBJ_DIR%\lua\*.o"
+    echo    [OK] lua54.lib ready
+) else (
+    echo    [OK] lua54.lib already built, skipping.
+)
+echo.
+
 :: PCH — nlohmann/json.hpp
 echo    Compiling precompiled header (json.hpp)...
 if not exist "%OBJ_DIR%\nlohmann" mkdir "%OBJ_DIR%\nlohmann"
@@ -226,6 +253,7 @@ g++ -o "%BIN_DIR%\Nova.exe" "%OBJ_DIR%\*.o" ^
     -L "%PROJECT_DIR%\sdk\libs" ^
     -DSFML_STATIC ^
     -lsfml-graphics-s -lsfml-window-s -lsfml-audio-s -lsfml-network-s -lsfml-system-s ^
+    -llua54 ^
     -lopengl32 -lwinmm -lgdi32 -lfreetype -lopenal32 ^
     -lflac -lvorbisenc -lvorbisfile -lvorbis -logg -lws2_32 ^
     -std=c++17 -static-libgcc -static-libstdc++ -static ^
