@@ -223,7 +223,7 @@ for %%f in (%SOURCE_FILES%) do (
     
     if "!NEEDS_COMPILE!"=="1" (
         echo    Compiling %%f...
-        g++ -o "!OBJ_PATH!" -O0 -DNDEBUG -I "%SDK_DIR%" -I "%OBJ_DIR%" -include nlohmann/json.hpp -c "!SOURCE_PATH!" -Wall -DSFML_STATIC -std=c++17
+        g++ -o "!OBJ_PATH!" -O0 -DNDEBUG -I "%SDK_DIR%" -I "%OBJ_DIR%" -include nlohmann/json.hpp -c "!SOURCE_PATH!" -Wall -DSFML_STATIC -std=c++17 -Wa,-mbig-obj
         
         if !ERRORLEVEL! NEQ 0 (
             echo    [ERROR] Compilation failed for %%f
