@@ -2,6 +2,7 @@
 #include "NovaEngine/Backend/BackendManager.hpp"
 #include "NovaEngine/Core/ConfigManager.hpp"
 #include "NovaEngine/Scripting/Scripting.hpp"
+#include "NovaEngine/UI/Components/Text.hpp"
 #include "Dialogue/DialogueSystem.hpp"
 #include "Player/PlayerController.hpp"
 
@@ -104,6 +105,70 @@ bool Game::onInitialize() {
             dlg["isActive"] = [this]() -> bool { return m_dialogueSystem->isActive(); };
             dlg["reset"]    = [this]() { m_dialogueSystem->reset(); };
             lua["Dialogue"] = dlg;
+        }
+
+        // --- PostFX : effets visuels scriptables ---
+        // PostFX.setBloom(0.8) / setSaturation(1.5) / setContrast / setBrightness
+        // PostFX.setSSAO(enabled) / setLighting(enabled) / setAmbientDark(0.2)
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table pfx = lua.create_table();
+            pfx["setBloom"]      = [this](float v) {
+                if (m_bloomEffect) m_bloomEffect->setIntensity(v);
+            };
+            pfx["setSaturation"] = [this](float v) {
+                if (m_colorGradingEffect) m_colorGradingEffect->setSaturation(v);
+            };
+            pfx["setContrast"]   = [this](float v) {
+                if (m_colorGradingEffect) m_colorGradingEffect->setContrast(v);
+            };
+            pfx["setBrightness"] = [this](float v) {
+                if (m_colorGradingEffect) m_colorGradingEffect->setBrightness(v);
+            };
+            pfx["setSSAO"]       = [this](bool en) {
+                if (m_ssaoEffect) m_ssaoEffect->setEnabled(en);
+            };
+            pfx["setLighting"]   = [this](bool en) {
+                if (m_dynamicLightingEffect) m_dynamicLightingEffect->setEnabled(en);
+            };
+            pfx["setAmbientDark"] = [this](float v) {
+                if (m_dynamicLightingEffect) m_dynamicLightingEffect->setAmbientDarkness(v);
+            };
+            lua["PostFX"] = pfx;
+        }
+
+        // --- UI : contrôle de l'interface depuis les scripts ---
+        // UI.showGroup("hud") / hideGroup("dialogue")
+        // UI.setText("label_id", "Score: 42")
+        // UI.setVisible("component_id", false)
+        // UI.setEnabled("button_id", false)
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table ui = lua.create_table();
+            ui["showGroup"]  = [this](const std::string& id) {
+                m_uiManager.setGroupActive(id, true);
+            };
+            ui["hideGroup"]  = [this](const std::string& id) {
+                m_uiManager.setGroupActive(id, false);
+            };
+            ui["setUIActive"] = [this](const std::string& id, bool active) {
+                m_uiManager.setUIActive(id, active);
+            };
+            ui["setVisible"] = [this](const std::string& id, bool visible) {
+                auto comp = m_uiManager.getComponent(id);
+                if (comp) comp->setVisible(visible);
+            };
+            ui["setEnabled"] = [this](const std::string& id, bool enabled) {
+                auto comp = m_uiManager.getComponent(id);
+                if (comp) comp->setEnabled(enabled);
+            };
+            ui["setText"] = [this](const std::string& id, const std::string& text) {
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return;
+                auto* txt = dynamic_cast<NovaEngine::Text*>(comp.get());
+                if (txt) txt->setString(text);
+            };
+            lua["UI"] = ui;
         }
 
         auto entities = scene->getEntityRegistry().getAllEntities();

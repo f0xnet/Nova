@@ -74,6 +74,7 @@ public:
         registerEntityRegistry(lua);
         registerResources(lua);
         registerInput(lua);
+        registerViewport(lua);
         registerLog(lua);
     }
 
@@ -214,6 +215,47 @@ private:
     static void registerEntity(sol::state& lua) {
         lua.new_usertype<Entity>("Entity",
             "id",           sol::property(&Entity::getID),
+
+            // --- Raccourcis lecture directe ---
+            // entity.tag  →  lit le tag sans passer par entity:getTag().tag
+            "tag",          sol::property([](Entity& e) -> std::string {
+                auto* t = e.getComponent<TagComponent>();
+                return t ? t->tag : "";
+            }),
+
+            // --- Stats — raccourcis vers le module Stats Lua ---
+            // Évite d'écrire Stats.mod(entity.id, ...) dans les scripts attachés à entity
+            "modStat",  [](sol::this_state ts, Entity& e,
+                           const std::string& stat, double delta) -> double {
+                sol::state_view lua(ts);
+                sol::protected_function fn = lua["Stats"]["mod"];
+                if (!fn.valid()) return 0.0;
+                auto r = fn(e.getID(), stat, delta);
+                return (r.valid() && r.get_type(0) == sol::type::number)
+                    ? r.get<double>(0) : 0.0;
+            },
+            "getStat",  [](sol::this_state ts, Entity& e,
+                           const std::string& stat, sol::object def) -> sol::object {
+                sol::state_view lua(ts);
+                sol::protected_function fn = lua["Stats"]["get"];
+                if (!fn.valid()) return def;
+                auto r = fn(e.getID(), stat, def);
+                return r.valid() ? r.get<sol::object>(0) : def;
+            },
+            "setStat",  [](sol::this_state ts, Entity& e,
+                           const std::string& stat, double value) {
+                sol::state_view lua(ts);
+                sol::protected_function fn = lua["Stats"]["set"];
+                if (fn.valid()) fn(e.getID(), stat, value);
+            },
+            "hasStat",  [](sol::this_state ts, Entity& e,
+                           const std::string& stat) -> bool {
+                sol::state_view lua(ts);
+                sol::protected_function fn = lua["Stats"]["has"];
+                if (!fn.valid()) return false;
+                auto r = fn(e.getID(), stat);
+                return r.valid() && r.get<bool>(0);
+            },
 
             // --- Visibilité / activation ---
             // Désactive sprite + collider (entité invisible et sans collision)
@@ -389,6 +431,34 @@ private:
         };
 
         lua["Input"] = input;
+    }
+
+    // -------------------------------------------------------------------------
+    // Viewport — accès bas niveau à la caméra moteur
+    // Utilisé par nova/camera.lua pour Camera.follow / Camera.shake / Camera.setZoom
+    //
+    // Usage Lua (préférer le module Camera pour les API haut niveau) :
+    //   Viewport.setCenter(x, y)
+    //   local pos = Viewport.getCenter()   -- Vec2f
+    //   Viewport.setSize(w, h)
+    //   local sz = Viewport.getSize()      -- Vec2f
+    //   Viewport.setRotation(angle)
+    // -------------------------------------------------------------------------
+    static void registerViewport(sol::state& lua) {
+        sol::table vp = lua.create_table();
+        vp["getCenter"]   = []() -> Vec2f { return VIEWPORT().getViewCenter(); };
+        vp["setCenter"]   = [](f32 x, f32 y) { VIEWPORT().setViewCenter(Vec2f{x, y}); };
+        vp["getSize"]     = []() -> Vec2f { return VIEWPORT().getViewSize(); };
+        vp["setSize"]     = [](f32 w, f32 h) { VIEWPORT().setViewSize(Vec2f{w, h}); };
+        vp["getRotation"] = []() -> f32 {
+            return VIEWPORT().getView().rotation;
+        };
+        vp["setRotation"] = [](f32 r) {
+            auto v = VIEWPORT().getView();
+            v.rotation = r;
+            VIEWPORT().setView(v);
+        };
+        lua["Viewport"] = vp;
     }
 
     // -------------------------------------------------------------------------

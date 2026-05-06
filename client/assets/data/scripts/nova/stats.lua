@@ -37,7 +37,13 @@
 local Stats = {}
 local data = {}   -- data[entityId][statName] = value
 
+-- Accepte une entité (userdata) ou un entityId (number)
+local function toId(v)
+    return (type(v) == "userdata") and v.id or v
+end
+
 function Stats.get(entityId, stat, default)
+    entityId = toId(entityId)
     local entityStats = data[entityId]
     if not entityStats then return default end
     local v = entityStats[stat]
@@ -45,6 +51,7 @@ function Stats.get(entityId, stat, default)
 end
 
 function Stats.set(entityId, stat, value)
+    entityId = toId(entityId)
     if not data[entityId] then data[entityId] = {} end
     local previous = data[entityId][stat]
     data[entityId][stat] = value
@@ -61,6 +68,7 @@ end
 
 -- Modifie par delta et retourne la nouvelle valeur
 function Stats.mod(entityId, stat, delta)
+    entityId = toId(entityId)
     local current = Stats.get(entityId, stat, 0)
     local next    = current + delta
     Stats.set(entityId, stat, next)
@@ -69,6 +77,7 @@ end
 
 -- Clamp : modifie avec une borne min/max
 function Stats.modClamped(entityId, stat, delta, min, max)
+    entityId = toId(entityId)
     local current = Stats.get(entityId, stat, 0)
     local next    = math.max(min, math.min(max, current + delta))
     Stats.set(entityId, stat, next)
@@ -76,16 +85,19 @@ function Stats.modClamped(entityId, stat, delta, min, max)
 end
 
 function Stats.has(entityId, stat)
+    entityId = toId(entityId)
     return data[entityId] ~= nil and data[entityId][stat] ~= nil
 end
 
 function Stats.remove(entityId, stat)
+    entityId = toId(entityId)
     if data[entityId] then
         data[entityId][stat] = nil
     end
 end
 
 function Stats.getAll(entityId)
+    entityId = toId(entityId)
     if not data[entityId] then return {} end
     local copy = {}
     for k, v in pairs(data[entityId]) do copy[k] = v end
@@ -93,12 +105,14 @@ function Stats.getAll(entityId)
 end
 
 function Stats.clear(entityId)
+    entityId = toId(entityId)
     data[entityId] = nil
 end
 
 -- Initialise un ensemble de stats depuis une table
 -- Stats.init(entity.id, { Health=100, Stamina=50, Level=1 })
 function Stats.init(entityId, defaults)
+    entityId = toId(entityId)
     for stat, value in pairs(defaults) do
         if not Stats.has(entityId, stat) then
             Stats.set(entityId, stat, value)

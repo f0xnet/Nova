@@ -79,4 +79,14 @@ function InputEx.getJustPressedKeys()
     return list
 end
 
+-- Étend le global Input (C++) avec les helpers "just" pour une API unifiée.
+-- Après ce module : Input.isKeyJustPressed("E") fonctionne comme InputEx.isKeyJustPressed("E")
+if Input then
+    Input.isKeyJustPressed    = function(k)   return justPressed[k]   == true end
+    Input.isKeyJustReleased   = function(k)   return justReleased[k]  == true end
+    Input.isMouseJustPressed  = function(btn) return mousePressed[btn] == true end
+    Input.isMouseJustReleased = function(btn) return mouseReleased[btn]== true end
+    Input.getJustPressedKeys  = InputEx.getJustPressedKeys
+end
+
 return InputEx

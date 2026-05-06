@@ -14,6 +14,7 @@
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
+#include <chrono>
 
 namespace NovaEngine {
 
@@ -130,7 +131,13 @@ public:
             float effectiveDt     = script->m_updateAccum;
             script->m_updateAccum = 0.0f;
 
+            auto t0     = std::chrono::high_resolution_clock::now();
             auto result = script->fnUpdate(entity, effectiveDt);
+            auto t1     = std::chrono::high_resolution_clock::now();
+            float ms    = std::chrono::duration<float, std::milli>(t1 - t0).count();
+            if (ms > 2.0f)
+                LOG_WARN("[ScriptSystem] Script lent '{}'  {:.2f}ms", script->scriptPath, ms);
+
             if (!result.valid()) {
                 sol::error err = result;
                 LOG_ERROR("[ScriptSystem] update '{}': {}", script->scriptPath, err.what());
@@ -380,6 +387,7 @@ end
             { "Persist",      "nova/persist"      },
             { "Game",         "nova/game"         },
             { "Stats",        "nova/stats"        },
+            { "Camera",       "nova/camera"       },
             { "InputEx",      "nova/input_ext"    },
             { "Effect",       "nova/effect"       },
             { "Cooldown",     "nova/cooldown"     },
@@ -402,6 +410,8 @@ end
         callTableMethod("Scheduler", "update", dt);
         callTableMethod("Tween",     "update", dt);
         callTableMethod("Game",      "_update", dt);
+        callTableMethod("Camera",    "_update", dt);
+        callTableMethod("World",     "_update", dt);
         callTableMethod("Effect",    "update",  dt);
         callTableMethod("Cooldown",  "update",  dt);
     }

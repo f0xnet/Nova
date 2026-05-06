@@ -37,9 +37,14 @@ local Cooldown = {}
 -- timers[entityId][action] = secondes restantes
 local timers = {}
 
+local function toId(v)
+    return (type(v) == "userdata") and v.id or v
+end
+
 -- Vérifie si prêt ET démarre le cooldown si c'est le cas.
 -- Retourne true si l'action peut être exécutée, false sinon.
 function Cooldown.use(entityId, action, duration)
+    entityId = toId(entityId)
     if not Cooldown.isReady(entityId, action) then return false end
     Cooldown.start(entityId, action, duration)
     return true
@@ -47,17 +52,20 @@ end
 
 -- Démarre le cooldown sans vérifier s'il était prêt.
 function Cooldown.start(entityId, action, duration)
+    entityId = toId(entityId)
     if not timers[entityId] then timers[entityId] = {} end
     timers[entityId][action] = duration
 end
 
 function Cooldown.isReady(entityId, action)
+    entityId = toId(entityId)
     if not timers[entityId] then return true end
     local rem = timers[entityId][action]
     return not rem or rem <= 0
 end
 
 function Cooldown.getRemaining(entityId, action)
+    entityId = toId(entityId)
     if not timers[entityId] then return 0 end
     return math.max(0, timers[entityId][action] or 0)
 end
@@ -65,16 +73,19 @@ end
 -- Fraction 0..1 de progression (0 = vient de commencer, 1 = prêt)
 -- Utile pour afficher une barre de progression.
 function Cooldown.getProgress(entityId, action, duration)
+    entityId = toId(entityId)
     local rem = Cooldown.getRemaining(entityId, action)
     if duration <= 0 then return 1 end
     return 1 - (rem / duration)
 end
 
 function Cooldown.reset(entityId, action)
+    entityId = toId(entityId)
     if timers[entityId] then timers[entityId][action] = nil end
 end
 
 function Cooldown.resetAll(entityId)
+    entityId = toId(entityId)
     timers[entityId] = nil
 end
 

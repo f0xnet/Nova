@@ -50,6 +50,10 @@ local Effect = {}
 -- data[entityId][effectId] = { config, elapsed, instances[] }
 local data = {}
 
+local function toId(v)
+    return (type(v) == "userdata") and v.id or v
+end
+
 local function safeCall(fn, ...)
     if not fn then return end
     local ok, err = pcall(fn, ...)
@@ -57,6 +61,7 @@ local function safeCall(fn, ...)
 end
 
 function Effect.apply(entityId, effectId, config)
+    entityId = toId(entityId)
     if not data[entityId] then data[entityId] = {} end
 
     local existing = data[entityId][effectId]
@@ -85,6 +90,7 @@ function Effect.apply(entityId, effectId, config)
 end
 
 function Effect.remove(entityId, effectId)
+    entityId = toId(entityId)
     if not data[entityId] or not data[entityId][effectId] then return end
     local inst = data[entityId][effectId]
     safeCall(inst.config and inst.config.onExpire, entityId)
@@ -93,10 +99,12 @@ function Effect.remove(entityId, effectId)
 end
 
 function Effect.has(entityId, effectId)
+    entityId = toId(entityId)
     return data[entityId] ~= nil and data[entityId][effectId] ~= nil
 end
 
 function Effect.clear(entityId)
+    entityId = toId(entityId)
     if not data[entityId] then return end
     for effectId, inst in pairs(data[entityId]) do
         safeCall(inst.config and inst.config.onExpire, entityId)
@@ -106,6 +114,7 @@ function Effect.clear(entityId)
 end
 
 function Effect.getRemaining(entityId, effectId)
+    entityId = toId(entityId)
     local inst = data[entityId] and data[entityId][effectId]
     if not inst or not inst.config then return nil end
     if inst.config.duration < 0 then return math.huge end
