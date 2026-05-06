@@ -24,54 +24,47 @@ namespace NovaEngine {
 //   Entity, Registry, Input, Audio, Resources, Scene, Vec2f, Color, composants
 //
 // COUCHE 2 — Modules Lua nova (data/scripts/nova/) auto-chargés comme globals :
-//   EventBus    — bus d'événements pub/sub inter-scripts
-//   Timer       — timers one-shot et répétitifs
-//   Scheduler   — coroutines asynchrones (équivalent Utility.Wait de Papyrus)
-//   StateMachine — FSM légère pour les IA et états
-//   Vec2        — utilitaires math 2D
-//   World       — helpers entités (findByTag, spawn, destroy, nearest...)
-//   Tween       — interpolation fluide (position, alpha, couleur...)
-//   Class       — système OOP avec héritage prototype
-//   Quest       — quêtes, étapes, objectifs, récompenses
-//   Persist     — données persistantes (survit aux changements de scène)
+//   EventBus, Timer, Scheduler, StateMachine, Vec2, World
+//   Tween, Class, Quest, Persist, Game, Stats
 //
 // COUCHE 3 — Scripts jeu (data/scripts/) :
-//   Scripts entité : init(entity) + update(entity, dt) par ScriptComponent
+//   Scripts entité : init(entity) + update(entity, dt)
 //   Scripts globaux : init() + update(dt) via loadGlobalScript()
 //
-// FONCTIONNALITÉS AVANCÉES :
-//   - Properties : données JSON par instance injectées en `self` avant init()
-//   - ScriptRegistry : ScriptRegistry.call(entityId, "fn", args) inter-scripts
-//   - Input events : key_down_X / key_up_X / mouse_down_X via EventBus
-//   - Animation events : animation_changed / animation_frame via EventBus
-//   - Update interval par entité (ScriptComponent.updateInterval)
-//   - Bridge automatique ActivatorComponent → EventBus
-//   - emit() pour envoyer des événements C++ → Lua
-//   - loadGlobalScript() pour scripts non-entité (quêtes, IA globale, etc.)
-//   - Sandboxes par entité (erreur d'un script n'affecte pas les autres)
-//   - package.path configuré pour require("nova/...") et require("game/...")
+// FONCTIONNALITÉS PAPYRUS :
 //
-// CONTRAT SCRIPT ENTITÉ (data/scripts/goblin.lua) :
-//   function init(entity)         -- appelé une fois (self = properties JSON)
-//   function update(entity, dt)   -- appelé chaque frame (ou à updateInterval)
+//   NAMED EVENT HANDLERS — auto-branchés sans EventBus.on() manuel :
+//     function OnActivate(activatorId, actionID)   end
+//     function OnDeactivate(activatorId, actionID) end
+//     function OnKeyDown(key)                      end
+//     function OnKeyUp(key)                        end
+//     function OnMouseDown(button, x, y)           end
+//     function OnAnimationEvent(animID, frame)     end
+//     function OnAnimationChanged(newID, prevID)   end
+//     function OnMessage(msg, payload)             end
+//     function OnQuestComplete(questId)            end
+//     function OnQuestAdvanced(questId, stage)     end
 //
-// CONTRAT SCRIPT GLOBAL (data/scripts/game/quests.lua) :
-//   function init()               -- appelé une fois
-//   function update(dt)           -- appelé chaque frame
+//   CONTROL D'UPDATE DEPUIS LE SCRIPT :
+//     RegisterForUpdate(0.5)   -- change la fréquence d'update à 0.5s
+//     UnregisterForUpdate()    -- suspend les updates (sans désactiver init)
+//     ResumeUpdate()           -- reprend les updates
 //
-// GLOBALS DISPONIBLES DANS TOUS LES SCRIPTS :
-//   EventBus, Timer, Scheduler, StateMachine, Vec2, World
-//   Tween, Class, Quest, Persist
-//   ScriptRegistry
-//   Registry, Input, Log, print, Audio, Resources, Scene (si SceneManager fourni)
-//   dialogueActive (mis à jour par Game.cpp)
+//   INTER-SCRIPT :
+//     ScriptRegistry.call(entityId, "fn", arg1, arg2)
+//     ScriptRegistry.sendMessage(entityId, "msg", payload)
+//     entity:sendMessage("msg", payload)  -- équivalent sur l'entité directe
+//
+//   GLOBALS DISPONIBLES :
+//     EventBus, Timer, Scheduler, StateMachine, Vec2, World
+//     Tween, Class, Quest, Persist, Game, Stats
+//     ScriptRegistry
+//     Registry, Input, Log, print, Audio, Resources, Scene
+//     dialogueActive
 // ============================================================================
 
 class ScriptSystem : public System {
 public:
-    // -------------------------------------------------------------------------
-    // Constructeur — sm optionnel, expose "Scene" en Lua si fourni
-    // -------------------------------------------------------------------------
     explicit ScriptSystem(SceneManager* sm = nullptr) : m_sceneManager(sm) {
         m_lua.open_libraries(
             sol::lib::base,
@@ -84,7 +77,6 @@ public:
             sol::lib::package
         );
 
-        // Ensure saves directory exists for Persist module
         std::filesystem::create_directories("data/saves");
 
         configurePackagePath();
@@ -93,11 +85,11 @@ public:
             LuaBindings::registerSceneManager(m_lua, *m_sceneManager);
 
         initScriptRegistry();
+        initNamedHandlersWirer();
         loadNovaModules();
         REGISTER_COMPONENT(ScriptComponent);
 
-        LOG_INFO("[ScriptSystem] Lua {}.{}.{} — EventBus/Timer/Scheduler/StateMachine/Vec2/World/"
-                 "Tween/Class/Quest/Persist/ScriptRegistry chargés",
+        LOG_INFO("[ScriptSystem] Lua {}.{}.{} — stdlib complète chargée",
             LUA_VERSION_MAJOR, LUA_VERSION_MINOR, LUA_VERSION_RELEASE);
     }
 
@@ -109,23 +101,15 @@ public:
     }
 
     void update(float deltaTime, EntityRegistry& registry) override {
-        // 1. Met à jour le global Registry
         m_lua["Registry"] = &registry;
 
-        // 2. Bridge activateurs → EventBus
         updateActivatorBridge(registry);
-
-        // 3. Input events → EventBus (key_down_X / key_up_X)
         updateInputBridge();
-
-        // 4. Met à jour la stdlib nova (Timer, Scheduler, Tween)
         updateNovaRuntime(deltaTime);
 
-        // 5. Scripts globaux (quêtes, IA de fond, cycle jour/nuit...)
         for (auto& gs : m_globalScripts)
             updateGlobalScript(gs, deltaTime);
 
-        // 6. Scripts entités
         auto entities = registry.getEntitiesWith(getRequiredComponents());
         for (auto* entity : entities) {
             auto* script = entity->getComponent<ScriptComponent>();
@@ -151,35 +135,29 @@ public:
             }
         }
 
-        // 7. Animation events (après update scripts pour frame cohérente)
         updateAnimationBridge(registry);
     }
 
     // -------------------------------------------------------------------------
     // API publique
     // -------------------------------------------------------------------------
-
     sol::state& getLua() { return m_lua; }
 
-    // Charge un script global (non-entité) : quête, logique de fond, etc.
     void loadGlobalScript(const std::string& path, float updateInterval = 0.0f) {
         m_globalScripts.push_back({ path, {}, {}, false, false, updateInterval, 0.0f });
         LOG_DEBUG("[ScriptSystem] Global script enregistré : '{}'", path);
     }
 
-    // Émet un événement vers le bus Lua (sans données)
     void emit(const std::string& eventName) {
         callEventBusEmit(eventName, sol::lua_nil);
     }
 
-    // Émet un événement avec une table de données
     void emit(const std::string& eventName, sol::table data) {
         callEventBusEmit(eventName, data);
     }
 
     sol::table createTable() { return m_lua.create_table(); }
 
-    // Force le rechargement d'un script au prochain update
     void reloadScript(ScriptComponent* script) {
         if (!script) return;
         script->loaded        = false;
@@ -188,9 +166,6 @@ public:
     }
 
 private:
-    // -------------------------------------------------------------------------
-    // Types internes
-    // -------------------------------------------------------------------------
     struct GlobalScript {
         std::string path;
         sol::environment        env;
@@ -201,17 +176,14 @@ private:
         float accumulator    = 0.0f;
     };
 
-    // -------------------------------------------------------------------------
-    // Membres
-    // -------------------------------------------------------------------------
     sol::state    m_lua;
     SceneManager* m_sceneManager = nullptr;
-    std::vector<GlobalScript>          m_globalScripts;
-    std::unordered_map<u64, bool>      m_activatorPrevState;
-    std::unordered_map<std::string, bool> m_prevKeyState;
-    std::unordered_map<std::string, bool> m_prevMouseState;
-    std::unordered_map<u64, u32>       m_animPrevFrame;
-    std::unordered_map<u64, std::string> m_animPrevAnimID;
+    std::vector<GlobalScript>               m_globalScripts;
+    std::unordered_map<u64, bool>           m_activatorPrevState;
+    std::unordered_map<std::string, bool>   m_prevKeyState;
+    std::unordered_map<std::string, bool>   m_prevMouseState;
+    std::unordered_map<u64, u32>            m_animPrevFrame;
+    std::unordered_map<u64, std::string>    m_animPrevAnimID;
 
     // -------------------------------------------------------------------------
     // Initialisation
@@ -223,9 +195,11 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // ScriptRegistry — ScriptRegistry.call(entityId, "fn", arg1, arg2, ...)
-    //                   ScriptRegistry.has(entityId)
-    //                   ScriptRegistry.getEnv(entityId)
+    // ScriptRegistry
+    //   ScriptRegistry.call(entityId, "fn", ...)
+    //   ScriptRegistry.sendMessage(entityId, "msg", payload)
+    //   ScriptRegistry.has(entityId)
+    //   ScriptRegistry.getEnv(entityId)
     // -------------------------------------------------------------------------
     void initScriptRegistry() {
         sol::table reg  = m_lua.create_table();
@@ -243,8 +217,7 @@ private:
             return lua["ScriptRegistry"]["_envs"][id];
         };
 
-        // ScriptRegistry.call(entityId, "functionName", arg1, arg2, ...)
-        // Appelle une fonction dans le sandbox d'une autre entité.
+        // Appelle une fonction dans le sandbox d'une autre entité
         reg["call"] = [](sol::this_state ts, u64 id,
                          const std::string& fn,
                          sol::variadic_args args) -> sol::object {
@@ -274,10 +247,122 @@ private:
             return r;
         };
 
+        // Envoie un message à l'entité → déclenche OnMessage(msg, payload) dans son script
+        reg["sendMessage"] = [](sol::this_state ts, u64 id,
+                                const std::string& msg,
+                                sol::object payload) {
+            sol::state_view lua(ts);
+            sol::object bus = lua["EventBus"];
+            if (!bus.valid() || bus.get_type() != sol::type::table) return;
+            sol::protected_function fn = lua["EventBus"]["emit"];
+            if (!fn.valid()) return;
+            auto data        = lua.create_table();
+            data["msg"]      = msg;
+            data["payload"]  = payload;
+            fn("script_message_" + std::to_string(id), data);
+        };
+
         m_lua["ScriptRegistry"] = reg;
     }
 
-    // Charge les modules nova comme globals — dégradation gracieuse si absents
+    // -------------------------------------------------------------------------
+    // Named handlers wirer — __wireNamedHandlers(env, entityId)
+    //
+    // Branche automatiquement les fonctions "magiques" d'un script
+    // sans que le scripter ait à écrire EventBus.on() manuellement.
+    // Inspiré de l'auto-wiring des Events Papyrus (OnActivate, OnHit...).
+    // -------------------------------------------------------------------------
+    void initNamedHandlersWirer() {
+        auto r = m_lua.safe_script(R"(
+function __wireNamedHandlers(env, entityId)
+    local function safe(fn, ...)
+        local ok, err = pcall(fn, ...)
+        if not ok then Log.error("[AutoWire] " .. tostring(err)) end
+    end
+
+    -- OnActivate(activatorId, actionID) / OnDeactivate(...)
+    if type(env.OnActivate) == "function" then
+        EventBus.on("activator_on", function(data)
+            if data.entityId == entityId then
+                safe(env.OnActivate, data.entityId, data.actionID)
+            end
+        end)
+    end
+    if type(env.OnDeactivate) == "function" then
+        EventBus.on("activator_off", function(data)
+            if data.entityId == entityId then
+                safe(env.OnDeactivate, data.entityId, data.actionID)
+            end
+        end)
+    end
+
+    -- OnKeyDown(key) / OnKeyUp(key)
+    -- Appelé pour TOUTES les touches — filtrer dans le handler si besoin
+    if type(env.OnKeyDown) == "function" then
+        EventBus.on("key_down", function(data) safe(env.OnKeyDown, data.key) end)
+    end
+    if type(env.OnKeyUp) == "function" then
+        EventBus.on("key_up",   function(data) safe(env.OnKeyUp,   data.key) end)
+    end
+
+    -- OnMouseDown(button, x, y) / OnMouseUp(button, x, y)
+    if type(env.OnMouseDown) == "function" then
+        EventBus.on("mouse_down", function(data)
+            safe(env.OnMouseDown, data.button, data.x, data.y)
+        end)
+    end
+    if type(env.OnMouseUp) == "function" then
+        EventBus.on("mouse_up", function(data)
+            safe(env.OnMouseUp, data.button, data.x, data.y)
+        end)
+    end
+
+    -- OnAnimationEvent(animationID, frame)
+    if type(env.OnAnimationEvent) == "function" then
+        EventBus.on("animation_frame", function(data)
+            if data.entityId == entityId then
+                safe(env.OnAnimationEvent, data.animationID, data.frame)
+            end
+        end)
+    end
+
+    -- OnAnimationChanged(newAnimID, previousID)
+    if type(env.OnAnimationChanged) == "function" then
+        EventBus.on("animation_changed", function(data)
+            if data.entityId == entityId then
+                safe(env.OnAnimationChanged, data.animationID, data.previousID)
+            end
+        end)
+    end
+
+    -- OnMessage(msg, payload) — via entity:sendMessage() ou ScriptRegistry.sendMessage()
+    if type(env.OnMessage) == "function" then
+        EventBus.on("script_message_" .. entityId, function(data)
+            safe(env.OnMessage, data.msg, data.payload)
+        end)
+    end
+
+    -- OnQuestComplete(questId)
+    if type(env.OnQuestComplete) == "function" then
+        EventBus.on("quest_completed", function(data)
+            safe(env.OnQuestComplete, data.questId)
+        end)
+    end
+
+    -- OnQuestAdvanced(questId, stageIndex)
+    if type(env.OnQuestAdvanced) == "function" then
+        EventBus.on("quest_advanced", function(data)
+            safe(env.OnQuestAdvanced, data.questId, data.stageIndex)
+        end)
+    end
+end
+        )", sol::script_pass_on_error);
+        if (!r.valid()) {
+            sol::error err = r;
+            LOG_ERROR("[ScriptSystem] __wireNamedHandlers init : {}", err.what());
+        }
+    }
+
     void loadNovaModules() {
         const std::pair<const char*, const char*> modules[] = {
             { "EventBus",     "nova/event_bus"    },
@@ -290,6 +375,8 @@ private:
             { "Class",        "nova/class"        },
             { "Quest",        "nova/quest"        },
             { "Persist",      "nova/persist"      },
+            { "Game",         "nova/game"         },
+            { "Stats",        "nova/stats"        },
         };
         for (auto& [global, mod] : modules) {
             std::string code = std::string(global) + " = require('" + mod + "')";
@@ -302,12 +389,13 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // Runtime nova — appelé chaque frame avant les scripts
+    // Runtime nova
     // -------------------------------------------------------------------------
     void updateNovaRuntime(float dt) {
         callTableMethod("Timer",     "update", dt);
         callTableMethod("Scheduler", "update", dt);
         callTableMethod("Tween",     "update", dt);
+        callTableMethod("Game",      "_update", dt);
     }
 
     void callTableMethod(const char* table, const char* method, float dt) {
@@ -350,11 +438,9 @@ private:
 
     // -------------------------------------------------------------------------
     // Bridge Input → EventBus
-    // Émet key_down_X / key_up_X et mouse_down_X / mouse_up_X
-    //
-    // Usage Lua :
-    //   EventBus.on("key_down_E", function(data) startInteraction() end)
-    //   EventBus.on("mouse_down_left", function(data) attack() end)
+    // Émet deux événements par touche :
+    //   key_down_E  (spécifique)   EventBus.on("key_down_E", fn)
+    //   key_down    (générique)    function OnKeyDown(key) ... end
     // -------------------------------------------------------------------------
     void updateInputBridge() {
         const auto& keyMap = LuaBindings::getKeyMap();
@@ -365,9 +451,12 @@ private:
             if (isNow == wasPrev) continue;
 
             m_prevKeyState[name] = isNow;
-            auto data    = m_lua.create_table();
-            data["key"]  = name;
+            auto data   = m_lua.create_table();
+            data["key"] = name;
+            // Événement spécifique : key_down_E
             callEventBusEmit(isNow ? ("key_down_" + name) : ("key_up_" + name), data);
+            // Événement générique : key_down / key_up  →  OnKeyDown(key)
+            callEventBusEmit(isNow ? std::string("key_down") : std::string("key_up"), data);
         }
 
         static const std::pair<const char*, MouseButton> s_buttons[] = {
@@ -381,29 +470,21 @@ private:
             if (isNow == wasPrev) continue;
 
             m_prevMouseState[name] = isNow;
-            auto data       = m_lua.create_table();
-            data["button"]  = name;
-            auto pos        = INPUT().getMousePosition();
-            data["x"]       = pos.x;
-            data["y"]       = pos.y;
+            auto pos       = INPUT().getMousePosition();
+            auto data      = m_lua.create_table();
+            data["button"] = name;
+            data["x"]      = pos.x;
+            data["y"]      = pos.y;
+            // Spécifique : mouse_down_left
             callEventBusEmit(isNow ? (std::string("mouse_down_") + name)
                                    : (std::string("mouse_up_")   + name), data);
+            // Générique : mouse_down / mouse_up  →  OnMouseDown(button, x, y)
+            callEventBusEmit(isNow ? std::string("mouse_down") : std::string("mouse_up"), data);
         }
     }
 
     // -------------------------------------------------------------------------
     // Bridge AnimationComponent → EventBus
-    // Émet animation_changed (quand animationID change) et animation_frame
-    // (quand currentFrame change)
-    //
-    // Usage Lua :
-    //   EventBus.on("animation_frame", function(data)
-    //       if data.entityId == entity.id
-    //          and data.animationID == "attack"
-    //          and data.frame == 5 then
-    //           spawnHitbox()
-    //       end
-    //   end)
     // -------------------------------------------------------------------------
     void updateAnimationBridge(EntityRegistry& registry) {
         auto animated = registry.getEntitiesWith({ AnimationComponent::staticTypeID() });
@@ -412,35 +493,33 @@ private:
             if (!anim) continue;
             u64 id = entity->getID();
 
-            // animation_changed
             auto prevIDIt = m_animPrevAnimID.find(id);
             const std::string& prevID = (prevIDIt != m_animPrevAnimID.end())
                 ? prevIDIt->second : std::string("");
             if (anim->animationID != prevID) {
                 m_animPrevAnimID[id] = anim->animationID;
-                auto data              = m_lua.create_table();
-                data["entityId"]       = id;
-                data["animationID"]    = anim->animationID;
-                data["previousID"]     = prevID;
+                auto data           = m_lua.create_table();
+                data["entityId"]    = id;
+                data["animationID"] = anim->animationID;
+                data["previousID"]  = prevID;
                 callEventBusEmit("animation_changed", data);
             }
 
-            // animation_frame
             auto prevFrIt = m_animPrevFrame.find(id);
             u32 prevFrame = (prevFrIt != m_animPrevFrame.end()) ? prevFrIt->second : UINT32_MAX;
             if (anim->currentFrame != prevFrame) {
                 m_animPrevFrame[id]  = anim->currentFrame;
-                auto data            = m_lua.create_table();
-                data["entityId"]     = id;
-                data["frame"]        = (int)anim->currentFrame;
-                data["animationID"]  = anim->animationID;
+                auto data           = m_lua.create_table();
+                data["entityId"]    = id;
+                data["frame"]       = (int)anim->currentFrame;
+                data["animationID"] = anim->animationID;
                 callEventBusEmit("animation_frame", data);
             }
         }
     }
 
     // -------------------------------------------------------------------------
-    // Chargement scripts entité
+    // Chargement script entité
     // -------------------------------------------------------------------------
     void loadEntityScript(Entity* entity, ScriptComponent* script) {
         if (script->scriptPath.empty()) {
@@ -451,7 +530,7 @@ private:
         try {
             script->env = sol::environment(m_lua, sol::create, m_lua.globals());
 
-            // Injecte les properties JSON en tant que table `self` dans l'env
+            // Injecte les properties JSON en `self`
             auto self = m_lua.create_table();
             for (auto& [key, val] : script->properties.items()) {
                 if      (val.is_string())         self[key] = val.get<std::string>();
@@ -460,6 +539,20 @@ private:
                 else if (val.is_boolean())        self[key] = val.get<bool>();
             }
             script->env["self"] = self;
+
+            // RegisterForUpdate(interval) / UnregisterForUpdate() / ResumeUpdate()
+            // Permettent au script de contrôler sa propre fréquence d'update
+            script->env["RegisterForUpdate"] = [script](float interval) {
+                script->updateInterval = std::max(interval, 0.0f);
+                script->m_updateAccum  = 0.0f;
+            };
+            script->env["UnregisterForUpdate"] = [script]() {
+                script->updateInterval = 1e30f;   // n'update plus jamais
+            };
+            script->env["ResumeUpdate"] = [script]() {
+                script->updateInterval = 0.0f;    // reprend chaque frame
+                script->m_updateAccum  = 0.0f;
+            };
 
             auto res = m_lua.script_file(script->scriptPath, script->env,
                                          sol::script_pass_on_error);
@@ -474,11 +567,21 @@ private:
             script->loaded   = true;
             LOG_DEBUG("[ScriptSystem] Chargé '{}'", script->scriptPath);
 
-            // Enregistre dans ScriptRegistry avant init() pour les inter-appels
+            // Enregistre dans ScriptRegistry
             sol::object reg = m_lua["ScriptRegistry"];
             if (reg.valid() && reg.get_type() == sol::type::table) {
                 sol::table envs = m_lua["ScriptRegistry"]["_envs"];
                 envs[entity->getID()] = script->env;
+            }
+
+            // Branche automatiquement les named handlers (OnActivate, OnKeyDown, etc.)
+            sol::protected_function wire = m_lua["__wireNamedHandlers"];
+            if (wire.valid()) {
+                auto wr = wire(script->env, entity->getID());
+                if (!wr.valid()) {
+                    sol::error err = wr;
+                    LOG_WARN("[ScriptSystem] wireHandlers '{}' : {}", script->scriptPath, err.what());
+                }
             }
 
             if (script->fnInit.valid()) {
@@ -496,7 +599,7 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // Chargement et update scripts globaux
+    // Scripts globaux
     // -------------------------------------------------------------------------
     void loadGlobalScriptImpl(GlobalScript& gs) {
         try {
@@ -546,7 +649,7 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // Helpers internes
+    // Helpers
     // -------------------------------------------------------------------------
     void callEventBusEmit(const std::string& eventName, sol::object data) {
         sol::object bus = m_lua["EventBus"];

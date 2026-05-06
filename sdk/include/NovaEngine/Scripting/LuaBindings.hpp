@@ -10,6 +10,7 @@
 #include <sol/sol.hpp>
 #include <string>
 #include <unordered_map>
+#include <cmath>
 
 namespace NovaEngine {
 
@@ -199,30 +200,74 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // Entity — getters typés + addComponent/removeComponent par nom
+    // Entity — getters typés, raccourcis position/distance, messages, composants
     //
     // Usage Lua :
-    //   entity:addComponent("TransformComponent")
+    //   local pos = entity:getPosition()         -- Vec2f {x, y}
+    //   entity:setPosition(100, 200)
+    //   local d = entity:getDistance(other)      -- pixels
+    //   if entity:isNearby(other, 150) then ...
+    //   entity:sendMessage("takeDamage", {amount=10})
     //   local t = entity:getTransform()
-    //   t.position.x = 100
     //   local anim = entity:getAnimation()
-    //   anim.playing = false
     // -------------------------------------------------------------------------
     static void registerEntity(sol::state& lua) {
         lua.new_usertype<Entity>("Entity",
-            "id",              sol::property(&Entity::getID),
+            "id",           sol::property(&Entity::getID),
 
-            // Getters typés (retournent nil si absent)
-            "getTransform",    [](Entity& e) { return e.getComponent<TransformComponent>(); },
-            "getSprite",       [](Entity& e) { return e.getComponent<SpriteComponent>(); },
-            "getTag",          [](Entity& e) { return e.getComponent<TagComponent>(); },
-            "getAudio",        [](Entity& e) { return e.getComponent<AudioComponent>(); },
-            "getCollider",     [](Entity& e) { return e.getComponent<ColliderComponent>(); },
-            "getLight",        [](Entity& e) { return e.getComponent<LightComponent>(); },
-            "getAnimation",    [](Entity& e) { return e.getComponent<AnimationComponent>(); },
-            "getShader",       [](Entity& e) { return e.getComponent<ShaderComponent>(); },
+            // --- Raccourcis position (évite entity:getTransform().position) ---
+            "getPosition",  [](Entity& e) -> Vec2f {
+                auto* t = e.getComponent<TransformComponent>();
+                return t ? t->position : Vec2f{0.0f, 0.0f};
+            },
+            "setPosition",  [](Entity& e, f32 x, f32 y) {
+                auto* t = e.getComponent<TransformComponent>();
+                if (t) { t->position.x = x; t->position.y = y; }
+            },
 
-            // Opérations génériques par type ID (string)
+            // --- Distance / proximité ---
+            "getDistance",  [](Entity& e, Entity& other) -> f32 {
+                auto* t1 = e.getComponent<TransformComponent>();
+                auto* t2 = other.getComponent<TransformComponent>();
+                if (!t1 || !t2) return 0.0f;
+                f32 dx = t1->position.x - t2->position.x;
+                f32 dy = t1->position.y - t2->position.y;
+                return std::sqrt(dx * dx + dy * dy);
+            },
+            "isNearby",     [](Entity& e, Entity& other, f32 radius) -> bool {
+                auto* t1 = e.getComponent<TransformComponent>();
+                auto* t2 = other.getComponent<TransformComponent>();
+                if (!t1 || !t2) return false;
+                f32 dx = t1->position.x - t2->position.x;
+                f32 dy = t1->position.y - t2->position.y;
+                return (dx * dx + dy * dy) <= (radius * radius);
+            },
+
+            // --- Message inter-scripts → déclenche OnMessage(msg, payload) ---
+            "sendMessage",  [](sol::this_state ts, Entity& e,
+                               const std::string& msg, sol::object payload) {
+                sol::state_view lua(ts);
+                sol::object bus = lua["EventBus"];
+                if (!bus.valid() || bus.get_type() != sol::type::table) return;
+                sol::protected_function fn = lua["EventBus"]["emit"];
+                if (!fn.valid()) return;
+                auto data       = lua.create_table();
+                data["msg"]     = msg;
+                data["payload"] = payload;
+                fn("script_message_" + std::to_string(e.getID()), data);
+            },
+
+            // --- Getters composants typés (retournent nil si absent) ---
+            "getTransform", [](Entity& e) { return e.getComponent<TransformComponent>(); },
+            "getSprite",    [](Entity& e) { return e.getComponent<SpriteComponent>();    },
+            "getTag",       [](Entity& e) { return e.getComponent<TagComponent>();       },
+            "getAudio",     [](Entity& e) { return e.getComponent<AudioComponent>();     },
+            "getCollider",  [](Entity& e) { return e.getComponent<ColliderComponent>();  },
+            "getLight",     [](Entity& e) { return e.getComponent<LightComponent>();     },
+            "getAnimation", [](Entity& e) { return e.getComponent<AnimationComponent>(); },
+            "getShader",    [](Entity& e) { return e.getComponent<ShaderComponent>();    },
+
+            // --- Opérations génériques par type ID (string) ---
             "hasComponent",    [](Entity& e, const std::string& typeID) {
                 return e.hasComponent(typeID);
             },
