@@ -170,7 +170,7 @@ private:
     // -------------------------------------------------------------------------
     static void registerEntity(sol::state& lua) {
         lua.new_usertype<Entity>("Entity",
-            "id",              &Entity::getID,
+            "id",              sol::property(&Entity::getID),
 
             // Getters typés (retournent nil si absent)
             "getTransform",    [](Entity& e) { return e.getComponent<TransformComponent>(); },
