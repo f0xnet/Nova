@@ -82,8 +82,9 @@ bool Game::onInitialize() {
     if (scene) {
         using namespace NovaEngine;
 
-        // Add scripting system to the scene
-        m_scriptSystem = scene->addSystem<ScriptSystem>();
+        // Add scripting system to the scene — passe le SceneManager pour
+        // que les scripts puissent changer de scène via Scene.setActive(...)
+        m_scriptSystem = scene->addSystem<ScriptSystem>(&m_sceneManager);
 
         auto entities = scene->getEntityRegistry().getAllEntities();
         bool playerFound = false;

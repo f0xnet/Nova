@@ -2,6 +2,7 @@
 
 #include "../ECS/System.hpp"
 #include "../ECS/EntityRegistry.hpp"
+#include "../ECS/SceneManager.hpp"
 #include "../ECS/ComponentFactory.hpp"
 #include "../Core/Logger.hpp"
 #include "ScriptComponent.hpp"
@@ -40,7 +41,8 @@ namespace NovaEngine {
 // ============================================================================
 class ScriptSystem : public System {
 public:
-    ScriptSystem() {
+    // sm — SceneManager optionnel ; si fourni, expose le global "Scene" en Lua
+    explicit ScriptSystem(SceneManager* sm = nullptr) : m_sceneManager(sm) {
         m_lua.open_libraries(
             sol::lib::base,
             sol::lib::math,
@@ -49,6 +51,9 @@ public:
             sol::lib::io
         );
         LuaBindings::registerAll(m_lua);
+        if (m_sceneManager) {
+            LuaBindings::registerSceneManager(m_lua, *m_sceneManager);
+        }
 
         // Register ScriptComponent so it can be created by name from the factory
         REGISTER_COMPONENT(ScriptComponent);
@@ -62,6 +67,10 @@ public:
     }
 
     void update(float deltaTime, EntityRegistry& registry) override {
+        // Met à jour le global "Registry" pour que les scripts accèdent
+        // toujours au registry de la scène active courante
+        m_lua["Registry"] = &registry;
+
         auto entities = registry.getEntitiesWith(getRequiredComponents());
         for (auto* entity : entities) {
             auto* script = entity->getComponent<ScriptComponent>();
@@ -94,7 +103,8 @@ public:
     }
 
 private:
-    sol::state m_lua;
+    sol::state    m_lua;
+    SceneManager* m_sceneManager = nullptr;
 
     void loadScript(Entity* entity, ScriptComponent* script) {
         if (script->scriptPath.empty()) {

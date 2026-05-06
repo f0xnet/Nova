@@ -4,25 +4,75 @@
 #include "../Core/Logger.hpp"
 #include "../ECS/Entity.hpp"
 #include "../ECS/Components.hpp"
+#include "../ECS/ComponentFactory.hpp"
+#include "../ECS/EntityRegistry.hpp"
+#include "../ECS/SceneManager.hpp"
 #include <sol/sol.hpp>
 #include <string>
 #include <unordered_map>
 
 namespace NovaEngine {
 
+// ============================================================================
+// LuaBindings
+//
+// Enregistre tous les types et fonctions du moteur dans un sol::state.
+// Appeler registerAll() une fois à l'init, puis registerSceneManager()
+// quand le SceneManager est disponible.
+//
+// Globals Lua exposés après registerAll() :
+//   Vec2f, Color                           — types mathématiques
+//   TransformComponent, SpriteComponent,   — composants (R/W)
+//   TagComponent, AudioComponent,
+//   ColliderComponent, LightComponent
+//   Entity                                 — entité avec méthodes
+//   EntityRegistry                         — type registry (global "Registry"
+//                                            mis à jour chaque frame par ScriptSystem)
+//   Resources.loadTexture/Sound/Music/Font — chargement de ressources
+//   Audio.playSound/stopSound/playMusic…   — lecture audio
+//   Input.isKeyPressed/isMouseButtonPressed/getMousePosition
+//   Log.info/warn/error/debug, print
+//
+// Après registerSceneManager() :
+//   Scene.load/unload/setActive/hasScene   — gestion de scènes
+// ============================================================================
 class LuaBindings {
 public:
+    // Enregistre tout sauf SceneManager (qui nécessite une instance).
     static void registerAll(sol::state& lua) {
         registerMath(lua);
         registerComponents(lua);
         registerEntity(lua);
+        registerEntityRegistry(lua);
+        registerResources(lua);
         registerInput(lua);
         registerLog(lua);
     }
 
+    // Appeler une fois le SceneManager disponible.
+    // Expose le global "Scene" en Lua.
+    static void registerSceneManager(sol::state& lua, SceneManager& sm) {
+        lua.new_usertype<SceneManager>("SceneManager",
+            "load",      [](SceneManager& s, const std::string& path, const std::string& name) {
+                return s.loadScene(path, name);
+            },
+            "unload",    [](SceneManager& s, const std::string& name) {
+                s.unloadScene(name);
+            },
+            "setActive", [](SceneManager& s, const std::string& name) {
+                s.setActiveScene(name);
+            },
+            "hasScene",  [](SceneManager& s, const std::string& name) {
+                return s.hasScene(name);
+            },
+            "sceneCount", [](SceneManager& s) { return s.getSceneCount(); }
+        );
+        lua["Scene"] = &sm;
+    }
+
 private:
     // -------------------------------------------------------------------------
-    // Math types: Vec2f, Color
+    // Vec2f, Color
     // -------------------------------------------------------------------------
     static void registerMath(sol::state& lua) {
         lua.new_usertype<Vec2f>("Vec2f",
@@ -50,7 +100,6 @@ private:
             "b", &Color::b,
             "a", &Color::a
         );
-        // Static color constants
         auto colorType = lua["Color"];
         colorType["Black"]       = Color::Black;
         colorType["White"]       = Color::White;
@@ -62,7 +111,7 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // Built-in ECS components
+    // Composants ECS — tous les champs sont R/W depuis Lua
     // -------------------------------------------------------------------------
     static void registerComponents(sol::state& lua) {
         lua.new_usertype<TransformComponent>("TransformComponent",
@@ -73,11 +122,12 @@ private:
         );
 
         lua.new_usertype<SpriteComponent>("SpriteComponent",
-            "textureID", &SpriteComponent::textureID,
-            "zOrder",    &SpriteComponent::zOrder,
-            "visible",   &SpriteComponent::visible,
-            "tint",      &SpriteComponent::tint,
-            "size",      &SpriteComponent::size
+            "textureID",    &SpriteComponent::textureID,
+            "textureHandle",&SpriteComponent::textureHandle,
+            "zOrder",       &SpriteComponent::zOrder,
+            "visible",      &SpriteComponent::visible,
+            "tint",         &SpriteComponent::tint,
+            "size",         &SpriteComponent::size
         );
 
         lua.new_usertype<TagComponent>("TagComponent",
@@ -85,6 +135,7 @@ private:
         );
 
         lua.new_usertype<AudioComponent>("AudioComponent",
+            "soundHandle", &AudioComponent::soundHandle,
             "playOnStart", &AudioComponent::playOnStart,
             "loop",        &AudioComponent::loop,
             "volume",      &AudioComponent::volume,
@@ -109,30 +160,113 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // Entity — typed component accessors
+    // Entity — getters typés + addComponent/removeComponent par nom
+    //
+    // Usage Lua :
+    //   entity:addComponent("TransformComponent")
+    //   local t = entity:getTransform()
+    //   t.position.x = 100
+    //   entity:removeComponent("SpriteComponent")
     // -------------------------------------------------------------------------
     static void registerEntity(sol::state& lua) {
         lua.new_usertype<Entity>("Entity",
-            "id",           &Entity::getID,
-            "getTransform", [](Entity& e) { return e.getComponent<TransformComponent>(); },
-            "getSprite",    [](Entity& e) { return e.getComponent<SpriteComponent>(); },
-            "getTag",       [](Entity& e) { return e.getComponent<TagComponent>(); },
-            "getAudio",     [](Entity& e) { return e.getComponent<AudioComponent>(); },
-            "getCollider",  [](Entity& e) { return e.getComponent<ColliderComponent>(); },
-            "getLight",     [](Entity& e) { return e.getComponent<LightComponent>(); },
-            "hasComponent", [](Entity& e, const std::string& typeID) {
+            "id",              &Entity::getID,
+
+            // Getters typés (retournent nil si absent)
+            "getTransform",    [](Entity& e) { return e.getComponent<TransformComponent>(); },
+            "getSprite",       [](Entity& e) { return e.getComponent<SpriteComponent>(); },
+            "getTag",          [](Entity& e) { return e.getComponent<TagComponent>(); },
+            "getAudio",        [](Entity& e) { return e.getComponent<AudioComponent>(); },
+            "getCollider",     [](Entity& e) { return e.getComponent<ColliderComponent>(); },
+            "getLight",        [](Entity& e) { return e.getComponent<LightComponent>(); },
+
+            // Opérations génériques par type ID (string)
+            "hasComponent",    [](Entity& e, const std::string& typeID) {
                 return e.hasComponent(typeID);
+            },
+            "addComponent",    [](Entity& e, const std::string& typeID) -> Component* {
+                auto comp = ComponentFactory::get().create(typeID);
+                if (!comp) {
+                    LOG_WARN("[Lua] addComponent: type inconnu '{}'", typeID);
+                    return nullptr;
+                }
+                return e.addComponent(std::move(comp));
+            },
+            "removeComponent", [](Entity& e, const std::string& typeID) {
+                e.removeComponent(typeID);
             }
         );
     }
 
     // -------------------------------------------------------------------------
-    // Input — keyboard and mouse queries via string keys
+    // EntityRegistry — création / destruction / lookup d'entités
     //
-    // Usage in Lua:
+    // Le global "Registry" est mis à jour chaque frame par ScriptSystem::update().
+    //
+    // Usage Lua :
+    //   local e = Registry:createEntity()
+    //   e:addComponent("TransformComponent")
+    //   Registry:destroyEntity(e.id)
+    //   local existing = Registry:getEntity(42)
+    // -------------------------------------------------------------------------
+    static void registerEntityRegistry(sol::state& lua) {
+        lua.new_usertype<EntityRegistry>("EntityRegistry",
+            "createEntity",   [](EntityRegistry& r) { return r.createEntity(); },
+            "destroyEntity",  [](EntityRegistry& r, u64 id) {
+                r.destroyEntity(id);
+                r.invalidateQueryCache();
+            },
+            "getEntity",      [](EntityRegistry& r, u64 id) { return r.getEntity(id); },
+            "getAllEntities",  [](EntityRegistry& r) { return r.getAllEntities(); },
+            "entityCount",    [](EntityRegistry& r) { return (int)r.getEntityCount(); }
+        );
+        // Le global "Registry" est positionné dans ScriptSystem::update().
+    }
+
+    // -------------------------------------------------------------------------
+    // Resources — chargement de textures, sons, musiques, polices
+    // Audio     — lecture, pause, volume
+    //
+    // Usage Lua :
+    //   local tex = Resources.loadTexture("data/images/hero.png")
+    //   sprite.textureHandle = tex
+    //   local snd = Resources.loadSound("data/audio/jump.wav")
+    //   Audio.playSound(snd, 1.0, 1.0, false)
+    //   Audio.playMusic(Resources.loadMusic("data/music/town.ogg"))
+    // -------------------------------------------------------------------------
+    static void registerResources(sol::state& lua) {
+        sol::table res = lua.create_table();
+        res["loadTexture"] = [](const std::string& p) -> TextureHandle { return RESOURCES().loadTexture(p); };
+        res["loadFont"]    = [](const std::string& p) -> FontHandle    { return RESOURCES().loadFont(p);    };
+        res["loadSound"]   = [](const std::string& p) -> SoundHandle   { return RESOURCES().loadSound(p);   };
+        res["loadMusic"]   = [](const std::string& p) -> MusicHandle   { return RESOURCES().loadMusic(p);   };
+        res["unloadTexture"] = [](TextureHandle h) { RESOURCES().unloadTexture(h); };
+        res["unloadSound"]   = [](SoundHandle h)   { RESOURCES().unloadSound(h);   };
+        res["unloadMusic"]   = [](MusicHandle h)   { RESOURCES().unloadMusic(h);   };
+        lua["Resources"] = res;
+
+        sol::table audio = lua.create_table();
+        audio["playSound"]    = [](SoundHandle h, float vol, float pitch, bool loop) {
+            AUDIO().playSound(h, vol, pitch, loop);
+        };
+        audio["stopSound"]    = [](SoundHandle h) { AUDIO().stopSound(h);    };
+        audio["stopAll"]      = []()              { AUDIO().stopAllSounds(); };
+        audio["playMusic"]    = [](MusicHandle h, bool loop) { AUDIO().playMusic(h, loop); };
+        audio["stopMusic"]    = []() { AUDIO().stopMusic();   };
+        audio["pauseMusic"]   = []() { AUDIO().pauseMusic();  };
+        audio["resumeMusic"]  = []() { AUDIO().resumeMusic(); };
+        audio["setVolume"]       = [](float v) { AUDIO().setSoundVolume(v);  };
+        audio["setMusicVolume"]  = [](float v) { AUDIO().setMusicVolume(v);  };
+        lua["Audio"] = audio;
+    }
+
+    // -------------------------------------------------------------------------
+    // Input — clavier et souris par nom de touche (string)
+    //
+    // Usage Lua :
     //   if Input.isKeyPressed("W") then ... end
     //   if Input.isMouseButtonPressed("left") then ... end
-    //   local pos = Input.getMousePosition()  -- returns Vec2f
+    //   local pos = Input.getMousePosition()  -- Vec2f
     // -------------------------------------------------------------------------
     static void registerInput(sol::state& lua) {
         sol::table input = lua.create_table();
@@ -150,24 +284,23 @@ private:
                 {"3", KeyCode::Num3}, {"4", KeyCode::Num4}, {"5", KeyCode::Num5},
                 {"6", KeyCode::Num6}, {"7", KeyCode::Num7}, {"8", KeyCode::Num8},
                 {"9", KeyCode::Num9},
-                {"Escape",    KeyCode::Escape},    {"Space",     KeyCode::Space},
-                {"Enter",     KeyCode::Enter},     {"Backspace", KeyCode::Backspace},
-                {"Tab",       KeyCode::Tab},
-                {"Left",      KeyCode::Left},      {"Right",     KeyCode::Right},
-                {"Up",        KeyCode::Up},         {"Down",      KeyCode::Down},
-                {"LShift",    KeyCode::LShift},    {"RShift",    KeyCode::RShift},
-                {"LControl",  KeyCode::LControl},  {"RControl",  KeyCode::RControl},
-                {"LAlt",      KeyCode::LAlt},      {"RAlt",      KeyCode::RAlt},
+                {"Escape",   KeyCode::Escape},   {"Space",     KeyCode::Space},
+                {"Enter",    KeyCode::Enter},    {"Backspace", KeyCode::Backspace},
+                {"Tab",      KeyCode::Tab},
+                {"Left",     KeyCode::Left},     {"Right",     KeyCode::Right},
+                {"Up",       KeyCode::Up},       {"Down",      KeyCode::Down},
+                {"LShift",   KeyCode::LShift},   {"RShift",    KeyCode::RShift},
+                {"LControl", KeyCode::LControl}, {"RControl",  KeyCode::RControl},
+                {"LAlt",     KeyCode::LAlt},     {"RAlt",      KeyCode::RAlt},
             };
             auto it = s_map.find(keyName);
-            if (it == s_map.end()) return false;
-            return INPUT().isKeyPressed(it->second);
+            return (it != s_map.end()) && INPUT().isKeyPressed(it->second);
         };
 
-        input["isMouseButtonPressed"] = [](const std::string& button) -> bool {
-            if (button == "left")   return INPUT().isMouseButtonPressed(MouseButton::Left);
-            if (button == "right")  return INPUT().isMouseButtonPressed(MouseButton::Right);
-            if (button == "middle") return INPUT().isMouseButtonPressed(MouseButton::Middle);
+        input["isMouseButtonPressed"] = [](const std::string& btn) -> bool {
+            if (btn == "left")   return INPUT().isMouseButtonPressed(MouseButton::Left);
+            if (btn == "right")  return INPUT().isMouseButtonPressed(MouseButton::Right);
+            if (btn == "middle") return INPUT().isMouseButtonPressed(MouseButton::Middle);
             return false;
         };
 
@@ -180,18 +313,16 @@ private:
     }
 
     // -------------------------------------------------------------------------
-    // Log — maps print / Log.info|warn|error|debug → engine logger
+    // Log — redirige print et Log.* vers le logger moteur
     // -------------------------------------------------------------------------
     static void registerLog(sol::state& lua) {
         sol::table log = lua.create_table();
-        log["info"]  = [](const std::string& msg) { LOG_INFO("[Lua] {}", msg); };
-        log["warn"]  = [](const std::string& msg) { LOG_WARN("[Lua] {}", msg); };
+        log["info"]  = [](const std::string& msg) { LOG_INFO("[Lua] {}", msg);  };
+        log["warn"]  = [](const std::string& msg) { LOG_WARN("[Lua] {}", msg);  };
         log["error"] = [](const std::string& msg) { LOG_ERROR("[Lua] {}", msg); };
         log["debug"] = [](const std::string& msg) { LOG_DEBUG("[Lua] {}", msg); };
         lua["Log"]   = log;
-
-        // Override Lua's built-in print → engine logger
-        lua["print"] = [](const std::string& msg) { LOG_INFO("[Lua] {}", msg); };
+        lua["print"] = [](const std::string& msg) { LOG_INFO("[Lua] {}", msg);  };
     }
 };
 
