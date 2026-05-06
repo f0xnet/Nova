@@ -71,8 +71,7 @@ namespace NovaEngine {
 
     bool ResourceManager::loadTexture(const ID& id, const std::string& path) {
         if (m_impl->textures.find(id) != m_impl->textures.end()) {
-            LOG_WARN("Texture '{}' already loaded", id);
-            return false;
+            return true;
         }
         auto texture = std::make_unique<sf::Texture>();
         if (!texture->loadFromFile(path)) {
@@ -86,8 +85,7 @@ namespace NovaEngine {
 
     bool ResourceManager::loadFont(const ID& id, const std::string& path) {
         if (m_impl->fonts.find(id) != m_impl->fonts.end()) {
-            LOG_WARN("Font '{}' already loaded", id);
-            return false;
+            return true;
         }
         auto font = std::make_unique<sf::Font>();
         if (!font->loadFromFile(path)) {
@@ -101,8 +99,7 @@ namespace NovaEngine {
 
     bool ResourceManager::loadSoundBuffer(const ID& id, const std::string& path) {
         if (m_impl->soundBuffers.find(id) != m_impl->soundBuffers.end()) {
-            LOG_WARN("SoundBuffer '{}' already loaded", id);
-            return false;
+            return true;
         }
         auto buffer = std::make_unique<sf::SoundBuffer>();
         if (!buffer->loadFromFile(path)) {
@@ -116,8 +113,7 @@ namespace NovaEngine {
 
     bool ResourceManager::loadMusic(const ID& id, const std::string& path) {
         if (m_impl->musicPaths.find(id) != m_impl->musicPaths.end()) {
-            LOG_WARN("Music '{}' already registered", id);
-            return false;
+            return true;
         }
         std::ifstream testFile(path);
         if (!testFile.good()) {

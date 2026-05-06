@@ -37,11 +37,6 @@ namespace NovaEngine {
         bool initializeWithConfig(const std::string& title, const std::string& configPath = "config/engine.ini");
 
         /**
-         * @brief Boucle principale du moteur.
-         */
-        void run();
-
-        /**
          * @brief Arrête le moteur proprement.
          */
         void shutdown();

@@ -35,6 +35,7 @@ public:
     // Emprunte une texture de la taille exacte demandée.
     // Crée une nouvelle entrée si aucune texture libre correspondante n'existe.
     RenderTextureHandle acquire(u32 width, u32 height) {
+        if (!m_backend) return INVALID_HANDLE;
         for (auto& entry : m_entries) {
             if (!entry.inUse && entry.width == width && entry.height == height) {
                 entry.inUse = true;
