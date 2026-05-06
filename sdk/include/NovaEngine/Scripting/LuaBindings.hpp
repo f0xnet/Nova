@@ -184,16 +184,26 @@ private:
             "hasComponent",    [](Entity& e, const std::string& typeID) {
                 return e.hasComponent(typeID);
             },
-            "addComponent",    [](Entity& e, const std::string& typeID) -> Component* {
+            "addComponent",    [](sol::this_state ts, Entity& e, const std::string& typeID) -> Component* {
                 auto comp = ComponentFactory::get().create(typeID);
                 if (!comp) {
                     LOG_WARN("[Lua] addComponent: type inconnu '{}'", typeID);
                     return nullptr;
                 }
-                return e.addComponent(std::move(comp));
+                auto* result = e.addComponent(std::move(comp));
+                // Invalide le query cache pour que ScriptSystem voit la nouvelle entité
+                sol::state_view lua(ts);
+                sol::object regObj = lua["Registry"];
+                if (regObj.valid() && regObj.get_type() == sol::type::userdata)
+                    regObj.as<EntityRegistry*>()->invalidateQueryCache();
+                return result;
             },
-            "removeComponent", [](Entity& e, const std::string& typeID) {
+            "removeComponent", [](sol::this_state ts, Entity& e, const std::string& typeID) {
                 e.removeComponent(typeID);
+                sol::state_view lua(ts);
+                sol::object regObj = lua["Registry"];
+                if (regObj.valid() && regObj.get_type() == sol::type::userdata)
+                    regObj.as<EntityRegistry*>()->invalidateQueryCache();
             }
         );
     }
