@@ -145,6 +145,18 @@ if not exist "%SOURCE_DIR%\icon\appicon.res" (
     echo    [WARNING] Icon resource compilation failed
 )
 
+:: PCH — nlohmann/json.hpp
+echo    Compiling precompiled header (json.hpp)...
+if not exist "%OBJ_DIR%\nlohmann" mkdir "%OBJ_DIR%\nlohmann"
+g++ -x c++-header "%SDK_DIR%\nlohmann\json.hpp" -o "%OBJ_DIR%\nlohmann\json.hpp.gch" ^
+    -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
+if %ERRORLEVEL% NEQ 0 (
+    echo    [ERROR] PCH compilation failed
+    goto :build_failed
+)
+echo    [OK] PCH ready
+echo.
+
 :: Source files list
 set "SOURCE_FILES=main.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Game.cpp"
@@ -154,9 +166,9 @@ set "SOURCE_FILES=%SOURCE_FILES% src\UI\UIManager.cpp src\UI\UIComponent.cpp src
 set "SOURCE_FILES=%SOURCE_FILES% src\UI\Components\Button.cpp src\UI\Components\Image.cpp src\UI\Components\Text.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\UI\Components\Panel.cpp src\UI\Components\Animation.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\UI\Components\TextInput.cpp src\UI\Components\Slider.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\Core\NovaEngine.cpp src\Core\ConfigManager.cpp src\Core\Logger.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\Resources\ResourceTypes.cpp src\Resources\ResourceManager.cpp"
-set "SOURCE_FILES=%SOURCE_FILES% src\Audio\SoundPlayer.cpp src\Audio\MusicPlayer.cpp src\Audio\AudioManager.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Core\ConfigManager.cpp src\Core\Logger.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Resources\ResourceTypes.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Audio\AudioManager.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Events\EventDispatcher.cpp src\Events\Event.cpp src\Events\EventHandler.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\PostProcessManager.cpp src\Rendering\PostProcessPipeline.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp src\Rendering\Effects\SSAOEffect.cpp src\Rendering\Effects\BloomEffect.cpp src\Rendering\Effects\ColorGradingEffect.cpp src\Rendering\Effects\DynamicLightingEffect.cpp"
@@ -184,7 +196,7 @@ for %%f in (%SOURCE_FILES%) do (
     
     if "!NEEDS_COMPILE!"=="1" (
         echo    Compiling %%f...
-        g++ -o "!OBJ_PATH!" -O0 -DNDEBUG -I "%SDK_DIR%" -c "!SOURCE_PATH!" -Wall -DSFML_STATIC
+        g++ -o "!OBJ_PATH!" -O0 -DNDEBUG -I "%SDK_DIR%" -I "%OBJ_DIR%" -include nlohmann/json.hpp -c "!SOURCE_PATH!" -Wall -DSFML_STATIC -std=c++17
         
         if !ERRORLEVEL! NEQ 0 (
             echo    [ERROR] Compilation failed for %%f
