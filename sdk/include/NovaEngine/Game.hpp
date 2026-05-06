@@ -17,6 +17,7 @@
 namespace NovaEngine {
     class DialogueSystem;
     class PlayerController;
+    class ScriptSystem;
 }
 
 class Game : public NovaEngine::Application {
@@ -37,6 +38,9 @@ private:
     NovaEngine::BloomEffect* m_bloomEffect;
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
     NovaEngine::DynamicLightingEffect* m_dynamicLightingEffect;
+
+    // Scripting (owned by the active scene's system list)
+    NovaEngine::ScriptSystem* m_scriptSystem = nullptr;
 
     NovaEngine::FontHandle m_font;
 

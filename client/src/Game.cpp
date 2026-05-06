@@ -1,6 +1,7 @@
 #include "NovaEngine/Game.hpp"
 #include "NovaEngine/Backend/BackendManager.hpp"
 #include "NovaEngine/Core/ConfigManager.hpp"
+#include "NovaEngine/Scripting/Scripting.hpp"
 #include "Dialogue/DialogueSystem.hpp"
 #include "Player/PlayerController.hpp"
 
@@ -80,12 +81,18 @@ bool Game::onInitialize() {
     NovaEngine::Scene* scene = m_sceneManager.getActiveScene();
     if (scene) {
         using namespace NovaEngine;
+
+        // Add scripting system to the scene
+        m_scriptSystem = scene->addSystem<ScriptSystem>();
+
         auto entities = scene->getEntityRegistry().getAllEntities();
         bool playerFound = false;
+        Entity* playerEntity = nullptr;
         for (auto* entity : entities) {
             auto* tag = entity->getComponent<TagComponent>();
             if (tag && tag->tag == "player") {
                 m_playerController->setPlayerID(entity->getID());
+                playerEntity = entity;
                 LOG_INFO("Player found and set to entity ID: {}", entity->getID());
                 playerFound = true;
                 break;
@@ -93,6 +100,15 @@ bool Game::onInitialize() {
         }
         if (!playerFound) {
             LOG_ERROR("No player entity found in scene! Make sure scene JSON has an entity with type=\"player\"");
+        }
+
+        // Attach the movement script to the player entity
+        if (playerEntity) {
+            auto sc = std::make_unique<ScriptComponent>();
+            sc->scriptPath = "data/scripts/player.lua";
+            playerEntity->addComponent(std::move(sc));
+            scene->getEntityRegistry().invalidateQueryCache();
+            LOG_INFO("Player script attached: data/scripts/player.lua");
         }
     }
 
@@ -183,10 +199,12 @@ void Game::onUpdate(float deltaTime) {
 
     Scene* scene = m_sceneManager.getActiveScene();
     if (scene) {
-        // Update player movement (disabled during dialogue)
-        m_playerController->updateMovement(scene, deltaTime, !m_dialogueSystem->isActive());
+        // Expose dialogue state so Lua scripts can block movement during dialogues
+        if (m_scriptSystem) {
+            m_scriptSystem->getLua()["dialogueActive"] = m_dialogueSystem->isActive();
+        }
 
-        // Update NPC detection
+        // Update NPC detection (stays in C++)
         m_playerController->updateNPCDetection(scene);
 
         // Update camera to follow player
