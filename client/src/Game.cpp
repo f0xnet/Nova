@@ -86,6 +86,26 @@ bool Game::onInitialize() {
         // que les scripts puissent changer de scène via Scene.setActive(...)
         m_scriptSystem = scene->addSystem<ScriptSystem>(&m_sceneManager);
 
+        // Expose DialogueSystem to Lua :
+        //   Dialogue.start(entityId)  — démarre un dialogue avec un NPC
+        //   Dialogue.advance()        — avance le dialogue
+        //   Dialogue.isActive()       — vrai si dialogue en cours
+        //   Dialogue.reset()          — ferme le dialogue
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table dlg = lua.create_table();
+            dlg["start"] = [this](u64 entityId) {
+                auto* sc = m_sceneManager.getActiveScene();
+                if (!sc) return;
+                auto* e = sc->getEntityRegistry().getEntity(entityId);
+                if (e) m_dialogueSystem->startDialogue(e);
+            };
+            dlg["advance"]  = [this]() { m_dialogueSystem->advanceDialogue(); };
+            dlg["isActive"] = [this]() -> bool { return m_dialogueSystem->isActive(); };
+            dlg["reset"]    = [this]() { m_dialogueSystem->reset(); };
+            lua["Dialogue"] = dlg;
+        }
+
         auto entities = scene->getEntityRegistry().getAllEntities();
         bool playerFound = false;
         Entity* playerEntity = nullptr;
