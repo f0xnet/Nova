@@ -137,7 +137,12 @@ if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"
 if not exist "%OBJ_DIR%" mkdir "%OBJ_DIR%"
 
 :: Copy assets
+:: Ligne 1 : assets directement dans assets/ (structure Windows courante)
 xcopy /E /I /Y "%SOURCE_DIR%\assets\" "%BIN_DIR%\data\" >nul 2>&1
+:: Ligne 2 : assets dans assets/data/ (structure repo Linux) — écrase proprement
+if exist "%SOURCE_DIR%\assets\data\" (
+    xcopy /E /I /Y "%SOURCE_DIR%\assets\data\" "%BIN_DIR%\data\" >nul 2>&1
+)
 
 :: Compile resources
 echo    Compiling resources...
