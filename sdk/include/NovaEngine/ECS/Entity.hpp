@@ -50,6 +50,18 @@ public:
     }
 
     /**
+     * @brief Add a component via base pointer — used by ComponentFactory and scripting
+     * @return Raw pointer to the added component, or nullptr if component is null
+     */
+    Component* addComponent(std::unique_ptr<Component> component) {
+        if (!component) return nullptr;
+        ComponentTypeID typeID = component->getTypeID();
+        Component* ptr = component.get();
+        m_components[typeID] = std::move(component);
+        return ptr;
+    }
+
+    /**
      * @brief Get a component by type
      * @tparam T The component type
      * @return Pointer to the component, or nullptr if not found

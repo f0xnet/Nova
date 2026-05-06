@@ -3,6 +3,7 @@
 #include "../Backend/BackendManager.hpp"
 #include "../Backend/Core/BackendTypes.hpp"
 #include "../Events/Event.hpp"
+#include "../ECS/Components.hpp"
 #include "Logger.hpp"
 
 #include <chrono>
@@ -127,7 +128,9 @@ private:
         if (!success) {
             return false;
         }
-        
+
+        registerBuiltinComponents();
+
         WINDOW().setVSync(m_config.vSync);
         if (m_config.frameRateLimit > 0) {
             WINDOW().setFramerateLimit(m_config.frameRateLimit);

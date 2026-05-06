@@ -27,7 +27,8 @@ private:
     Color m_backgroundColor = Color::Black;
 
     EntityRegistry m_entityRegistry;
-    std::vector<std::unique_ptr<System>> m_systems;
+    std::vector<std::unique_ptr<System>> m_logicSystems;
+    std::unique_ptr<RenderSystem>        m_renderSystem;
     WaypointGraph m_waypointGraph;  // Waypoint-based pathfinding for NPCs
 
 public:
@@ -35,17 +36,27 @@ public:
      * @brief Constructor
      * @param name Scene name
      */
-    explicit Scene(const std::string& name) : m_name(name) {
-        // Create default systems
-        // Order matters: Animation updates before Render, Light renders before Render
-        m_systems.push_back(std::make_unique<AnimationSystem>());
-        m_systems.push_back(std::make_unique<PhysicsSystem>());
-        m_systems.push_back(std::make_unique<ActivatorSystem>());  // Activator system
-        m_systems.push_back(std::make_unique<AudioSystem>());
-        m_systems.push_back(std::make_unique<LightSystem>());
-        m_systems.push_back(std::make_unique<RenderSystem>());  // Render last
-
+    explicit Scene(const std::string& name) : m_name(name),
+        m_renderSystem(std::make_unique<RenderSystem>())
+    {
+        m_logicSystems.push_back(std::make_unique<AnimationSystem>());
+        m_logicSystems.push_back(std::make_unique<PhysicsSystem>());
+        m_logicSystems.push_back(std::make_unique<ActivatorSystem>());
+        m_logicSystems.push_back(std::make_unique<AudioSystem>());
+        m_logicSystems.push_back(std::make_unique<LightSystem>());
         LOG_DEBUG("Created scene: {}", m_name);
+    }
+
+    /**
+     * @brief Inject a custom logic system (e.g. ScriptSystem).
+     * Runs during update(), before rendering.
+     */
+    template<typename T, typename... Args>
+    T* addSystem(Args&&... args) {
+        auto system = std::make_unique<T>(std::forward<Args>(args)...);
+        T* ptr = system.get();
+        m_logicSystems.push_back(std::move(system));
+        return ptr;
     }
 
     /**
@@ -124,10 +135,8 @@ public:
      * @param deltaTime Time since last frame
      */
     void update(float deltaTime) {
-        // Update logic systems only (not RenderSystem)
-        for (size_t i = 0; i < m_systems.size() - 1; ++i) {  // -1 to skip RenderSystem (last)
-            m_systems[i]->update(deltaTime, m_entityRegistry);
-        }
+        for (auto& system : m_logicSystems)
+            system->update(deltaTime, m_entityRegistry);
     }
 
     /**
@@ -135,10 +144,7 @@ public:
      */
     void render() {
         WINDOW().clear(m_backgroundColor);
-        // Call RenderSystem (last system in the list)
-        if (!m_systems.empty()) {
-            m_systems.back()->update(0.0f, m_entityRegistry);  // RenderSystem is last
-        }
+        m_renderSystem->update(0.0f, m_entityRegistry);
     }
 
     /**

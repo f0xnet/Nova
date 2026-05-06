@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.hpp"
+#include "ComponentFactory.hpp"
 #include "../Core/Types.hpp"
 #include "../Backend/Core/BackendTypes.hpp"
 #include "../Backend/Interfaces/IGraphicsBackend.hpp"
@@ -580,5 +581,19 @@ public:
         }
     }
 };
+
+inline void registerBuiltinComponents() {
+    REGISTER_COMPONENT(TransformComponent);
+    REGISTER_COMPONENT(SpriteComponent);
+    REGISTER_COMPONENT(LightComponent);
+    REGISTER_COMPONENT(AnimationComponent);
+    REGISTER_COMPONENT(ColliderComponent);
+    REGISTER_COMPONENT(AudioComponent);
+    REGISTER_COMPONENT(ActivatorComponent);
+    REGISTER_COMPONENT(TagComponent);
+    REGISTER_COMPONENT(SceneTransitionComponent);
+    REGISTER_COMPONENT(ShaderComponent);
+    REGISTER_COMPONENT(JourneyComponent);
+}
 
 } // namespace NovaEngine
