@@ -3,6 +3,9 @@
 #include "NovaEngine/Core/ConfigManager.hpp"
 #include "NovaEngine/Scripting/Scripting.hpp"
 #include "NovaEngine/UI/Components/Text.hpp"
+#include "NovaEngine/UI/Components/Button.hpp"
+#include "NovaEngine/UI/Components/TextInput.hpp"
+#include "NovaEngine/UI/Components/Slider.hpp"
 #include "Dialogue/DialogueSystem.hpp"
 #include "Player/PlayerController.hpp"
 
@@ -194,37 +197,76 @@ bool Game::onInitialize() {
             lua["Time"] = time;
         }
 
-        // --- UI : contrôle de l'interface depuis les scripts ---
-        // UI.showGroup("hud") / hideGroup("dialogue")
-        // UI.setText("label_id", "Score: 42")
-        // UI.setVisible("component_id", false)
-        // UI.setEnabled("button_id", false)
+        // --- UI : contrôle bidirectionnel de l'interface depuis les scripts ---
+        // Lua → UI : show/hide/setText/setValue/load/unload
+        // UI → Lua : actions bridgées vers EventBus (via setActionCallback)
         {
             auto& lua = m_scriptSystem->getLua();
             sol::table ui = lua.create_table();
-            ui["showGroup"]  = [this](const std::string& id) {
-                m_uiManager.setGroupActive(id, true);
-            };
-            ui["hideGroup"]  = [this](const std::string& id) {
-                m_uiManager.setGroupActive(id, false);
-            };
-            ui["setUIActive"] = [this](const std::string& id, bool active) {
-                m_uiManager.setUIActive(id, active);
-            };
-            ui["setVisible"] = [this](const std::string& id, bool visible) {
+
+            // Groupes / visibilité
+            ui["showGroup"]   = [this](const std::string& id) { m_uiManager.setGroupActive(id, true);  };
+            ui["hideGroup"]   = [this](const std::string& id) { m_uiManager.setGroupActive(id, false); };
+            ui["setUIActive"] = [this](const std::string& id, bool active) { m_uiManager.setUIActive(id, active); };
+            ui["removeGroup"] = [this](const std::string& id) { m_uiManager.removeGroup(id); };
+            ui["removeUI"]    = [this](const std::string& id) { m_uiManager.removeUI(id); };
+            ui["clear"]       = [this]() { m_uiManager.clear(); };
+
+            // Composant individuel
+            ui["setVisible"] = [this](const std::string& id, bool v) {
                 auto comp = m_uiManager.getComponent(id);
-                if (comp) comp->setVisible(visible);
+                if (comp) comp->setVisible(v);
             };
-            ui["setEnabled"] = [this](const std::string& id, bool enabled) {
+            ui["setEnabled"] = [this](const std::string& id, bool v) {
                 auto comp = m_uiManager.getComponent(id);
-                if (comp) comp->setEnabled(enabled);
+                if (comp) comp->setEnabled(v);
             };
+
+            // Texte (Text component)
             ui["setText"] = [this](const std::string& id, const std::string& text) {
                 auto comp = m_uiManager.getComponent(id);
                 if (!comp) return;
-                auto* txt = dynamic_cast<NovaEngine::Text*>(comp.get());
-                if (txt) txt->setString(text);
+                if (auto* t = dynamic_cast<NovaEngine::Text*>(comp.get()))
+                    t->setString(text);
             };
+            ui["getString"] = [this](const std::string& id) -> std::string {
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return "";
+                if (auto* t = dynamic_cast<NovaEngine::Text*>(comp.get()))
+                    return t->getString();
+                return "";
+            };
+
+            // Valeur générique — lit TextInput.getText(), Slider.getValue(), Button.getValue()
+            ui["getValue"] = [this](sol::this_state ts, const std::string& id) -> sol::object {
+                sol::state_view lua(ts);
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return sol::lua_nil;
+                if (auto* ti = dynamic_cast<NovaEngine::TextInput*>(comp.get()))
+                    return sol::make_object(lua, ti->getText());
+                if (auto* sl = dynamic_cast<NovaEngine::Slider*>(comp.get()))
+                    return sol::make_object(lua, sl->getValue());
+                if (auto* btn = dynamic_cast<NovaEngine::Button*>(comp.get()))
+                    return sol::make_object(lua, btn->getValue());
+                return sol::lua_nil;
+            };
+            // setValue : Slider (float) ou Button (string)
+            ui["setValue"] = [this](const std::string& id, sol::object val) {
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return;
+                if (auto* sl = dynamic_cast<NovaEngine::Slider*>(comp.get())) {
+                    if (val.is<float>()) sl->setValue(val.as<float>());
+                }
+                if (auto* btn = dynamic_cast<NovaEngine::Button*>(comp.get())) {
+                    if (val.is<std::string>()) btn->setValue(val.as<std::string>());
+                }
+            };
+
+            // Chargement / déchargement de layouts UI depuis Lua
+            ui["load"] = [this](const std::string& path) -> bool {
+                return m_uiLoader.loadFromFile(path, m_uiManager);
+            };
+
             lua["UI"] = ui;
         }
 
@@ -259,10 +301,28 @@ bool Game::onInitialize() {
     }
 
     // Initialize UI system
+    // Le callback bridge les actions UI vers l'EventBus Lua :
+    //   "ui_action"            { action, value, id }   — toutes actions
+    //   "ui_action_<action>"   { value, id }            — action spécifique
+    //   "ui_click_<id>"        { action, value }        — composant spécifique
     m_uiManager.setActionCallback([this](const std::string& action,
                                          const std::string& value,
                                          const NovaEngine::ID& componentID) {
         handleUIAction(action, value, componentID);
+
+        if (m_scriptSystem) {
+            auto& lua = m_scriptSystem->getLua();
+            sol::protected_function emit = lua["EventBus"]["emit"];
+            if (emit.valid()) {
+                auto data      = lua.create_table();
+                data["action"] = action;
+                data["value"]  = value;
+                data["id"]     = componentID;
+                emit("ui_action", data);
+                emit("ui_action_" + action, data);
+                emit("ui_click_" + componentID, data);
+            }
+        }
     });
 
     // Load dialogue UI
@@ -323,6 +383,17 @@ bool Game::onInitialize() {
 
             LOG_INFO("Dynamic lighting effect added successfully (ECS-driven)");
             LOG_INFO("Time of day initialized to 6:00 AM");
+        }
+    }
+
+    // Charge le module nova/ui.lua après que lua["UI"] est configuré par le C++.
+    // ui.lua capture local _ui = UI puis enrichit le global avec onClick/onAction/on/off.
+    if (m_scriptSystem) {
+        auto r = m_scriptSystem->getLua().safe_script(
+            "UI = require('nova/ui')", sol::script_pass_on_error);
+        if (!r.valid()) {
+            sol::error err = r;
+            LOG_WARN("[Game] nova/ui.lua : {}", err.what());
         }
     }
 

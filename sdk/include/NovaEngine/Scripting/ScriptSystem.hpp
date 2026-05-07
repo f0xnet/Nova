@@ -457,6 +457,13 @@ function __wireNamedHandlers(env, entityId)
             safe(env.OnConversationEnd, data.id)
         end)
     end
+
+    -- OnUIAction(action, value, componentId) — toute action UI (clic bouton, etc.)
+    if type(env.OnUIAction) == "function" then
+        EventBus.on("ui_action", function(data)
+            safe(env.OnUIAction, data.action, data.value, data.id)
+        end)
+    end
 end
         )", sol::script_pass_on_error);
         if (!r.valid()) {
