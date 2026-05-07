@@ -17,6 +17,9 @@ InputBind.register("toggleSSAO",     "1")
 InputBind.register("toggleBloom",    "2")
 InputBind.register("toggleGrading",  "3")
 InputBind.register("toggleLighting", "4")
+InputBind.register("ingameTests",    "F5")
+
+local IngameTest = require("tests/test_ingame")
 
 -- Portée d'interaction avec un PNJ (en pixels)
 local INTERACT_RANGE = 100
@@ -43,6 +46,10 @@ function OnKeyDown(key)
     elseif key == InputBind.getKey("timeAdvance") then
         Time.advance(1)
         Log.info("Heure : " .. tostring(Time.getHour()) .. "h00")
+
+    -- Tests interactifs en jeu (F5)
+    elseif key == InputBind.getKey("ingameTests") then
+        IngameTest.runAll()
 
     -- Bascule les effets PostFX (touches 1-4)
     elseif key == InputBind.getKey("toggleSSAO") then
