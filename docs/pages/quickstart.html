@@ -12,109 +12,93 @@
   <div class="page-header">
     <span class="icon">⚡</span>
     <h1>Guide de démarrage rapide</h1>
-    <p class="subtitle">De zéro à un script fonctionnel en quelques minutes — les bases essentielles pour scripter dans Nova.</p>
+    <p class="subtitle">Du script vide au mini-boss complexe — chaque niveau introduit un concept, chaque exemple s'appuie sur le précédent.</p>
   </div>
 
-  <!-- ─── Étape 1 ─── -->
+  <div class="callout info">
+    <strong>Comment lire ce guide :</strong> chaque niveau ajoute exactement une nouvelle notion. Le code de chaque niveau est <em>complet</em> — vous pouvez le copier directement dans un script.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 1 -->
   <div class="section">
-    <h2>1. Le squelette d'un script</h2>
-    <p>Chaque script attache deux fonctions à une entité. Nova les appelle automatiquement :</p>
+    <h2>Niveau 1 — Les deux fonctions fondamentales</h2>
+    <p>Un script Nova expose deux fonctions. Le moteur les appelle automatiquement — vous n'avez rien à enregistrer.</p>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; structure minimale</div>
-      <pre><code class="lua">-- init est appelé une seule fois quand l'entité est créée.
--- 'entity' est l'entité propriétaire du script (global injecté).
+      <div class="code-label">lua &nbsp;·&nbsp; le strict minimum</div>
+      <pre><code class="lua">-- init(entity) : appelé UNE FOIS au chargement de l'entité.
 function init(entity)
-    Log.info("Entité prête : " .. tostring(entity.id))
+    Log.info("Entité prête — id : " .. tostring(entity.id))
+    Anim.play(entity, "idle", true)
 end
 
--- update est appelé à chaque frame.
--- dt = temps écoulé depuis la dernière frame (en secondes).
+-- update(entity, dt) : appelé CHAQUE FRAME.
+-- dt = temps en secondes depuis la frame précédente (typiquement 0.016).
 function update(entity, dt)
-    -- logique frame par frame ici
+    -- logique temps-réel ici
 end</code></pre>
     </div>
     <div class="callout info">
-      <strong>Globals automatiques :</strong> <code>entity</code>, <code>self</code> (propriétés JSON de la scène), et tous les modules Nova (<code>Stats</code>, <code>Anim</code>, <code>Timer</code>…) sont disponibles sans <code>require</code>.
+      <strong><code>entity</code> est un global.</strong> Il est injecté dans tout le script — vous pouvez l'utiliser dans <code>init</code>, <code>update</code>, et dans tous les handlers nommés sans avoir à le passer en paramètre ou le sauvegarder.
     </div>
   </div>
 
-  <!-- ─── Étape 2 ─── -->
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 2 -->
   <div class="section">
-    <h2>2. Lire les propriétés de la scène</h2>
-    <p>Les propriétés définies dans l'éditeur de scène sont accessibles via <code>self</code> :</p>
+    <h2>Niveau 2 — Variables locales et propriétés de scène</h2>
+    <p>Les variables déclarées <strong>en dehors</strong> des fonctions persistent entre les frames. Les propriétés JSON de l'éditeur arrivent dans <code>self</code>.</p>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; propriétés JSON → self</div>
-      <pre><code class="lua">-- Dans l'éditeur, l'entité a les propriétés : { "vie": 80, "vitesse": 120 }
+      <div class="code-label">lua &nbsp;·&nbsp; données persistantes et self</div>
+      <pre><code class="lua">-- Déclarées ici : visibles partout dans le script, persistent entre frames.
+local vie_max = 60
+local vitesse = 80
+
 function init(entity)
-    local vie     = self.vie     or 100
-    local vitesse = self.vitesse or 80
+    -- self contient les propriétés JSON définies dans l'éditeur de scène.
+    -- Exemple JSON : { "vie": 80, "vitesse": 120 }
+    -- Toujours prévoir une valeur par défaut avec `or`.
+    vie_max = self.vie     or 60
+    vitesse = self.vitesse or 80
 
+    -- Stats.init crée toutes les stats en une seule table.
     Stats.init(entity.id, {
-        Vie    = vie,
-        VieMax = vie,
+        Vie    = vie_max,
+        VieMax = vie_max,
     })
-end</code></pre>
-    </div>
-  </div>
 
-  <!-- ─── Étape 3 ─── -->
-  <div class="section">
-    <h2>3. Réagir à des événements</h2>
-    <p>Nova déclenche des fonctions nommées sur votre script en réponse à des événements moteur :</p>
-    <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; handlers nommés</div>
-      <pre><code class="lua">-- Appelé quand une stat de CETTE entité atteint zéro.
-function OnStatZeroed(entityId, stat)
-    if stat == "Vie" then
-        Anim.play(entity, "death", false)
-        Sound.play("data/sounds/mort.ogg")
-        Timer.after(1.0, function()
-            entity:disable()
-        end)
-    end
-end
-
--- Appelé quand une entité entre dans la zone de trigger.
--- triggerId = nom (string) de la zone ; entityId = id numérique de l'entrant.
-function OnTriggerEnter(triggerId, entityId)
-    local joueur = World.findByTag("player")
-    if joueur and entityId == joueur.id then
-        Notify.show("Zone atteinte !", { color = "lime" })
-    end
-end
-
--- Appelé quand le script reçoit un message via EventBus.
-function OnMessage(msg, data)
-    if msg == "alerte" then
-        Log.info("Message reçu : " .. msg)
-    end
-end</code></pre>
-    </div>
-  </div>
-
-  <!-- ─── Étape 4 ─── -->
-  <div class="section">
-    <h2>4. Utiliser les modules courants</h2>
-    <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; modules essentiels</div>
-      <pre><code class="lua">function init(entity)
-    -- Initialiser les stats depuis les propriétés de scène
-    Stats.init(entity.id, { Vie = self.vie or 100, VieMax = self.vie or 100 })
-
-    -- Jouer l'animation idle en boucle
     Anim.play(entity, "idle", true)
+end
 
-    -- Pré-charger les sons pour éviter la latence
-    Sound.preload("data/sounds/attaque.ogg")
+function update(entity, dt)
+    -- vitesse et vie_max sont accessibles ici.
+end</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 3 -->
+  <div class="section">
+    <h2>Niveau 3 — Détecter et se déplacer</h2>
+    <p><code>World.findByTag</code> localise une entité par son tag. <code>Nav.moveTo</code> la fait bouger en évitant les obstacles. Toujours vérifier <code>nil</code>.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; poursuite basique</div>
+      <pre><code class="lua">local vie_max    = 60
+local vitesse    = 80
+local DIST_AGGRO = 280   -- distance d'activation en pixels
+
+function init(entity)
+    vie_max = self.vie     or 60
+    vitesse = self.vitesse or 80
+    Stats.init(entity.id, { Vie = vie_max, VieMax = vie_max })
+    Anim.play(entity, "idle", true)
 end
 
 function update(entity, dt)
     local joueur = World.findByTag("player")
-    if not joueur then return end
+    if not joueur then return end   -- le joueur peut ne pas exister
 
-    -- Poursuivre le joueur s'il est proche
-    if entity:getDistance(joueur) < 300 then
-        Nav.moveTo(entity, joueur, 120)
+    local dist = entity:getDistance(joueur)
+
+    if dist < DIST_AGGRO then
+        Nav.moveTo(entity, joueur, vitesse)
         Anim.play(entity, "run", true)
     else
         Nav.stop(entity)
@@ -122,23 +106,28 @@ function update(entity, dt)
     end
 end</code></pre>
     </div>
+    <div class="callout warn">
+      <strong>Multipliez par <code>dt</code></strong> quand vous déplacez manuellement avec <code>entity:setPosition</code>. <code>Nav.moveTo</code> le fait déjà pour vous.
+    </div>
   </div>
 
-  <!-- ─── Étape 5 ─── -->
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 4 -->
   <div class="section">
-    <h2>5. Script complet — ennemi simple</h2>
-    <p>Ce script combine tout ce qui précède : initialisation, poursuite, attaque et mort.</p>
+    <h2>Niveau 4 — Attaque avec cooldown</h2>
+    <p><code>Cooldown.use(entityId, nom, durée)</code> vérifie si l'action est disponible <em>et</em> démarre le cooldown en une seule ligne. Retourne <code>true</code> seulement si l'action peut s'exécuter.</p>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; ennemi_simple.lua</div>
-      <pre><code class="lua">local VITESSE    = 120
-local DIST_AGGRO = 300
-local DIST_ATK   = 60
-local DMG        = 15
-local cd_attaque = Cooldown.new(1.2)
+      <div class="code-label">lua &nbsp;·&nbsp; + corps à corps</div>
+      <pre><code class="lua">local vie_max    = 60
+local vitesse    = 80
+local DIST_AGGRO = 280
+local DIST_ATK   = 55    -- distance d'attaque
+local DMG        = 12    -- dégâts par coup
+local CD_ATK     = 1.0   -- secondes entre deux coups
 
 function init(entity)
-    local pv = self.vie or 60
-    Stats.init(entity.id, { Vie = pv, VieMax = pv })
+    vie_max = self.vie     or 60
+    vitesse = self.vitesse or 80
+    Stats.init(entity.id, { Vie = vie_max, VieMax = vie_max })
     Anim.play(entity, "idle", true)
 end
 
@@ -149,45 +138,491 @@ function update(entity, dt)
     local dist = entity:getDistance(joueur)
 
     if dist < DIST_ATK then
-        -- Attaque au corps à corps
         Nav.stop(entity)
         Anim.play(entity, "attack", false)
-        if Cooldown.ready(cd_attaque) then
+
+        -- Cooldown.use : retourne true si prêt, et lance le cooldown.
+        if Cooldown.use(entity.id, "attaque", CD_ATK) then
             Stats.mod(joueur.id, "Vie", -DMG)
-            Camera.shake(0.2, 6)
-            Cooldown.reset(cd_attaque)
+            Camera.shake(0.15, 5)
+            Sound.play("data/sounds/hit.ogg")
         end
+
     elseif dist < DIST_AGGRO then
-        -- Poursuite
-        Nav.moveTo(entity, joueur, VITESSE)
+        Nav.moveTo(entity, joueur, vitesse)
         Anim.play(entity, "run", true)
     else
         Nav.stop(entity)
         Anim.play(entity, "idle", true)
     end
+end</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 5 -->
+  <div class="section">
+    <h2>Niveau 5 — Événements : mort et communication</h2>
+    <p>Les <strong>named handlers</strong> sont branchés automatiquement. Définissez ceux dont vous avez besoin — pas de <code>EventBus.on()</code> à écrire.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; + mort et messages inter-entités</div>
+      <pre><code class="lua">-- ... (même init/update que niveau 4) ...
+
+-- Appelé automatiquement quand une stat de CETTE entité atteint 0.
+function OnStatZeroed(entityId, stat)
+    if stat ~= "Vie" then return end
+
+    Nav.stop(entity)
+    Anim.play(entity, "death", false)
+    Sound.play("data/sounds/ennemi_mort.ogg")
+
+    -- Explosion de particules à la position de l'entité.
+    local pos = entity:getPosition()
+    Particles.emit(pos.x, pos.y, {
+        count = 20, speed = 160, spread = 360, lifetime = 0.5,
+        color = Color.new(200, 80, 0),
+    })
+
+    -- Donner le loot au joueur, désactiver l'entité après l'animation.
+    local joueur = World.findByTag("player")
+    if joueur then Loot.dropFor(joueur, "gobelin") end
+
+    Timer.after(1.2, function()
+        entity:disable()
+    end)
+end
+
+-- Appelé via entity:sendMessage("stun", { duration = 2.0 })
+-- depuis un autre script.
+function OnMessage(msg, data)
+    if msg == "stun" then
+        Nav.stop(entity)
+        Cooldown.start(entity.id, "stun_lock", data.duration or 1.5)
+        Notify.floatingText(entity, "ÉTOURDI", { color = "yellow" })
+    end
+end</code></pre>
+    </div>
+    <div class="callout info">
+      <strong>Timer.after</strong> est non-bloquant : il programme une action future sans interrompre la frame courante. Pour enchaîner <em>plusieurs</em> actions avec des pauses, utilisez <code>Scheduler</code> (niveau suivant).
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 6 -->
+  <div class="section">
+    <h2>Niveau 6 — Temporalité : Timer et Scheduler</h2>
+    <p><code>Timer.after</code> déclenche une action unique après un délai. <code>Scheduler.start</code> permet d'écrire une séquence d'actions avec des pauses, comme si le code "attendait" — sans bloquer le jeu.</p>
+
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Timer — action unique différée</div>
+      <pre><code class="lua">-- Entrer en rage après un délai.
+function entrerEnRage()
+    SceneFX.flash(Color.new(255, 60, 0, 180), 0.4)
+    Sound.play("data/sounds/roar.ogg")
+
+    -- Exécuté 0.6s plus tard, sans bloquer le reste.
+    Timer.after(0.6, function()
+        vitesse = vitesse * 2
+        Notify.show("ENRAGÉ !", { color = "red", duration = 3 })
+    end)
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Scheduler — séquence linéaire avec pauses</div>
+      <pre><code class="lua">-- Cinématique d'entrée : le code s'écrit de haut en bas,
+-- les Scheduler.wait() suspendent la coroutine sans bloquer le jeu.
+function cinematiqueEntree()
+    Scheduler.start(function()
+        EventBus.emit("controles_bloques", {})
+        Sound.playMusic("data/music/boss.ogg")
+
+        Camera.unfollow()
+        Camera.moveTo(entity:getPosition().x, entity:getPosition().y, 1.5, "easeInOut")
+        Scheduler.wait(2.0)    -- attend 2 secondes
+
+        Anim.play(entity, "roar", false)
+        Sound.play("data/sounds/roar.ogg")
+        Camera.shake(0.8, 12)
+        Scheduler.wait(1.8)
+
+        Camera.follow(World.findByTag("player"))
+        Camera.zoomTo(1.0, 0.8, "easeInOut")
+        Scheduler.wait(1.0)
+
+        EventBus.emit("controles_liberes", {})
+        -- Le combat commence ici.
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 7 -->
+  <div class="section">
+    <h2>Niveau 7 — Machine à états</h2>
+    <p>Dès que la logique contient plus de deux états, une cascade de <code>if/elseif</code> devient ingérable. La <code>StateMachine</code> sépare clairement chaque état : que se passe-t-il à l'<em>entrée</em>, pendant l'<em>update</em>, et à la <em>sortie</em>.</p>
+
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; FSM : Patrouille → Poursuite → Attaque</div>
+      <pre><code class="lua">local fsm
+local DIST_AGGRO = 280
+local DIST_ATK   = 55
+local vitesse    = 80
+local DMG        = 12
+local CD_ATK     = 1.0
+
+function init(entity)
+    Stats.init(entity.id, { Vie = self.vie or 60, VieMax = self.vie or 60 })
+
+    fsm = StateMachine.new("Patrouille")
+
+    -- addState(nom, onEnter, onUpdate, onExit)  ← onExit est optionnel
+    fsm:addState("Patrouille",
+        function(e)   -- onEnter
+            Anim.play(e, "walk", true)
+            Nav.moveTo(e, World.findByTag("patrol_a"), vitesse * 0.6)
+        end,
+        function(e, dt)   -- onUpdate
+            local joueur = World.findByTag("player")
+            if joueur and e:getDistance(joueur) < DIST_AGGRO then
+                fsm:transition("Poursuite")
+            end
+        end
+    )
+
+    fsm:addState("Poursuite",
+        function(e)
+            Anim.play(e, "run", true)
+            Sound.play("data/sounds/alerte.ogg")
+        end,
+        function(e, dt)
+            local joueur = World.findByTag("player")
+            if not joueur then fsm:transition("Patrouille") return end
+
+            local dist = e:getDistance(joueur)
+            if dist > DIST_AGGRO * 1.5 then
+                fsm:transition("Patrouille")
+            elseif dist < DIST_ATK then
+                fsm:transition("Attaque")
+            else
+                Nav.moveTo(e, joueur, vitesse)
+            end
+        end
+    )
+
+    fsm:addState("Attaque",
+        function(e)
+            Nav.stop(e)
+            Anim.play(e, "attack", false)
+        end,
+        function(e, dt)
+            local joueur = World.findByTag("player")
+            if not joueur then fsm:transition("Patrouille") return end
+
+            if e:getDistance(joueur) > DIST_ATK * 1.5 then
+                fsm:transition("Poursuite")
+                return
+            end
+            if Cooldown.use(e.id, "attaque", CD_ATK) then
+                Stats.mod(joueur.id, "Vie", -DMG)
+                Camera.shake(0.15, 5)
+            end
+        end
+    )
+
+    fsm:addState("Mort",
+        function(e)
+            Nav.stop(e)
+            Anim.play(e, "death", false)
+            Sound.play("data/sounds/mort.ogg")
+        end
+        -- pas d'onUpdate : rien ne se passe dans cet état
+    )
+end
+
+function update(entity, dt)
+    if fsm then fsm:update(entity, dt) end
 end
 
 function OnStatZeroed(entityId, stat)
-    if stat == "Vie" then
-        Nav.stop(entity)
-        Anim.play(entity, "death", false)
-        Sound.play("data/sounds/ennemi_mort.ogg")
+    if stat == "Vie" and fsm:getState() ~= "Mort" then
+        fsm:transition("Mort")
+        Timer.after(1.5, function() entity:disable() end)
+    end
+end</code></pre>
+    </div>
+    <div class="callout info">
+      <strong>Les transitions sont différées.</strong> Appeler <code>fsm:transition("X")</code> ne change pas l'état immédiatement — le changement est appliqué au début du prochain <code>fsm:update()</code>, ce qui garantit que <code>onExit</code> et <code>onEnter</code> s'exécutent proprement.
+    </div>
+  </div>
 
-        local joueur = World.findByTag("player")
-        if joueur then
-            Loot.dropFor(joueur, "gobelin")
-        end
+  <!-- ═══════════════════════════════════════════════════════════ NIVEAU 8 -->
+  <div class="section">
+    <h2>Niveau 8 — Script haute complexité : mini-boss à deux phases</h2>
+    <p>Tous les niveaux précédents réunis : FSM, phases, Scheduler, cinématique d'entrée, attaque à distance, mort spectaculaire.</p>
 
-        Timer.after(1.5, function()
-            entity:disable()
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; mini_boss.lua — script complet</div>
+      <pre><code class="lua">-- ── Configuration ────────────────────────────────────────────────────────────
+local PV_MAX      = 300
+local PHASE2_PV   = 90       -- PV auxquels la phase 2 se déclenche
+local VITESSE_1   = 90
+local VITESSE_2   = 150      -- plus rapide en phase 2
+local DMG_MELEE   = 20
+local DMG_PROJ    = 18
+local CD_MELEE    = 0.9
+local CD_PROJ     = 1.8
+local DIST_AGGRO  = 350
+local DIST_MELEE  = 60
+
+-- ── État global ───────────────────────────────────────────────────────────────
+local fsm
+local joueur
+local en_phase2   = false
+
+-- ── Initialisation ────────────────────────────────────────────────────────────
+function init(entity)
+    joueur = World.findByTag("player")
+
+    Stats.init(entity.id, { Vie = PV_MAX, VieMax = PV_MAX })
+    entity:disable()   -- désactivé jusqu'à la cinématique
+
+    -- La cinématique démarre quand le joueur entre dans la salle.
+    EventBus.on("boss_arena_entree", function()
+        cinematiqueEntree()
+    end)
+end
+
+-- ── Cinématique d'entrée ──────────────────────────────────────────────────────
+function cinematiqueEntree()
+    Scheduler.start(function()
+        EventBus.emit("controles_bloques", {})
+        EventBus.emit("portes_fermer", {})
+        Sound.play("data/sounds/portes.ogg")
+
+        SceneFX.fadeIn(0.4, function()
+            entity:enable()
+            Sound.playMusic("data/music/boss.ogg")
+            SceneFX.fadeOut(0.6)
         end)
+        Scheduler.wait(1.0)
+
+        Camera.unfollow()
+        Camera.moveTo(entity:getPosition().x, entity:getPosition().y, 1.8, "easeInOut")
+        Scheduler.wait(2.2)
+
+        Camera.zoomTo(1.5, 0.4, "easeOut")
+        Anim.play(entity, "roar", false)
+        Sound.play("data/sounds/boss_roar.ogg")
+        Camera.shake(0.8, 12)
+        Scheduler.wait(2.0)
+
+        Camera.follow(joueur)
+        Camera.zoomTo(1.0, 1.0, "easeInOut")
+        Scheduler.wait(1.0)
+
+        EventBus.emit("controles_liberes", {})
+        demarrerCombat()
+    end)
+end
+
+-- ── Démarrage du combat ───────────────────────────────────────────────────────
+function demarrerCombat()
+    fsm = StateMachine.new("Repos")
+
+    -- Repos : pause entre les attaques.
+    fsm:addState("Repos",
+        function(e)
+            Anim.play(e, "idle", true)
+            local delai = en_phase2 and 0.8 or 1.8
+            Timer.after(delai, function()
+                if fsm:getState() == "Repos" then
+                    choisirAttaque()
+                end
+            end)
+        end
+    )
+
+    -- Charge : foncer sur le joueur.
+    fsm:addState("Charge",
+        function(e)
+            Anim.play(e, "charge", false)
+            Sound.play("data/sounds/boss_charge.ogg")
+
+            local vitesse = en_phase2 and VITESSE_2 or VITESSE_1
+            Nav.moveTo(e, joueur, vitesse * 3, function()
+                fsm:transition("Repos")   -- arrivé à destination
+            end)
+        end,
+        function(e, dt)
+            if e:getDistance(joueur) < DIST_MELEE then
+                if Cooldown.use(e.id, "melee", CD_MELEE) then
+                    Stats.mod(joueur.id, "Vie", -DMG_MELEE)
+                    Camera.shake(0.3, 10)
+                end
+            end
+        end,
+        function(e)   -- onExit
+            Nav.stop(e)
+        end
+    )
+
+    -- Tir : projectile vers le joueur.
+    fsm:addState("Tir",
+        function(e)
+            Anim.play(e, "cast", false)
+            Sound.play("data/sounds/boss_tir.ogg")
+
+            Anim.onFrame(e, 5, function()
+                local pos   = e:getPosition()
+                local pos_j = joueur:getPosition()
+                local angle = Math.angleTo(pos.x, pos.y, pos_j.x, pos_j.y)
+                local count = en_phase2 and 3 or 1
+
+                -- En phase 2 : éventail de 3 projectiles.
+                for i = 0, count - 1 do
+                    local spread = (i - (count - 1) / 2) * 18   -- écart en degrés
+                    Projectile.fire(pos.x, pos.y, {
+                        angle    = angle + spread,
+                        speed    = 260,
+                        lifetime = 2.0,
+                        onHit = function(proj, hitId)
+                            if hitId == joueur.id then
+                                Stats.mod(joueur.id, "Vie", -DMG_PROJ)
+                                Camera.shake(0.2, 6)
+                            end
+                            Projectile.release(proj)
+                        end,
+                    })
+                end
+            end)
+
+            Anim.onFinish(e, function()
+                fsm:transition("Repos")
+            end)
+        end
+    )
+
+    -- Mort.
+    fsm:addState("Mort",
+        function(e)
+            Nav.stop(e)
+            Anim.play(e, "death", false)
+            Sound.play("data/sounds/boss_mort.ogg")
+            Camera.shake(1.5, 20)
+            sequenceMort()
+        end
+    )
+end
+
+-- ── Choix de l'attaque ────────────────────────────────────────────────────────
+function choisirAttaque()
+    if en_phase2 then
+        fsm:transition(Random.pick({ "Charge", "Tir", "Tir" }))
+    else
+        fsm:transition(Random.pick({ "Charge", "Tir" }))
+    end
+end
+
+-- ── Update ────────────────────────────────────────────────────────────────────
+function update(entity, dt)
+    if not fsm or fsm:getState() == "Mort" then return end
+
+    fsm:update(entity, dt)
+
+    -- Déclenchement de la phase 2.
+    local vie = Stats.get(entity.id, "Vie", 0)
+    if not en_phase2 and vie <= PHASE2_PV then
+        en_phase2 = true
+        transitionPhase2()
+    end
+
+    Debug.watch("boss_vie",   vie)
+    Debug.watch("boss_etat",  fsm:getState())
+    Debug.watch("boss_phase", en_phase2 and "Phase 2" or "Phase 1")
+end
+
+-- ── Transition de phase ───────────────────────────────────────────────────────
+function transitionPhase2()
+    Scheduler.start(function()
+        SceneFX.flash(Color.new(255, 40, 0, 200), 0.5)
+        Camera.shake(1.0, 18)
+        Sound.play("data/sounds/boss_phase2.ogg")
+        Notify.show("PHASE 2 !", { color = "red", duration = 4 })
+        Anim.play(entity, "rage", false)
+        Scheduler.wait(1.8)
+
+        -- Petit soin de transition pour rendre la phase 2 plus longue.
+        Stats.mod(entity.id, "Vie", 30)
+        fsm:transition("Repos")
+    end)
+end
+
+-- ── Séquence de mort ─────────────────────────────────────────────────────────
+function sequenceMort()
+    local seq = Sequence.new()
+    seq:repeat_(6, function()
+        local pos = entity:getPosition()
+        Particles.emit(
+            pos.x + Random.float(-60, 60),
+            pos.y + Random.float(-60, 60), {
+                count = 25, speed = 200, spread = 360,
+                color = Color.new(255, 110, 0),
+            })
+        Sound.play("data/sounds/explosion.ogg")
+    end)
+    seq:wait(0.3)
+    seq:call(function()
+        local joueur_local = World.findByTag("player")
+        if joueur_local then Loot.dropFor(joueur_local, "coffre_boss") end
+        Flag.set("mini_boss_vaincu")
+        Achievement.unlock("chasseur_de_boss")
+        Quest.complete("vaincre_le_gardien")
+
+        SceneFX.fadeIn(2.0, function()
+            Scene.setActive("fin_de_zone")
+        end)
+    end)
+    seq:play()
+end
+
+-- ── Handlers ─────────────────────────────────────────────────────────────────
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" and fsm and fsm:getState() ~= "Mort" then
+        fsm:transition("Mort")
+    end
+end
+
+function OnMessage(msg, data)
+    if msg == "stun" and fsm then
+        fsm:transition("Repos")
+        Notify.floatingText(entity, "ÉTOURDI", { color = "yellow" })
     end
 end</code></pre>
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════ RECAP -->
+  <div class="section">
+    <h2>Récapitulatif des niveaux</h2>
+    <table class="api-table">
+      <thead><tr><th>Niveau</th><th>Concept</th><th>Modules utilisés</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Squelette : init / update</td><td>Log, Anim</td></tr>
+        <tr><td>2</td><td>Données : variables locales, self, Stats</td><td>Stats</td></tr>
+        <tr><td>3</td><td>Monde : détecter, se déplacer</td><td>World, Nav, Anim, entity:getDistance</td></tr>
+        <tr><td>4</td><td>Combat : attaque et cooldown</td><td>Cooldown, Stats, Camera, Sound</td></tr>
+        <tr><td>5</td><td>Événements : OnStatZeroed, OnMessage, Timer</td><td>Timer, Particles, Loot, Notify</td></tr>
+        <tr><td>6</td><td>Temporalité : Timer vs Scheduler</td><td>Timer, Scheduler, SceneFX, Camera</td></tr>
+        <tr><td>7</td><td>Organisation : machine à états</td><td>StateMachine</td></tr>
+        <tr><td>8</td><td>Haute complexité : FSM + phases + cinématique</td><td>Tout ce qui précède + Projectile, Sequence, Achievement, Quest, Flag</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <div class="callout success">
-    <strong>Prochaines étapes :</strong> consultez <a href="structure.html" target="_self">Structure d'un script</a> pour les détails sur le cycle de vie, ou les tutoriels <a href="tuto_ennemi.html" target="_self">Ennemi avec IA</a> et <a href="tuto_boss.html" target="_self">Boss de donjon</a> pour des exemples complets.
+    <strong>Prochaines étapes :</strong>
+    <a href="demarrer.html" target="_self">Introduction</a> pour la liste complète des named handlers —
+    <a href="tuto_ennemi.html" target="_self">Ennemi avec IA</a> pour une IA de patrouille complète —
+    <a href="tuto_boss.html" target="_self">Boss de donjon</a> pour un boss à deux phases complet avec cinématique.
   </div>
 
 </div>
