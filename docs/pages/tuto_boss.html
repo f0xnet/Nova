@@ -15,21 +15,19 @@
     <p class="subtitle">Créer un boss complet — cinématique d'entrée, plusieurs phases, attaques variées, mort spectaculaire et récompenses.</p>
   </div>
 
-  <div class="callout info">
-    <strong>Ce que vous allez créer :</strong> un dragon boss avec une cinématique d'introduction, 2 phases de combat (normal puis enragé), 3 attaques différentes et une mort dramatique.
-  </div>
-
   <div class="section">
     <h2>1. Initialisation et cinématique</h2>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; boss_dragon.lua — OnInit + cinématique</div>
-      <pre><code class="lua">local sm
+      <pre><code class="lua">local fsm
 local joueur
-local PV_MAX     = 500
-local PHASE2_PV  = 150    -- Phase 2 sous 150 PV
-local en_phase2  = false
+local boss          -- référence à l'entité boss elle-même
+local PV_MAX    = 500
+local PHASE2_PV = 150
+local en_phase2 = false
 
 function OnInit(entity)
+    boss   = entity
     joueur = World.findByTag("player")
 
     Stats.init(entity.id, {
@@ -37,233 +35,208 @@ function OnInit(entity)
         VieMax = PV_MAX,
     })
 
-    -- Le boss commence désactivé → activé par le trigger d'entrée
-    entity:disable()
+    entity:disable()  -- commence désactivé, activé par le trigger
 
-    -- Réagir à la mort
     EventBus.on("stat_zeroed_" .. tostring(entity.id), function(data)
-        if data.stat == "Vie" then sm:setState("Mort") end
+        if data.stat == "Vie" then fsm:transition("Mort") end
+    end)
+
+    EventBus.on("boss_arena_entree", function()
+        lancerCutscene(entity)
     end)
 end
 
--- Appelé par le trigger de porte du boss
-EventBus.on("boss_arena_entree", function()
-    lancerCutscene()
-end)
-
-function lancerCutscene()
+function lancerCutscene(entity)
     Scheduler.start(function()
-        -- Bloquer les contrôles du joueur
         EventBus.emit("controles_bloques", {})
-
-        -- Fermer les portes derrière le joueur
         EventBus.emit("portes_fermer", {})
         Sound.play("data/sounds/portes_metal.ogg")
 
-        -- Fondu + musique du boss
         SceneFX.fadeIn(0.5, function()
-            boss:enable()
+            entity:enable()
             Sound.playMusic("data/music/boss_dragon.ogg")
             SceneFX.fadeOut(0.8)
         end)
         Scheduler.wait(1.5)
 
-        -- La caméra va vers le boss
         Camera.unfollow()
-        Camera.moveTo(boss:getPosition().x, boss:getPosition().y, 2.0, "easeInOut")
+        local pos_boss = entity:getPosition()
+        Camera.moveTo(pos_boss.x, pos_boss.y, 2.0, "easeInOut")
         Scheduler.wait(2.2)
 
-        -- Rugissement du boss
         Camera.zoomTo(1.6, 0.4, "easeOut")
         Sound.play("data/sounds/dragon_rugit.ogg")
         Camera.shake(0.8, 12)
-        Anim.play(boss, "roar", false)
+        Anim.play(entity, "roar", false)
         Scheduler.wait(2.5)
 
-        -- Retour au joueur
         Camera.follow(joueur)
         Camera.zoomTo(1.0, 1.0, "easeInOut")
         Scheduler.wait(1.0)
 
-        -- Débloquer et commencer
         EventBus.emit("controles_liberes", {})
-        sm = creerStateMachine(boss)
+
+        -- Créer la machine à états et démarrer le combat
+        fsm = creerFSM(entity)
     end)
 end</code></pre>
     </div>
   </div>
 
   <div class="section">
-    <h2>2. États du boss</h2>
+    <h2>2. Machine à états du boss</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; boss_dragon.lua — machine à états</div>
-      <pre><code class="lua">function creerStateMachine(entity)
-    return StateMachine.new({
+      <div class="code-label">lua &nbsp;·&nbsp; creerFSM()</div>
+      <pre><code class="lua">function creerFSM(entity)
+    local f = StateMachine.new("Repos")
 
-        -- Attaque 1 : charge vers le joueur
-        Charge = {
-            onEnter = function()
-                Anim.play(entity, "charge", false)
-                Sound.play("data/sounds/dragon_charge.ogg")
+    -- Attaque 1 : charge vers le joueur
+    f:addState("Charge",
+        function()
+            Anim.play(entity, "charge", false)
+            Sound.play("data/sounds/dragon_charge.ogg")
 
-                local pos_j = World.getPosition(joueur)
-                local pos_e = World.getPosition(entity)
-                local dir   = Vec2.normalize(Vec2.sub(
-                    Vec2.new(pos_j.x, pos_j.y),
-                    Vec2.new(pos_e.x, pos_e.y)
-                ))
+            local pos_e = entity:getPosition()
+            local pos_j = joueur:getPosition()
+            local dir   = Vec2.normalize(Vec2.new(
+                pos_j.x - pos_e.x,
+                pos_j.y - pos_e.y
+            ))
 
-                -- Dash rapide vers le joueur
-                Physics.addImpulse(entity, dir.x * 600, dir.y * 600)
-
-                Anim.onFinish(entity, function()
-                    sm:setState("Repos")
-                end)
-            end,
-            onUpdate = function(dt)
-                -- Dégâts si on touche le joueur pendant la charge
-                local dist = distAuJoueur(entity)
-                if dist < 60 then
-                    Stats.mod(joueur.id, "Vie", -30)
-                    Camera.shake(0.3, 10)
-                    sm:setState("Repos")
-                end
-            end,
-        },
-
-        -- Attaque 2 : boule de feu
-        BouleDeFeu = {
-            onEnter = function()
-                Anim.play(entity, "cast", false)
-                Sound.play("data/sounds/dragon_souffle.ogg")
-
-                Anim.onFrame(entity, 6, function()
-                    local pos   = World.getPosition(entity)
-                    local pos_j = World.getPosition(joueur)
-
-                    Projectile.fire(pos.x, pos.y, {
-                        dx      = pos_j.x - pos.x,
-                        dy      = pos_j.y - pos.y,
-                        vitesse = 280,
-                        prefab  = "projectile_boule_feu",
-                        degats  = en_phase2 and 35 or 20,
-                        tag_cible = "player",
-                    })
-                end)
-
-                Anim.onFinish(entity, function()
-                    sm:setState("Repos")
-                end)
-            end,
-        },
-
-        -- Attaque 3 (phase 2 seulement) : pluie de feu
-        PluieDeFeu = {
-            onEnter = function()
-                Anim.play(entity, "rage", false)
-                Sound.play("data/sounds/dragon_hurle.ogg")
-                SceneFX.flash(Color.new(255, 80, 0, 120), 0.3)
-
-                -- 5 projectiles en éventail
-                local pos = World.getPosition(entity)
-                for i = -2, 2 do
-                    local angle = Math.angle(pos.x, pos.y,
-                                              World.getPosition(joueur).x,
-                                              World.getPosition(joueur).y)
-                    local dir   = Vec2.fromAngle(angle + i * 20)
-                    Projectile.fire(pos.x, pos.y, {
-                        dx = dir.x, dy = dir.y,
-                        vitesse  = 220,
-                        prefab   = "projectile_boule_feu",
-                        degats   = 15,
-                        tag_cible = "player",
-                    })
-                end
-
-                Anim.onFinish(entity, function()
-                    sm:setState("Repos")
-                end)
-            end,
-        },
-
-        -- Temps mort entre les attaques
-        Repos = {
-            onEnter = function()
-                Anim.play(entity, "idle", true)
-                local duree_repos = en_phase2 and 1.0 or 2.0
-                Timer.after(duree_repos, function()
-                    -- Choisir la prochaine attaque
-                    choisirAttaque()
-                end)
-            end,
-        },
-
-        -- Mort
-        Mort = {
-            onEnter = function()
-                Anim.play(entity, "death", false)
-                Sound.play("data/sounds/dragon_mort.ogg")
-                Camera.shake(1.5, 20)
-
-                -- Explosions progressives
-                Scheduler.start(function()
-                    local pos = World.getPosition(entity)
-                    for i = 1, 8 do
-                        local ox = Random.float(-80, 80)
-                        local oy = Random.float(-80, 80)
-                        Particles.emit(pos.x + ox, pos.y + oy, {
-                            count = 30, speed = 200, spread = 360,
-                            color = Color.new(255, 120, 0), gravity = 60,
-                        })
-                        Sound.play("data/sounds/explosion.ogg")
-                        Scheduler.wait(0.3)
+            -- Déplacement rapide en ligne droite
+            Scheduler.start(function()
+                local temps = 0
+                while temps < 0.4 do
+                    local dt = Scheduler.wait(0)
+                    local p  = entity:getPosition()
+                    entity:setPosition(p.x + dir.x * 600 * dt,
+                                       p.y + dir.y * 600 * dt)
+                    -- Dégâts si proche du joueur
+                    if entity:getDistance(joueur) < 60 then
+                        Stats.mod(joueur.id, "Vie", -30)
+                        Camera.shake(0.3, 10)
+                        break
                     end
+                    temps = temps + dt
+                end
+                f:transition("Repos")
+            end)
+        end
+    )
 
-                    -- Récompenses
-                    Loot.drop(pos.x, pos.y, {
-                        { id = "piece_or",    poids = 100, quantite = { min = 100, max = 200 } },
-                        { id = "armure_dragon", poids = 50 },
-                        { id = "cle_tresor",   poids = 100 },
+    -- Attaque 2 : boule de feu
+    f:addState("BouleDeFeu",
+        function()
+            Anim.play(entity, "cast", false)
+            Sound.play("data/sounds/dragon_souffle.ogg")
+
+            Anim.onFrame(entity, 6, function()
+                local pos   = entity:getPosition()
+                local pos_j = joueur:getPosition()
+                Projectile.fire(pos.x, pos.y, {
+                    dx      = pos_j.x - pos.x,
+                    dy      = pos_j.y - pos.y,
+                    vitesse = 280,
+                    prefab  = "projectile_boule_feu",
+                    degats  = en_phase2 and 35 or 20,
+                })
+            end)
+
+            Anim.onFinish(entity, function()
+                f:transition("Repos")
+            end)
+        end
+    )
+
+    -- Attaque 3 (phase 2) : éventail de projectiles
+    f:addState("Eventail",
+        function()
+            Sound.play("data/sounds/dragon_hurle.ogg")
+            SceneFX.flash(Color.new(255, 80, 0, 120), 0.3)
+
+            local pos   = entity:getPosition()
+            local pos_j = joueur:getPosition()
+            local angle = Math.angleTo(pos.x, pos.y, pos_j.x, pos_j.y)
+
+            for i = -2, 2 do
+                local dir = Vec2.fromAngle(angle + i * 20)
+                Projectile.fire(pos.x, pos.y, {
+                    dx = dir.x, dy = dir.y,
+                    vitesse = 220,
+                    prefab  = "projectile_boule_feu",
+                    degats  = 15,
+                })
+            end
+
+            Timer.after(0.5, function() f:transition("Repos") end)
+        end
+    )
+
+    -- Repos entre les attaques
+    f:addState("Repos",
+        function()
+            Anim.play(entity, "idle", true)
+            local duree = en_phase2 and 1.0 or 2.0
+            Timer.after(duree, function() choisirAttaque(f) end)
+        end
+    )
+
+    -- Mort
+    f:addState("Mort",
+        function()
+            Anim.play(entity, "death", false)
+            Sound.play("data/sounds/dragon_mort.ogg")
+            Camera.shake(1.5, 20)
+
+            local seq = Sequence.new()
+            seq:repeat_(8, function()
+                local pos = entity:getPosition()
+                Particles.emit(
+                    pos.x + Random.float(-80, 80),
+                    pos.y + Random.float(-80, 80), {
+                        count = 30, speed = 200, spread = 360,
+                        color = Color.new(255, 120, 0),
                     })
+                Sound.play("data/sounds/explosion.ogg")
+            end)
+            seq:wait(0.3)
+            seq:call(function()
+                Loot.dropFor(entity, "coffre_boss")
+                Flag.set("boss_dragon_vaincu")
+                Achievement.unlock("tueur_de_dragon")
+                Quest.complete("vaincre_le_boss")
 
-                    Flag.set("boss_dragon_vaincu")
-                    Achievement.unlock("tueur_de_dragon")
-                    Quest.complete("vaincre_le_boss")
-
-                    Scheduler.wait(1.0)
-                    SceneFX.fadeIn(2.0, function()
-                        Scene.setActive("fin_de_niveau")
-                    end)
+                SceneFX.fadeIn(2.0, function()
+                    Scene.setActive("fin_de_niveau")
                 end)
-            end,
-        },
+            end)
+            seq:play()
+        end
+    )
 
-    }, "Repos")
+    return f
 end
 
--- Choisir l'attaque suivante selon la phase
-function choisirAttaque()
+function choisirAttaque(f)
     if en_phase2 then
-        local attaques = { "Charge", "BouleDeFeu", "PluieDeFeu" }
-        sm:setState(Random.pick(attaques))
+        f:transition(Random.pick({ "Charge", "BouleDeFeu", "Eventail" }))
     else
-        local attaques = { "Charge", "BouleDeFeu" }
-        sm:setState(Random.pick(attaques))
+        f:transition(Random.pick({ "Charge", "BouleDeFeu" }))
     end
 end</code></pre>
     </div>
   </div>
 
   <div class="section">
-    <h2>3. Update et changement de phase</h2>
+    <h2>3. OnUpdate et changement de phase</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; boss_dragon.lua — OnUpdate</div>
+      <div class="code-label">lua &nbsp;·&nbsp; OnUpdate + phase 2</div>
       <pre><code class="lua">function OnUpdate(entity, dt)
-    if sm == nil or sm:is("Mort") then return end
+    if fsm == nil or fsm:getState() == "Mort" then return end
 
-    sm:update(dt)
+    fsm:update(entity, dt)
 
-    -- Passer en phase 2 quand les PV passent sous le seuil
+    -- Déclencher la phase 2
     local vie = Stats.get(entity.id, "Vie", 0)
     if not en_phase2 and vie <= PHASE2_PV then
         en_phase2 = true
@@ -272,36 +245,28 @@ end</code></pre>
 
     Debug.watch("boss_vie",   vie)
     Debug.watch("boss_phase", en_phase2 and "ENRAGÉ" or "Normal")
-    Debug.watch("boss_etat",  sm:getState())
+    Debug.watch("boss_etat",  fsm:getState())
 end
 
 function entrerEnPhase2(entity)
-    -- Séquence d'enragement
     Scheduler.start(function()
         SceneFX.flash(Color.new(255, 50, 0, 200), 0.5)
         Camera.shake(0.8, 15)
         Sound.play("data/sounds/dragon_phase2.ogg")
-
         Notify.show("Le dragon est enragé !", "error", 4)
+
         Anim.play(entity, "rage", false)
         Scheduler.wait(1.5)
 
-        -- Le boss regagne un peu de vie à la transition
         Stats.set(entity.id, "Vie", PHASE2_PV + 20)
-        sm:setState("Repos")
+        fsm:transition("Repos")
     end)
-end
-
-function distAuJoueur(entity)
-    local pos_e = World.getPosition(entity)
-    local pos_j = World.getPosition(joueur)
-    return Math.distance(pos_e.x, pos_e.y, pos_j.x, pos_j.y)
 end</code></pre>
     </div>
   </div>
 
   <div class="callout success">
-    <strong>Résultat :</strong> un boss à 2 phases avec cinématique, 3 attaques, projectiles, effets de caméra, particules et récompenses à la mort. Tous les modules Nova en action.
+    <strong>Résultat :</strong> un boss à 2 phases avec cinématique, 3 attaques, projectiles, effets de caméra, séquence de mort, loot et succès. Tous les modules Nova en action.
   </div>
 
 </div>
