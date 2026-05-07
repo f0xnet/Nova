@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quest — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">📜</span>
+    <h1>Quest</h1>
+    <p class="subtitle">Système de quêtes — suivre la progression, valider des objectifs, déclencher des récompenses.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Quest.start(id)</td><td>Démarre la quête. Ne fait rien si déjà commencée.</td></tr>
+        <tr><td>Quest.complete(id)</td><td>Marque la quête comme terminée et déclenche la récompense.</td></tr>
+        <tr><td>Quest.fail(id)</td><td>Marque la quête comme échouée.</td></tr>
+        <tr><td>Quest.isActive(id)</td><td>Vrai si la quête est en cours.</td></tr>
+        <tr><td>Quest.isDone(id)</td><td>Vrai si la quête est terminée (réussie).</td></tr>
+        <tr><td>Quest.getProgress(id, objectif)</td><td>Valeur actuelle d'un objectif numérique.</td></tr>
+        <tr><td>Quest.setProgress(id, objectif, valeur)</td><td>Définit la valeur d'un objectif.</td></tr>
+        <tr><td>Quest.addProgress(id, objectif, delta)</td><td>Ajoute <code>delta</code> à l'objectif (ex : +1 monstre tué).</td></tr>
+        <tr><td>Quest.getGoal(id, objectif)</td><td>Valeur cible de l'objectif (définie dans la config).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Configuration :</strong> les quêtes sont définies dans <code>data/quests/</code> (fichiers JSON). Le script se contente de les piloter.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Quête "Tuer 5 loups"</div>
+      <pre><code class="lua">-- Donner la quête quand le joueur parle au chasseur
+function OnTriggerEnter(entity, other)
+    if other:hasTag("player") then
+        Quest.start("tuer_loups")
+        Notify.show("Nouvelle quête : Tuer 5 loups !")
+    end
+end
+
+-- Dans le script du loup : compter les morts
+function OnDestroy(entity)
+    if Quest.isActive("tuer_loups") then
+        Quest.addProgress("tuer_loups", "loups_tues", 1)
+
+        local tues  = Quest.getProgress("tuer_loups", "loups_tues")
+        local total = Quest.getGoal("tuer_loups", "loups_tues")
+        Notify.show("Loups tués : " .. tues .. " / " .. total)
+
+        if tues >= total then
+            Quest.complete("tuer_loups")
+        end
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Quête "Récupérer l'épée"</div>
+      <pre><code class="lua">-- Démarrer la quête au dialogue
+Quest.start("recuperer_epee")
+
+-- Dans le script du coffre qui contient l'épée
+function OnInteract(entity, joueur)
+    Inventory.give(joueur, "epee_ancienne")
+    Notify.show("Vous avez trouvé l'Épée Ancienne !")
+
+    if Quest.isActive("recuperer_epee") then
+        Quest.setProgress("recuperer_epee", "epee_trouvee", 1)
+        Quest.complete("recuperer_epee")
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Réagir à la complétion d'une quête</div>
+      <pre><code class="lua">-- L'EventBus émet "quest_complete" avec l'id de la quête
+EventBus.on("quest_complete", function(data)
+    if data.id == "tuer_loups" then
+        -- Récompenser le joueur
+        Inventory.give(joueur, "piece_or", 50)
+        Notify.show("Quête terminée ! +50 pièces d'or.")
+
+        -- Mettre à jour le dialogue du chasseur
+        Flag.set("quete_loups_terminee")
+    end
+end)
+
+-- L'EventBus émet aussi "quest_fail"
+EventBus.on("quest_fail", function(data)
+    if data.id == "escorte_marchande" then
+        Notify.show("Échec : le marchand est mort.", "error")
+    end
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

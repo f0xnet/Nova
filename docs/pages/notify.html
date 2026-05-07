@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Notify — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🔔</span>
+    <h1>Notify</h1>
+    <p class="subtitle">Notifications à l'écran — messages de jeu, alertes, confirmations. S'empilent automatiquement et disparaissent après quelques secondes.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Notify.show(texte)</td><td>Affiche une notification info (bleue) pendant 3 secondes.</td></tr>
+        <tr><td>Notify.show(texte, type)</td><td>Type : <code>"info"</code>, <code>"success"</code>, <code>"warn"</code>, <code>"error"</code>.</td></tr>
+        <tr><td>Notify.show(texte, type, duree)</td><td>Durée en secondes avant disparition.</td></tr>
+        <tr><td>Notify.clear()</td><td>Efface toutes les notifications à l'écran.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Notifications courantes</div>
+      <pre><code class="lua">-- Info basique (bleu, 3 sec)
+Notify.show("Nouvelle zone découverte !")
+
+-- Succès (vert)
+Notify.show("Quête terminée !", "success")
+
+-- Avertissement (orange)
+Notify.show("Vie faible !", "warn")
+
+-- Erreur (rouge)
+Notify.show("Inventaire plein !", "error")
+
+-- Durée personnalisée (10 secondes)
+Notify.show("Boss apparu au nord !", "warn", 10)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Notifications de jeu intégrées</div>
+      <pre><code class="lua">-- Ramasser un objet
+function OnInteract(entity, joueur)
+    local nom = entity:getData("nom")
+    Inventory.give(joueur, entity:getData("id_item"))
+    Notify.show("Obtenu : " .. nom, "success")
+    entity:disable()
+end
+
+-- Vie basse
+EventBus.on("stat_zeroed", function(data)
+    if data.stat == "Vie" then
+        Notify.show("Le joueur est mort !", "error")
+    end
+end)
+
+-- Atteindre un niveau
+EventBus.on("level_up", function(data)
+    Notify.show("Niveau " .. data.niveau .. " atteint !", "success", 5)
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

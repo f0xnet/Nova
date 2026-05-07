@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Conversation — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">💬</span>
+    <h1>Conversation</h1>
+    <p class="subtitle">Système de dialogues — afficher une suite de répliques, faire des choix, brancher l'histoire selon les flags et l'inventaire.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Conversation.start(dialogue)</td><td>Lance une conversation à partir d'une table de répliques.</td></tr>
+        <tr><td>Conversation.stop()</td><td>Ferme la boîte de dialogue immédiatement.</td></tr>
+        <tr><td>Conversation.isActive()</td><td>Vrai si un dialogue est en cours.</td></tr>
+        <tr><td>Conversation.onEnd(fonction)</td><td>Appelée quand le dialogue se termine (dernier choix ou dernière réplique).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Structure d'un dialogue</h2>
+    <p>Un dialogue est un tableau de <strong>nœuds</strong>. Chaque nœud représente une réplique ou un choix.</p>
+    <table class="api-table">
+      <thead><tr><th>Champ</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>speaker</td><td>Nom du personnage qui parle.</td></tr>
+        <tr><td>text</td><td>Texte de la réplique.</td></tr>
+        <tr><td>choices</td><td>Liste de choix (optionnel). Si absent : bouton "Suivant" automatique.</td></tr>
+        <tr><td>next</td><td>Index du prochain nœud. Si absent : continue au suivant.</td></tr>
+        <tr><td>condition</td><td>Fonction qui renvoie vrai/faux pour afficher un choix.</td></tr>
+        <tr><td>action</td><td>Fonction appelée quand ce nœud est atteint.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Dialogue simple avec un PNJ</div>
+      <pre><code class="lua">local dialogue_marchand = {
+    { speaker = "Marchand", text = "Bonjour voyageur ! Que cherches-tu ?" },
+    { speaker = "Marchand", text = "J'ai de belles potions si tu es intéressé." },
+    { speaker = "Marchand", text = "Reviens quand tu veux !" },
+}
+
+-- Lancer le dialogue quand le joueur interagit
+function OnTriggerEnter(entity, other)
+    if other:hasTag("player") then
+        Conversation.start(dialogue_marchand)
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Dialogue avec choix et branches</div>
+      <pre><code class="lua">local dialogue_garde = {
+    -- Nœud 1 : première réplique
+    {
+        speaker = "Garde",
+        text    = "Halte ! Qui vas-tu ? Que veux-tu ?",
+        choices = {
+            { text = "Je cherche le roi.",      next = 2 },
+            { text = "Juste passer mon chemin.", next = 3 },
+            { text = "Je t'attaque !",           next = 4 },
+        }
+    },
+
+    -- Nœud 2 : joueur veut voir le roi
+    {
+        speaker = "Garde",
+        text    = "Bien. Suivez le couloir à gauche.",
+        action  = function()
+            Flag.set("garde_parle")
+        end
+    },
+
+    -- Nœud 3 : joueur passe
+    {
+        speaker = "Garde",
+        text    = "Très bien. Mais ne faites pas d'histoires.",
+    },
+
+    -- Nœud 4 : joueur attaque
+    {
+        speaker = "Garde",
+        text    = "Quoi ?! Gardes, à moi !",
+        action  = function()
+            EventBus.emit("alerte_gardes", {})
+        end
+    },
+}
+
+-- Lancer le dialogue
+Conversation.start(dialogue_garde)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Choix conditionnels (selon inventaire ou flags)</div>
+      <pre><code class="lua">local dialogue_sage = {
+    {
+        speaker = "Sage",
+        text    = "Tu es revenu... que veux-tu ?",
+        choices = {
+            -- Ce choix n'apparaît que si le joueur a la gemme
+            {
+                text      = "Je t'apporte la Gemme de Feu.",
+                next      = 2,
+                condition = function()
+                    return Inventory.has("gemme_feu")
+                end
+            },
+            -- Ce choix n'apparaît que si le joueur a déjà parlé au roi
+            {
+                text      = "Le roi m'a parlé de toi.",
+                next      = 3,
+                condition = function()
+                    return Flag.get("roi_parle")
+                end
+            },
+            -- Ce choix est toujours visible
+            { text = "Rien, au revoir.", next = 4 },
+        }
+    },
+
+    { speaker = "Sage", text = "Excellent ! Tu as réussi la quête !", action = function()
+        Quest.complete("trouver_gemme")
+    end },
+
+    { speaker = "Sage", text = "Ah oui, Sa Majesté m'a prévenu de ta venue." },
+
+    { speaker = "Sage", text = "Comme tu veux, voyageur." },
+}
+
+Conversation.start(dialogue_sage)
+
+-- Action après la fin du dialogue
+Conversation.onEnd(function()
+    print("Dialogue avec le sage terminé.")
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
