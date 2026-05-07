@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>i18n — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🌍</span>
+    <h1>i18n</h1>
+    <p class="subtitle">Internationalisation — afficher les textes dans la langue du joueur grâce à des fichiers de traduction.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>i18n.t(cle)</td><td>Retourne la traduction de la clé dans la langue active. Retourne la clé si non trouvée.</td></tr>
+        <tr><td>i18n.t(cle, vars)</td><td>Traduction avec variables. Ex: <code>{nom="Alice", pts=10}</code>.</td></tr>
+        <tr><td>i18n.setLanguage(code)</td><td>Change la langue active. Codes : <code>"fr"</code>, <code>"en"</code>, <code>"de"</code>, <code>"es"</code>…</td></tr>
+        <tr><td>i18n.getLanguage()</td><td>Code de la langue active.</td></tr>
+        <tr><td>i18n.available()</td><td>Liste des codes de langue disponibles.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Fichiers de traduction</h2>
+    <p>Placez vos fichiers dans <code>data/lang/</code>. Un fichier JSON par langue :</p>
+    <div class="code-wrap">
+      <div class="code-label">json &nbsp;·&nbsp; data/lang/fr.json</div>
+      <pre><code class="lua">{
+    "menu.jouer":           "Jouer",
+    "menu.options":         "Options",
+    "menu.quitter":         "Quitter",
+    "hud.vie":              "Vie",
+    "notif.niveau":         "Niveau {niveau} atteint !",
+    "notif.objet":          "Obtenu : {nom}",
+    "dialogue.marchand":    "Bonjour, aventurier !"
+}</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">json &nbsp;·&nbsp; data/lang/en.json</div>
+      <pre><code class="lua">{
+    "menu.jouer":           "Play",
+    "menu.options":         "Options",
+    "menu.quitter":         "Quit",
+    "hud.vie":              "HP",
+    "notif.niveau":         "Level {niveau} reached!",
+    "notif.objet":          "Obtained: {nom}",
+    "dialogue.marchand":    "Hello, adventurer!"
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Utiliser les traductions</div>
+      <pre><code class="lua">-- Texte simple
+local texte_jouer = i18n.t("menu.jouer")   -- "Jouer" ou "Play"
+
+-- Texte avec variables
+local notif = i18n.t("notif.niveau", { niveau = 5 })
+Notify.show(notif, "success")  -- "Niveau 5 atteint !"
+
+local objet = i18n.t("notif.objet", { nom = "Épée longue" })
+Notify.show(objet)  -- "Obtenu : Épée longue"
+
+-- Dialogue traduit
+Conversation.start({
+    { speaker = "Marchand", text = i18n.t("dialogue.marchand") }
+})</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Changer la langue depuis les options</div>
+      <pre><code class="lua">-- Langues disponibles
+local langues = i18n.available()   -- { "fr", "en", "de", "es" }
+
+-- Changer la langue
+function changerLangue(code)
+    i18n.setLanguage(code)
+    Persist.set("langue", code)
+    Notify.show("Langue : " .. code)
+end
+
+-- Restaurer la langue sauvegardée au démarrage
+local langue_sauvee = Persist.get("langue", "fr")
+i18n.setLanguage(langue_sauvee)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

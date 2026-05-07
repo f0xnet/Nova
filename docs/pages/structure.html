@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Structure du projet — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">📁</span>
+    <h1>Structure du projet</h1>
+    <p class="subtitle">Comment organiser les fichiers d'un projet Nova — scripts, assets, données et scènes.</p>
+  </div>
+
+  <div class="section">
+    <h2>Arborescence recommandée</h2>
+    <div class="code-wrap">
+      <div class="code-label">Structure de fichiers</div>
+      <pre><code class="lua">MonJeu/
+├── scenes/
+│   ├── menu_principal.scene
+│   ├── monde1.scene
+│   └── donjon_niveau1.scene
+│
+├── data/
+│   ├── scripts/
+│   │   ├── joueur.lua          -- Script attaché au joueur
+│   │   ├── ennemi_gobelin.lua  -- Script attaché au gobelin
+│   │   ├── boss_dragon.lua     -- Script du boss
+│   │   ├── coffre.lua          -- Script des coffres
+│   │   └── global.lua          -- Script chargé au démarrage du jeu
+│   │
+│   ├── items.json              -- Définition des objets
+│   ├── quests/
+│   │   ├── tuer_loups.json
+│   │   └── trouver_gemme.json
+│   ├── achievements.json
+│   ├── lang/
+│   │   ├── fr.json
+│   │   └── en.json
+│   │
+│   ├── sprites/
+│   │   ├── joueur.png
+│   │   └── ennemis/
+│   │       ├── gobelin.png
+│   │       └── dragon.png
+│   │
+│   ├── sounds/
+│   │   ├── epee.ogg
+│   │   └── explosion.ogg
+│   │
+│   └── music/
+│       ├── menu.ogg
+│       └── combat.ogg</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Script global (démarrage)</h2>
+    <p>Le script <code>global.lua</code> est chargé une seule fois au lancement. C'est ici que vous définissez les raccourcis, les succès, les bindings.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/scripts/global.lua</div>
+      <pre><code class="lua">-- Contrôles
+InputBind.define("bouger_gauche",  { "left",  "a" })
+InputBind.define("bouger_droite",  { "right", "d" })
+InputBind.define("bouger_haut",    { "up",    "w" })
+InputBind.define("bouger_bas",     { "down",  "s" })
+InputBind.define("attaquer",       { "space", "mouse_left" })
+InputBind.define("interagir",      { "e" })
+InputBind.define("inventaire",     { "i" })
+
+-- Langue
+local langue = Persist.get("langue", "fr")
+i18n.setLanguage(langue)
+
+-- Musique du menu
+Scene.onLoad(function()
+    if Scene.getName() == "menu_principal" then
+        Sound.playMusic("data/music/menu.ogg")
+    end
+end)</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Script d'entité</h2>
+    <p>Chaque script est attaché à une entité dans l'éditeur. Les fonctions de cycle de vie sont appelées automatiquement.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/scripts/ennemi_gobelin.lua</div>
+      <pre><code class="lua">-- Variables locales au script (privées à chaque entité)
+local sm
+local joueur
+local hp_max = 40
+
+function OnInit(entity)
+    -- Initialiser les stats
+    Stats.init(entity.id, { Vie = hp_max, VieMax = hp_max, Degats = 10 })
+
+    -- Trouver le joueur
+    joueur = World.findByTag("player")
+
+    -- Créer la machine à états
+    sm = StateMachine.new({ ... }, "Patrouille")
+end
+
+function OnUpdate(entity, dt)
+    sm:update(dt)
+end
+
+function OnDestroy(entity)
+    -- Loot et effets à la mort
+    local pos = World.getPosition(entity)
+    Loot.drop(pos.x, pos.y, { { id = "piece_or", poids = 100 } })
+    Particles.emit(pos.x, pos.y, { count = 10, speed = 100, spread = 360 })
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Bonnes pratiques</h2>
+    <table class="api-table">
+      <thead><tr><th>Règle</th><th>Pourquoi</th></tr></thead>
+      <tbody>
+        <tr><td>Un script par type d'entité</td><td>Plus facile à maintenir et déboguer.</td></tr>
+        <tr><td>Variables locales en haut du script</td><td>Évite les conflits entre scripts.</td></tr>
+        <tr><td>Données dans data/ (JSON), logique dans scripts/</td><td>Modifier les stats sans toucher au code.</td></tr>
+        <tr><td>Debug.enabled = false en production</td><td>Évite les affichages de débogage chez le joueur.</td></tr>
+        <tr><td>Utiliser EventBus pour communiquer entre scripts</td><td>Évite les dépendances directes entre entités.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>
