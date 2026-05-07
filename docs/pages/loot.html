@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Loot — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎁</span>
+    <h1>Loot</h1>
+    <p class="subtitle">Butin aléatoire — définir des tables de loot avec probabilités et faire tomber des objets à la mort d'un ennemi.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Loot.roll(table)</td><td>Tire au sort un objet dans la table de loot. Retourne l'id de l'objet ou <code>nil</code>.</td></tr>
+        <tr><td>Loot.rollAll(table)</td><td>Teste chaque entrée séparément (plusieurs objets possibles). Retourne un tableau d'ids.</td></tr>
+        <tr><td>Loot.drop(x, y, table)</td><td>Fait apparaître les objets dans le monde à la position (x, y).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Structure d'une table de loot</h2>
+    <p>Chaque entrée a un <code>id</code> (item), un <code>poids</code> (chance relative) et une <code>quantite</code> optionnelle.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Définir une table de loot</div>
+      <pre><code class="lua">-- Table de loot d'un gobelin
+local loot_gobelin = {
+    { id = "piece_or",     poids = 60, quantite = { min = 1, max = 5 } },
+    { id = "potion_soin",  poids = 25 },
+    { id = "cle_rouille",  poids = 10 },
+    { id = "epee_gobelin", poids = 5  },
+    -- poids total = 100 → probabilités directement en %
+}
+
+-- Table avec chances indépendantes (rollAll)
+local loot_coffre = {
+    { id = "piece_or",    chance = 1.0,  quantite = { min = 10, max = 30 } },
+    { id = "potion_soin", chance = 0.5  },  -- 50% de chance
+    { id = "epee_rare",   chance = 0.05 },  -- 5% de chance
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Loot à la mort d'un ennemi</div>
+      <pre><code class="lua">local loot_gobelin = {
+    { id = "piece_or",     poids = 60, quantite = { min = 1, max = 5 } },
+    { id = "potion_soin",  poids = 25 },
+    { id = "cle_rouille",  poids = 10 },
+    { id = "epee_gobelin", poids = 5  },
+}
+
+function OnDestroy(entity)
+    local pos = World.getPosition(entity)
+
+    -- Fait tomber 1 objet selon les poids
+    Loot.drop(pos.x, pos.y, loot_gobelin)
+
+    -- Ou récupérer l'objet tiré sans le faire apparaître
+    local objet = Loot.roll(loot_gobelin)
+    if objet then
+        print("Le gobelin a lâché : " .. objet)
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Coffre avec plusieurs objets possibles</div>
+      <pre><code class="lua">local loot_coffre_boss = {
+    { id = "piece_or",    chance = 1.0,  quantite = { min = 50, max = 100 } },
+    { id = "potion_soin", chance = 0.75 },
+    { id = "armure_rare", chance = 0.15 },
+    { id = "cle_donjon",  chance = 0.5  },
+}
+
+function OnInteract(entity, joueur)
+    local pos = World.getPosition(entity)
+
+    -- rollAll : chaque item est testé séparément
+    local objets = Loot.rollAll(loot_coffre_boss)
+
+    for _, id in ipairs(objets) do
+        Inventory.give(joueur, id)
+        Notify.show("Obtenu : " .. id, "success")
+    end
+
+    entity:disable()  -- fermer le coffre
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

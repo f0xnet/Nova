@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Achievement — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🏆</span>
+    <h1>Achievement</h1>
+    <p class="subtitle">Succès et trophées — débloquer des succès, afficher des notifications, vérifier si déjà obtenus.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Achievement.unlock(id)</td><td>Débloque le succès. Ne fait rien si déjà débloqué. Affiche une notification automatiquement.</td></tr>
+        <tr><td>Achievement.isUnlocked(id)</td><td>Vrai si le succès a déjà été obtenu.</td></tr>
+        <tr><td>Achievement.setProgress(id, valeur)</td><td>Met à jour la progression d'un succès numérique.</td></tr>
+        <tr><td>Achievement.getProgress(id)</td><td>Progression actuelle.</td></tr>
+        <tr><td>Achievement.getGoal(id)</td><td>Valeur cible (définie dans la config).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Configuration :</strong> les succès sont définis dans <code>data/achievements.json</code>. Chaque succès a un <code>id</code>, un <code>nom</code>, une <code>description</code> et une icône.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Succès simples</div>
+      <pre><code class="lua">-- Débloquer un succès d'un coup
+Achievement.unlock("premier_pas")       -- "Faire ses premiers pas"
+Achievement.unlock("tuer_boss")         -- "Vaincre le boss final"
+
+-- Vérifier avant de donner une récompense unique
+if not Achievement.isUnlocked("collectionneur") then
+    Achievement.unlock("collectionneur")
+    Inventory.give(joueur, "titre_collectionneur")
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Succès progressif "Tuer 100 ennemis"</div>
+      <pre><code class="lua">-- Dans le script ennemi, à sa mort
+function OnDestroy(entity)
+    -- Incrémenter le compteur global
+    local tues = Achievement.getProgress("tueur") + 1
+    Achievement.setProgress("tueur", tues)
+
+    -- Débloquer automatiquement quand l'objectif est atteint
+    if tues >= Achievement.getGoal("tueur") then
+        Achievement.unlock("tueur")
+        -- "tueur" → "Tuer 100 ennemis" → notification + trophée
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Succès secrets et conditions spéciales</div>
+      <pre><code class="lua">-- Finir le jeu sans mourir
+EventBus.on("joueur_mort", function()
+    Flag.set("est_mort_une_fois")
+end)
+
+EventBus.on("fin_du_jeu", function()
+    if not Flag.get("est_mort_une_fois") then
+        Achievement.unlock("sans_mourir")
+    end
+end)
+
+-- Trouver tous les secrets d'une zone
+local secrets_trouves = 0
+local total_secrets   = 5
+
+EventBus.on("secret_trouve", function()
+    secrets_trouves = secrets_trouves + 1
+    if secrets_trouves >= total_secrets then
+        Achievement.unlock("explorateur")
+    end
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
