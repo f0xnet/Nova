@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Input — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎮</span>
+    <h1>Input</h1>
+    <p class="subtitle">Lire les entrées clavier, souris et manette — touches pressées, axes de direction, position de la souris.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API — Clavier</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Input.isDown(touche)</td><td>Vrai tant que la touche est maintenue.</td></tr>
+        <tr><td>Input.isPressed(touche)</td><td>Vrai uniquement le premier frame où la touche est pressée.</td></tr>
+        <tr><td>Input.isReleased(touche)</td><td>Vrai uniquement le frame où la touche est relâchée.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>API — Souris</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Input.mouseX()</td><td>Position X de la souris dans le monde.</td></tr>
+        <tr><td>Input.mouseY()</td><td>Position Y de la souris dans le monde.</td></tr>
+        <tr><td>Input.mouseScreenX()</td><td>Position X à l'écran (pixels).</td></tr>
+        <tr><td>Input.mouseScreenY()</td><td>Position Y à l'écran (pixels).</td></tr>
+        <tr><td>Input.isDown("mouse_left")</td><td>Clic gauche maintenu.</td></tr>
+        <tr><td>Input.isPressed("mouse_right")</td><td>Clic droit — premier frame seulement.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>API — Manette (InputEx)</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>InputEx.axisX()</td><td>Axe horizontal du stick gauche (−1.0 à +1.0).</td></tr>
+        <tr><td>InputEx.axisY()</td><td>Axe vertical du stick gauche (−1.0 à +1.0).</td></tr>
+        <tr><td>InputEx.isDown(bouton)</td><td>Bouton manette maintenu : <code>"A"</code>, <code>"B"</code>, <code>"X"</code>, <code>"Y"</code>, <code>"LB"</code>, <code>"RB"</code>…</td></tr>
+        <tr><td>InputEx.isPressed(bouton)</td><td>Bouton — premier frame seulement.</td></tr>
+        <tr><td>InputEx.vibrate(gauche, droite, duree)</td><td>Vibration des moteurs (0.0 à 1.0).</td></tr>
+        <tr><td>InputEx.isConnected()</td><td>Vrai si une manette est branchée.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Touches communes</h2>
+    <p><code>"space"</code>, <code>"enter"</code>, <code>"escape"</code>, <code>"tab"</code>, <code>"shift"</code>, <code>"ctrl"</code>, <code>"alt"</code><br>
+    <code>"up"</code>, <code>"down"</code>, <code>"left"</code>, <code>"right"</code><br>
+    <code>"a"</code> … <code>"z"</code>, <code>"0"</code> … <code>"9"</code><br>
+    <code>"f1"</code> … <code>"f12"</code>, <code>"mouse_left"</code>, <code>"mouse_right"</code>, <code>"mouse_middle"</code></p>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Déplacement clavier 4 directions</div>
+      <pre><code class="lua">local VITESSE = 200
+
+function OnUpdate(entity, dt)
+    local dx, dy = 0, 0
+
+    if Input.isDown("left")  or Input.isDown("a") then dx = -1 end
+    if Input.isDown("right") or Input.isDown("d") then dx =  1 end
+    if Input.isDown("up")    or Input.isDown("w") then dy = -1 end
+    if Input.isDown("down")  or Input.isDown("s") then dy =  1 end
+
+    -- Normaliser pour ne pas aller plus vite en diagonale
+    if dx ~= 0 and dy ~= 0 then
+        dx = dx * 0.707
+        dy = dy * 0.707
+    end
+
+    local pos = World.getPosition(entity)
+    World.setPosition(entity, pos.x + dx * VITESSE * dt,
+                               pos.y + dy * VITESSE * dt)
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Attaque au clic souris</div>
+      <pre><code class="lua">function OnUpdate(entity, dt)
+    -- Tirer vers la souris au clic gauche
+    if Input.isPressed("mouse_left") then
+        local pos    = World.getPosition(entity)
+        local cible_x = Input.mouseX()
+        local cible_y = Input.mouseY()
+
+        Projectile.fire(pos.x, pos.y, {
+            dx       = cible_x - pos.x,
+            dy       = cible_y - pos.y,
+            vitesse  = 400,
+            prefab   = "projectile_boule_de_feu",
+        })
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Déplacement manette avec vibration</div>
+      <pre><code class="lua">local VITESSE = 200
+
+function OnUpdate(entity, dt)
+    local dx = InputEx.axisX()
+    local dy = InputEx.axisY()
+
+    local pos = World.getPosition(entity)
+    World.setPosition(entity, pos.x + dx * VITESSE * dt,
+                               pos.y + dy * VITESSE * dt)
+
+    -- Saut au bouton A
+    if InputEx.isPressed("A") then
+        EventBus.emit("joueur_saute", {})
+    end
+end
+
+-- Vibrer quand le joueur est touché
+EventBus.on("joueur_touche", function()
+    InputEx.vibrate(0.8, 0.4, 0.3)
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

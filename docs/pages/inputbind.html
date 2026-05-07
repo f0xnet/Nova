@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>InputBind — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">⌨️</span>
+    <h1>InputBind</h1>
+    <p class="subtitle">Raccourcis configurables — définir des actions nommées, les associer à des touches, permettre à l'utilisateur de les remapper.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>InputBind.define(action, touches)</td><td>Définit une action et ses touches par défaut. <code>touches</code> = liste de strings.</td></tr>
+        <tr><td>InputBind.isDown(action)</td><td>Vrai si l'une des touches de l'action est maintenue.</td></tr>
+        <tr><td>InputBind.isPressed(action)</td><td>Vrai uniquement le premier frame où l'action est déclenchée.</td></tr>
+        <tr><td>InputBind.isReleased(action)</td><td>Vrai quand l'action est relâchée.</td></tr>
+        <tr><td>InputBind.remap(action, touche)</td><td>Change la touche principale de l'action.</td></tr>
+        <tr><td>InputBind.reset(action)</td><td>Remet la touche par défaut.</td></tr>
+        <tr><td>InputBind.getKey(action)</td><td>Retourne la touche principale actuelle.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Définir et utiliser des actions</div>
+      <pre><code class="lua">-- Définir les actions une seule fois (dans un script de démarrage)
+InputBind.define("bouger_gauche",  { "left",  "a"       })
+InputBind.define("bouger_droite",  { "right", "d"       })
+InputBind.define("bouger_haut",    { "up",    "w"       })
+InputBind.define("bouger_bas",     { "down",  "s"       })
+InputBind.define("attaquer",       { "space", "mouse_left" })
+InputBind.define("dash",           { "shift" })
+InputBind.define("interagir",      { "e",    "enter"    })
+InputBind.define("inventaire",     { "i",    "tab"      })
+
+-- Utiliser les actions dans le script joueur
+function OnUpdate(entity, dt)
+    local dx, dy = 0, 0
+
+    if InputBind.isDown("bouger_gauche") then dx = -1 end
+    if InputBind.isDown("bouger_droite") then dx =  1 end
+    if InputBind.isDown("bouger_haut")   then dy = -1 end
+    if InputBind.isDown("bouger_bas")    then dy =  1 end
+
+    if InputBind.isPressed("attaquer")   then attaquer(entity) end
+    if InputBind.isPressed("dash")       then dash(entity)     end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Permettre de remapper les touches</div>
+      <pre><code class="lua">-- Afficher la touche actuelle dans le menu
+local touche_attaque = InputBind.getKey("attaquer")
+print("Attaque : " .. touche_attaque)  -- ex: "space"
+
+-- Remapper depuis le menu d'options
+function OnToucheChoisie(action, nouvelle_touche)
+    InputBind.remap(action, nouvelle_touche)
+
+    -- Sauvegarder dans Persist pour la prochaine session
+    Persist.set("bind_" .. action, nouvelle_touche)
+    Notify.show("Touche modifiée : " .. nouvelle_touche)
+end
+
+-- Restaurer les bindings sauvegardés au démarrage
+local actions = { "bouger_gauche", "bouger_droite", "attaquer", "dash" }
+for _, action in ipairs(actions) do
+    local touche = Persist.get("bind_" .. action)
+    if touche then
+        InputBind.remap(action, touche)
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
