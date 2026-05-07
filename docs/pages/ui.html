@@ -145,9 +145,11 @@ end)</code></pre>
       <div class="code-label">lua &nbsp;·&nbsp; Inventaire ouvert/fermé</div>
       <pre><code class="lua">local inventaire_ouvert = false
 
-InputBind.register("inventaire", "I")
+function init(entity)
+    InputBind.register("inventaire", "I")
+end
 
-EventBus.on("update", function(dt)
+function update(entity, dt)
     if InputBind.isJustPressed("inventaire") then
         inventaire_ouvert = not inventaire_ouvert
         if inventaire_ouvert then
@@ -158,7 +160,7 @@ EventBus.on("update", function(dt)
             Game.resume()
         end
     end
-end)</code></pre>
+end</code></pre>
     </div>
   </div>
 

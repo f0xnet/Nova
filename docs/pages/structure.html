@@ -38,9 +38,9 @@
 │   │   ├── tuer_loups.json
 │   │   └── trouver_gemme.json
 │   ├── achievements.json
-│   ├── lang/
-│   │   ├── fr.json
-│   │   └── en.json
+│   ├── i18n/
+│   │   ├── fr.lua
+│   │   └── en.lua
 │   │
 │   ├── sprites/
 │   │   ├── joueur.png
@@ -73,6 +73,9 @@ InputBind.register("interagir",      "E")
 InputBind.register("inventaire",     "I")
 
 -- Langue
+I18n.load("fr", "data/i18n/fr")
+I18n.load("en", "data/i18n/en")
+I18n.fallback("en")
 local langue = Persist.get("langue", "fr")
 I18n.set(langue)
 
