@@ -17,7 +17,7 @@ InputBind.register("toggleSSAO",     "1")
 InputBind.register("toggleBloom",    "2")
 InputBind.register("toggleGrading",  "3")
 InputBind.register("toggleLighting", "4")
-InputBind.register("ingameTests",    "F5")
+InputBind.register("ingameTests",    "P")
 
 local IngameTest = require("tests/test_ingame")
 
