@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Flag — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🚩</span>
+    <h1>Flag</h1>
+    <p class="subtitle">Drapeaux booléens nommés pour suivre l'état du monde — quête accomplie, boss vaincu, porte ouverte, secret découvert…</p>
+    <div class="tags"><span class="tag global">Global automatique</span><span class="tag event">Émet des événements</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Flag vs Persist :</strong> Flag est pour la logique de jeu en cours de session. Persist sauvegarde sur disque et survit au redémarrage. Pour des flags qui doivent survivre entre sessions, combinez les deux.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
+      <tbody>
+        <tr><td>Flag.set(nom)</td><td>Active le flag.</td><td>—</td></tr>
+        <tr><td>Flag.unset(nom)</td><td>Désactive le flag.</td><td>—</td></tr>
+        <tr><td>Flag.toggle(nom)</td><td>Inverse l'état du flag.</td><td>—</td></tr>
+        <tr><td>Flag.get(nom)</td><td>Vrai si le flag est actif.</td><td class="ret">bool</td></tr>
+        <tr><td>Flag.getAll()</td><td>Table de tous les flags actifs.</td><td class="ret">table</td></tr>
+        <tr><td>Flag.clearAll()</td><td>Désactive tous les flags.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Événements du monde</div>
+      <pre><code class="lua">-- Marquer qu'un boss a été vaincu
+function bossVaincu()
+    Flag.set("boss_souterrain_mort")
+    Achievement.unlock("tueur_de_boss")
+    EventBus.emit("boss_mort", {})
+end
+
+-- Dans le script de la porte du boss
+EventBus.on("boss_mort", function()
+    if Flag.get("boss_souterrain_mort") then
+        Anim.play(porte, "open", false)
+        Trigger.remove("porte_boss_fermee")
+    end
+end)
+
+-- Choisir le dialogue du PNJ selon les flags
+function interagirAvecPNJ()
+    if Flag.get("village_sauve") then
+        Conversation.start("npc_heros")
+    elseif Flag.get("quete_acceptee") then
+        Conversation.start("npc_rappel")
+    else
+        Conversation.start("npc_intro")
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Réagir aux changements de flag</div>
+      <pre><code class="lua">-- Écouter tous les changements de flag
+EventBus.on("flag_set", function(data)
+    Log.info("Flag activé : " .. data.name)
+
+    if data.name == "coffre_salle3_ouvert" then
+        -- Mettre à jour la mini-carte
+        EventBus.emit("minimap_update", { zone = "salle3", couleur = "gold" })
+    end
+end)</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Événements émis</h2>
+    <div class="events">
+      <h3>EventBus</h3>
+      <div class="ev"><span class="ev-name">flag_set</span><span class="ev-data">{ name }</span></div>
+      <div class="ev"><span class="ev-name">flag_unset</span><span class="ev-data">{ name }</span></div>
+      <div class="ev"><span class="ev-name">flags_cleared</span><span class="ev-data">{ }</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Effect — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">✨</span>
+    <h1>Effect</h1>
+    <p class="subtitle">Effets de statut temporaires sur les entités — poison, ralentissement, bouclier, brûlure, invisibilité… Équivalent des <em>ActiveEffects</em> de Papyrus.</p>
+    <div class="tags"><span class="tag global">Global automatique</span><span class="tag event">Émet des événements</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
+      <tbody>
+        <tr><td>Effect.apply(entityId, effectId, config)</td><td>Applique un effet. Si l'effet existe déjà et n'est pas stackable, renouvelle sa durée.</td><td>—</td></tr>
+        <tr><td>Effect.remove(entityId, effectId)</td><td>Retire un effet immédiatement (déclenche <code>onExpire</code>).</td><td>—</td></tr>
+        <tr><td>Effect.has(entityId, effectId)</td><td>Vrai si l'effet est actif sur cette entité.</td><td class="ret">bool</td></tr>
+        <tr><td>Effect.clear(entityId)</td><td>Retire tous les effets de cette entité.</td><td>—</td></tr>
+        <tr><td>Effect.getRemaining(entityId, effectId)</td><td>Secondes restantes pour cet effet.</td><td class="ret">number</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Option (config)</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>duration</td><td>Durée en secondes. <code>-1</code> = permanent jusqu'à <code>Effect.remove()</code>.</td></tr>
+        <tr><td>stackable</td><td><code>true</code> = plusieurs instances simultanées possibles (défaut: false).</td></tr>
+        <tr><td>onApply = function(entityId)</td><td>Appelée une fois à l'application de l'effet.</td></tr>
+        <tr><td>onTick = function(entityId, dt)</td><td>Appelée chaque frame tant que l'effet est actif.</td></tr>
+        <tr><td>onExpire = function(entityId)</td><td>Appelée à l'expiration ou lors d'un remove manuel.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Poison</div>
+      <pre><code class="lua">Effect.apply(ennemi.id, "poison", {
+    duration = 5.0,
+    onApply  = function(id)
+        Notify.floatingText(Registry:getEntity(id), "☠ Empoisonné", { color = "purple" })
+    end,
+    onTick   = function(id, dt)
+        Stats.mod(id, "Vie", -3 * dt)    -- 3 dégâts par seconde
+    end,
+    onExpire = function(id)
+        Notify.floatingText(Registry:getEntity(id), "Poison dissipé", { color = "gray" })
+    end,
+})</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Bouclier temporaire</div>
+      <pre><code class="lua">-- Bouclier qui dure 10 secondes et absorbe les dégâts
+Effect.apply(joueur.id, "bouclier", {
+    duration = 10.0,
+    onApply  = function(id)
+        Stats.set(id, "Armure", Stats.get(id, "Armure", 0) + 30)
+        Sound.play("data/sounds/bouclier.ogg")
+    end,
+    onExpire = function(id)
+        Stats.mod(id, "Armure", -30)
+        Notify.show("Bouclier dissipé", { color = "blue" })
+    end,
+})
+
+-- Vérifier si le joueur est protégé
+if Effect.has(joueur.id, "bouclier") then
+    Notify.show("Bouclier actif !", { color = "blue" })
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Ralentissement (stackable)</div>
+      <pre><code class="lua">-- Plusieurs ralentissements peuvent s'empiler
+Effect.apply(ennemi.id, "ralenti", {
+    duration  = 3.0,
+    stackable = true,
+    onApply   = function(id) Stats.mod(id, "Vitesse", -20) end,
+    onExpire  = function(id) Stats.mod(id, "Vitesse",  20) end,
+})</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Événements émis</h2>
+    <div class="events">
+      <h3>EventBus</h3>
+      <div class="ev"><span class="ev-name">effect_applied</span><span class="ev-data">{ entityId, effectId }</span></div>
+      <div class="ev"><span class="ev-name">effect_expired</span><span class="ev-data">{ entityId, effectId }</span></div>
+      <div class="ev"><span class="ev-name">effect_removed</span><span class="ev-data">{ entityId, effectId }</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
