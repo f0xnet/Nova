@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Pool — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">♻️</span>
+    <h1>Pool</h1>
+    <p class="subtitle">Réutiliser des entités plutôt que d'en créer/détruire à chaque instant — essentiel pour les projectiles, effets visuels, ennemis spawns.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Pourquoi un pool ?</strong> Créer et détruire des entités est coûteux. Avec un pool, on prépare N entités désactivées au démarrage, puis on les "emprunte" et "rend" sans jamais vraiment créer ou détruire quoi que ce soit.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
+      <tbody>
+        <tr><td>Pool.create(id, templateFn, taille)</td><td>Crée un pool. <code>templateFn()</code> doit créer et retourner une entité. Appelée <code>taille</code> fois au démarrage.</td><td>—</td></tr>
+        <tr><td>Pool.acquire(id)</td><td>Emprunte une entité disponible (l'active). Retourne <code>nil</code> si le pool est épuisé.</td><td class="ret">entity ou nil</td></tr>
+        <tr><td>Pool.release(id, entity)</td><td>Rend une entité au pool (la désactive).</td><td>—</td></tr>
+        <tr><td>Pool.available(id)</td><td>Nombre d'entités disponibles dans le pool.</td><td class="ret">number</td></tr>
+        <tr><td>Pool.size(id)</td><td>Taille totale du pool (actives + disponibles).</td><td class="ret">number</td></tr>
+        <tr><td>Pool.clear(id)</td><td>Détruit toutes les entités du pool.</td><td>—</td></tr>
+        <tr><td>Pool.clearAll()</td><td>Détruit tous les pools.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemple — Pool de balles</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua</div>
+      <pre><code class="lua">-- ── INITIALISATION (une seule fois, au début du niveau) ──
+Pool.create("balle", function()
+    -- Cette fonction est appelée 32 fois pour créer 32 balles
+    local e = World.spawn("BulletEntity")
+    -- configurer la balle ici (pas de position, elle sera fixée à l'acquire)
+    return e
+end, 32)  -- pool de 32 balles
+
+
+-- ── TIRER UNE BALLE ──
+function tirer(tireur, angleEnDegres)
+    local balle = Pool.acquire("balle")
+    if not balle then
+        return  -- pool épuisé, ignorer ce tir
+    end
+
+    -- Positionner la balle sur le tireur
+    local pos = World.getPosition(tireur)
+    World.setPosition(balle, pos.x, pos.y)
+
+    -- La vélocité sera gérée par le script de la balle
+    balle:sendMessage("init", {
+        angle  = angleEnDegres,
+        vitesse = 400,
+    })
+
+    Sound.play("data/sounds/tir.ogg", 0.6)
+end
+
+
+-- ── RENDRE LA BALLE AU POOL (depuis le script de la balle) ──
+function OnMessage(entity, msg, data)
+    if msg == "impact" or msg == "expiration" then
+        Pool.release("balle", entity)
+    end
+end
+
+
+-- ── NETTOYAGE DE FIN DE NIVEAU ──
+EventBus.on("scene_changing", function()
+    Pool.clear("balle")
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

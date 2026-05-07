@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Projectile — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🏹</span>
+    <h1>Projectile</h1>
+    <p class="subtitle">Système complet de tirs — flèches, balles, sorts, bombes. Gère automatiquement les collisions, la durée de vie et le recyclage via Pool.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout tip">
+    <strong>Projectile construit sur Pool.</strong> Pas besoin de gérer Pool manuellement — Projectile s'en charge. Un seul appel <code>Projectile.init()</code> + <code>Projectile.fire()</code> et tout fonctionne.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
+      <tbody>
+        <tr><td>Projectile.init(opts)</td><td>Crée un pool de projectiles. À appeler une seule fois au démarrage. opts: <code>poolID</code>, <code>count</code>, <code>templateFn</code></td><td>—</td></tr>
+        <tr><td>Projectile.fire(x, y, opts)</td><td>Tire un projectile depuis (x, y). Retourne l'entité ou <code>nil</code> si le pool est vide.</td><td class="ret">entity</td></tr>
+        <tr><td>Projectile.release(entity)</td><td>Libère manuellement un projectile (le remet dans le pool).</td><td>—</td></tr>
+        <tr><td>Projectile.activeCount()</td><td>Nombre de projectiles actuellement en vol.</td><td class="ret">number</td></tr>
+        <tr><td>Projectile.clearAll()</td><td>Détruit tous les pools et projectiles.</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Option pour fire()</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>poolID</td><td>Quel pool utiliser (défaut: "projectile").</td></tr>
+        <tr><td>angle</td><td>Direction en degrés. 0 = droite, 90 = bas, 270 = haut.</td></tr>
+        <tr><td>speed</td><td>Vitesse en pixels/seconde.</td></tr>
+        <tr><td>vx, vy</td><td>Vélocité directe en x et y (prioritaire sur angle+speed).</td></tr>
+        <tr><td>lifetime</td><td>Durée de vie en secondes (défaut: 3).</td></tr>
+        <tr><td>onHit = function(proj, hitEntityId)</td><td>Appelée lors d'une collision. Appeler <code>Projectile.release(proj)</code> dedans pour détruire.</td></tr>
+        <tr><td>onExpire = function(proj)</td><td>Appelée quand le projectile expire (durée de vie dépassée).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemple — Système de tir d'un archer</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; scripts/archer.lua</div>
+      <pre><code class="lua">-- ── Initialiser le pool de flèches (une seule fois) ──
+function OnInit(entity, props)
+    if not Pool.size("fleche") or Pool.size("fleche") == 0 then
+        Projectile.init({
+            poolID     = "fleche",
+            count      = 16,
+            templateFn = function()
+                return World.spawn("ArrowEntity")
+            end
+        })
+    end
+end
+
+-- ── Tirer une flèche vers le joueur ──
+function tirer(entity, cible)
+    -- Calculer l'angle vers la cible
+    local posArcher = World.getPosition(entity)
+    local posCible  = World.getPosition(cible)
+    local dx        = posCible.x - posArcher.x
+    local dy        = posCible.y - posArcher.y
+    local angle     = math.deg(math.atan(dy, dx))
+
+    Sound.play("data/sounds/arc.ogg", 0.7)
+
+    Projectile.fire(posArcher.x, posArcher.y, {
+        poolID   = "fleche",
+        angle    = angle,
+        speed    = 350,
+        lifetime = 2.0,
+
+        onHit = function(fleche, hitId)
+            -- Infliger des dégâts à l'entité touchée
+            Stats.mod(hitId, "Vie", -15)
+            Sound.play("data/sounds/impact.ogg")
+            Particles.emit(World.getPosition(fleche).x, World.getPosition(fleche).y, {
+                count = 6, speed = 80, lifetime = 0.3
+            })
+            Projectile.release(fleche)   -- remettre dans le pool
+        end,
+
+        onExpire = function(fleche)
+            -- La flèche a raté : petit effet discret
+            Particles.emit(World.getPosition(fleche).x, World.getPosition(fleche).y, {
+                count = 3, speed = 40, lifetime = 0.2
+            })
+        end
+    })
+end
+
+-- ── IA de l'archer ──
+function OnUpdate(entity, dt)
+    local joueur = World.findByTag("player")
+    if not joueur then return end
+
+    if World.distance(entity, joueur) &lt; 300 then
+        if Cooldown.use(entity.id, "tir", 2.0) then
+            tirer(entity, joueur)
+        end
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

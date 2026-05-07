@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Sound — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🔊</span>
+    <h1>Sound</h1>
+    <p class="subtitle">Jouer des sons et de la musique sans gérer de handles. Simple et direct.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Sound.play(path, vol, pitch, loop)</td><td>Joue un effet sonore. <code>vol</code> = 0.0–1.0, <code>pitch</code> = 1.0 normal, <code>loop</code> = false par défaut.</td></tr>
+        <tr><td>Sound.stop(path)</td><td>Arrête un son en cours.</td></tr>
+        <tr><td>Sound.stopAll()</td><td>Arrête tous les sons SFX.</td></tr>
+        <tr><td>Sound.playMusic(path, loop)</td><td>Lance une musique de fond (une seule à la fois, loop=true par défaut).</td></tr>
+        <tr><td>Sound.stopMusic()</td><td>Arrête la musique.</td></tr>
+        <tr><td>Sound.pauseMusic()</td><td>Met en pause.</td></tr>
+        <tr><td>Sound.resumeMusic()</td><td>Reprend après pause.</td></tr>
+        <tr><td>Sound.setVolume(v)</td><td>Volume global SFX (0.0–1.0).</td></tr>
+        <tr><td>Sound.setMusicVolume(v)</td><td>Volume musique (0.0–1.0).</td></tr>
+        <tr><td>Sound.getMusicVolume()</td><td>Volume musique actuel.</td></tr>
+        <tr><td>Sound.fadeMusic(cible, duree, onFin)</td><td>Fondu progressif vers un volume cible.</td></tr>
+        <tr><td>Sound.preload(path)</td><td>Précharger un son (évite la latence au premier appel).</td></tr>
+        <tr><td>Sound.preloadMusic(path)</td><td>Précharger une musique.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Sons de base</div>
+      <pre><code class="lua">-- Son simple
+Sound.play("data/sounds/epee.ogg")
+
+-- Avec volume réduit (50%)
+Sound.play("data/sounds/pas.ogg", 0.5)
+
+-- Avec pitch aléatoire (variation naturelle)
+Sound.play("data/sounds/impact.ogg", 1.0, 0.9 + math.random() * 0.2)
+
+-- En boucle (feu, eau...)
+Sound.play("data/sounds/feu_boucle.ogg", 0.8, 1.0, true)
+-- Stopper plus tard
+Sound.stop("data/sounds/feu_boucle.ogg")</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Musique avec transition</div>
+      <pre><code class="lua">-- Démarrer la musique d'exploration
+Sound.playMusic("data/music/exploration.ogg")
+
+-- Transition vers la musique de combat (fondu enchaîné)
+function entrerEnCombat()
+    Sound.fadeMusic(0.0, 1.0, function()
+        -- La musique est au silence : changer
+        Sound.playMusic("data/music/combat.ogg")
+        -- Revenir au volume normal progressivement
+        Sound.fadeMusic(1.0, 1.0)
+    end)
+end
+
+-- Retour à l'exploration après le combat
+function finDuCombat()
+    Sound.fadeMusic(0.0, 0.8, function()
+        Sound.playMusic("data/music/exploration.ogg")
+        Sound.fadeMusic(0.7, 1.5)
+    end)
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Préchargement pour éviter la latence</div>
+      <pre><code class="lua">function OnInit(entity, props)
+    -- Charger tous les sons utilisés par ce script
+    Sound.preload("data/sounds/attaque.ogg")
+    Sound.preload("data/sounds/impact.ogg")
+    Sound.preload("data/sounds/mort.ogg")
+    Sound.preloadMusic("data/music/boss.ogg")
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
