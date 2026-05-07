@@ -24,6 +24,10 @@ local World = {}
 local tagCache   = {}
 local cacheValid = false
 
+local function toId(v)
+    return (type(v) == "userdata") and v.id or v
+end
+
 -- Appelé par ScriptSystem._update au début de chaque frame
 function World._update(dt)
     cacheValid = false
@@ -111,7 +115,7 @@ function World.spawn(typeID)
 end
 
 function World.destroy(entityId)
-    Registry:destroyEntity(entityId)
+    Registry:destroyEntity(toId(entityId))
 end
 
 -- Retourne l'entité la plus proche ayant ce tag, et la distance

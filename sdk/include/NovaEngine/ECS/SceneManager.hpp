@@ -195,6 +195,17 @@ public:
     }
 
     /**
+     * @brief Get the name of the currently active scene
+     */
+    std::string getActiveSceneName() const {
+        if (!m_activeScene) return "";
+        for (const auto& [name, scene] : m_scenes) {
+            if (scene.get() == m_activeScene) return name;
+        }
+        return "";
+    }
+
+    /**
      * @brief Update all active scenes
      *
      * Call this every frame to update all systems in active scenes.

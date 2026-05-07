@@ -124,17 +124,43 @@ end
 function Effect.update(dt)
     for entityId, effects in pairs(data) do
         for effectId, inst in pairs(effects) do
-            local cfg = inst.config
-            if cfg then
-                safeCall(cfg.onTick, entityId, dt)
-                if cfg.duration >= 0 then
-                    inst.elapsed = inst.elapsed + dt
-                    if inst.elapsed >= cfg.duration then
-                        safeCall(cfg.onExpire, entityId)
-                        effects[effectId] = nil
-                        EventBus.emit("effect_expired", {
-                            entityId = entityId, effectId = effectId
-                        })
+            -- Effets stackables : inst = { instances = {...} }
+            if inst.instances then
+                local alive = {}
+                for _, si in ipairs(inst.instances) do
+                    local cfg = si.config
+                    if cfg then
+                        safeCall(cfg.onTick, entityId, dt)
+                        if cfg.duration >= 0 then
+                            si.elapsed = si.elapsed + dt
+                            if si.elapsed >= cfg.duration then
+                                safeCall(cfg.onExpire, entityId)
+                                EventBus.emit("effect_expired", { entityId = entityId, effectId = effectId })
+                            else
+                                table.insert(alive, si)
+                            end
+                        else
+                            table.insert(alive, si)
+                        end
+                    end
+                end
+                if #alive == 0 then
+                    effects[effectId] = nil
+                else
+                    inst.instances = alive
+                end
+            else
+                -- Effet non-stackable : inst = { config, elapsed }
+                local cfg = inst.config
+                if cfg then
+                    safeCall(cfg.onTick, entityId, dt)
+                    if cfg.duration >= 0 then
+                        inst.elapsed = inst.elapsed + dt
+                        if inst.elapsed >= cfg.duration then
+                            safeCall(cfg.onExpire, entityId)
+                            effects[effectId] = nil
+                            EventBus.emit("effect_expired", { entityId = entityId, effectId = effectId })
+                        end
                     end
                 end
             end

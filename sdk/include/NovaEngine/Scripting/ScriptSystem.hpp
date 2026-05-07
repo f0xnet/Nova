@@ -391,6 +391,13 @@ end
             { "InputEx",      "nova/input_ext"    },
             { "Effect",       "nova/effect"       },
             { "Cooldown",     "nova/cooldown"     },
+            { "Sound",        "nova/sound"        },
+            { "Inventory",    "nova/inventory"    },
+            { "Notify",       "nova/notify"       },
+            { "Physics",      "nova/physics"      },
+            { "Flag",         "nova/flag"         },
+            // Override le global Scene C++ avec le wrapper Lua (capture _sm = Scene avant)
+            { "Scene",        "nova/scene"        },
         };
         for (auto& [global, mod] : modules) {
             std::string code = std::string(global) + " = require('" + mod + "')";

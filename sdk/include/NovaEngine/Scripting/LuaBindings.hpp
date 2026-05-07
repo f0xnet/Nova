@@ -81,19 +81,20 @@ public:
     // Expose le global "Scene" en Lua.
     static void registerSceneManager(sol::state& lua, SceneManager& sm) {
         lua.new_usertype<SceneManager>("SceneManager",
-            "load",       [](SceneManager& s, const std::string& path, const std::string& name) {
+            "load",          [](SceneManager& s, const std::string& path, const std::string& name) {
                 return s.loadScene(path, name);
             },
-            "unload",     [](SceneManager& s, const std::string& name) {
+            "unload",        [](SceneManager& s, const std::string& name) {
                 s.unloadScene(name);
             },
-            "setActive",  [](SceneManager& s, const std::string& name) {
+            "setActive",     [](SceneManager& s, const std::string& name) {
                 s.setActiveScene(name);
             },
-            "hasScene",   [](SceneManager& s, const std::string& name) {
+            "hasScene",      [](SceneManager& s, const std::string& name) {
                 return s.hasScene(name);
             },
-            "sceneCount", [](SceneManager& s) { return s.getSceneCount(); }
+            "sceneCount",    [](SceneManager& s) { return s.getSceneCount(); },
+            "getActiveName", [](SceneManager& s) { return s.getActiveSceneName(); }
         );
         lua["Scene"] = &sm;
     }
