@@ -527,11 +527,15 @@ private:
     static void registerDebugDraw(sol::state& lua) {
         sol::table dbg = lua.create_table();
 
-        // Police chargée une fois pour DebugDraw.text
+        // Police utilisée par DebugDraw.text — chargée via DebugDraw.loadFont(path)
         static FontHandle s_debugFont = INVALID_HANDLE;
-        if (s_debugFont == INVALID_HANDLE) {
-            s_debugFont = FONTS().loadFont("data/font/SpaceMono-Regular.ttf");
-        }
+
+        // DebugDraw.loadFont(path) : charge la police depuis Lua (où le chemin est résolu)
+        dbg["loadFont"] = [&s_debugFont](const std::string& path) {
+            FontHandle h = FONTS().loadFont(path);
+            if (h != INVALID_HANDLE) s_debugFont = h;
+            return h != INVALID_HANDLE;
+        };
 
         // Rect : outline (filled=false) ou rempli (filled=true)
         dbg["rect"] = [](f32 x, f32 y, f32 w, f32 h,
@@ -582,7 +586,7 @@ private:
             td.text          = text;
             td.position      = {x, y};
             td.fillColor     = c;
-            td.characterSize = 14;
+            td.characterSize = 28;
             td.font          = s_debugFont;
             GRAPHICS().drawText(td);
         };

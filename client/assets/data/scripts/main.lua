@@ -21,6 +21,9 @@ InputBind.register("ingameTests",    "P")
 
 local IngameTest = require("tests/test_ingame")
 
+-- Charge la police pour DebugDraw.text (chemin résolu côté Lua)
+DebugDraw.loadFont("data/font/SpaceMono-Regular.ttf")
+
 -- Portée d'interaction avec un PNJ (en pixels)
 local INTERACT_RANGE = 100
 
