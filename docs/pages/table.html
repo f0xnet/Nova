@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Table — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">📋</span>
+    <h1>Table</h1>
+    <p class="subtitle">Fonctions utilitaires pour les tableaux Lua — chercher, filtrer, transformer, trier des listes.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Table.contains(t, valeur)</td><td>Vrai si la valeur est dans le tableau.</td></tr>
+        <tr><td>Table.find(t, fonction)</td><td>Retourne le premier élément pour lequel <code>fonction(elem)</code> est vrai.</td></tr>
+        <tr><td>Table.filter(t, fonction)</td><td>Retourne un nouveau tableau avec seulement les éléments valides.</td></tr>
+        <tr><td>Table.map(t, fonction)</td><td>Retourne un nouveau tableau transformé par la fonction.</td></tr>
+        <tr><td>Table.count(t, fonction)</td><td>Nombre d'éléments pour lesquels la fonction est vraie.</td></tr>
+        <tr><td>Table.sum(t, clé)</td><td>Somme de <code>elem[clé]</code> pour tous les éléments.</td></tr>
+        <tr><td>Table.sort(t, fonction)</td><td>Trie le tableau sur place selon une fonction de comparaison.</td></tr>
+        <tr><td>Table.copy(t)</td><td>Copie superficielle du tableau.</td></tr>
+        <tr><td>Table.remove(t, valeur)</td><td>Retire la première occurrence de la valeur.</td></tr>
+        <tr><td>Table.clear(t)</td><td>Vide le tableau.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Filtrer et chercher</div>
+      <pre><code class="lua">local ennemis = World.findAllByTag("enemy")
+
+-- Garder seulement les ennemis encore en vie
+local ennemis_vivants = Table.filter(ennemis, function(e)
+    return Stats.get(e.id, "Vie", 0) > 0
+end)
+
+-- Trouver l'ennemi le plus proche du joueur
+local pos_joueur = World.getPosition(joueur)
+local plus_proche = Table.find(ennemis, function(e)
+    local pos = World.getPosition(e)
+    return Math.distance(pos_joueur.x, pos_joueur.y, pos.x, pos.y) < 200
+end)
+
+-- Vérifier si une liste contient un item
+local inventaire = Inventory.getAll(joueur)
+if Table.contains(inventaire, "cle_donjon") then
+    print("Le joueur a la clé !")
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Trier et transformer</div>
+      <pre><code class="lua">local ennemis = World.findAllByTag("enemy")
+
+-- Trier par distance au joueur (du plus proche au plus loin)
+local pos_j = World.getPosition(joueur)
+Table.sort(ennemis, function(a, b)
+    local pa = World.getPosition(a)
+    local pb = World.getPosition(b)
+    return Math.distance(pos_j.x, pos_j.y, pa.x, pa.y)
+         < Math.distance(pos_j.x, pos_j.y, pb.x, pb.y)
+end)
+
+-- Créer une liste de positions
+local positions = Table.map(ennemis, function(e)
+    return World.getPosition(e)
+end)
+
+-- Compter les ennemis avec moins de 20 PV
+local nb_blesses = Table.count(ennemis, function(e)
+    return Stats.get(e.id, "Vie", 0) < 20
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

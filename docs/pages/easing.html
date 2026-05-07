@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Easing — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">〰️</span>
+    <h1>Easing</h1>
+    <p class="subtitle">Fonctions de lissage — calculer manuellement des valeurs interpolées avec des courbes (utile si vous n'utilisez pas Tween).</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Easing.apply(nom, t)</td><td>Applique la courbe au paramètre t (0.0 à 1.0). Retourne une valeur entre 0 et 1.</td></tr>
+        <tr><td>Easing.lerp(a, b, t, nom)</td><td>Interpolation de a vers b avec la courbe nommée.</td></tr>
+      </tbody>
+    </table>
+
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Nom de courbe</th><th>Effet</th></tr></thead>
+      <tbody>
+        <tr><td><code>"linear"</code></td><td>Vitesse constante.</td></tr>
+        <tr><td><code>"easeIn"</code></td><td>Démarre lentement, accélère.</td></tr>
+        <tr><td><code>"easeOut"</code></td><td>Démarre vite, ralentit.</td></tr>
+        <tr><td><code>"easeInOut"</code></td><td>Lent au début et à la fin.</td></tr>
+        <tr><td><code>"easeInBack"</code></td><td>Recule légèrement avant de partir.</td></tr>
+        <tr><td><code>"easeOutBack"</code></td><td>Dépasse légèrement avant de s'arrêter.</td></tr>
+        <tr><td><code>"easeOutBounce"</code></td><td>Rebondit à l'arrivée.</td></tr>
+        <tr><td><code>"easeOutElastic"</code></td><td>Vibre comme un élastique.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Conseil :</strong> dans la plupart des cas, utilisez <strong>Tween</strong> plutôt qu'Easing. Easing est utile quand vous calculez manuellement une animation dans <code>OnUpdate</code>.
+  </div>
+
+  <div class="section">
+    <h2>Exemple</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Animation manuelle dans OnUpdate</div>
+      <pre><code class="lua">-- Faire apparaître un panneau avec un effet rebond
+local duree      = 0.6   -- secondes
+local temps      = 0
+local debut_y    = -200  -- hors écran (au-dessus)
+local arrivee_y  = 50    -- position finale
+
+function OnUpdate(entity, dt)
+    if temps < duree then
+        temps = temps + dt
+        local t = math.min(temps / duree, 1.0)
+
+        -- Appliquer la courbe bounce
+        local t_lisse = Easing.apply("easeOutBounce", t)
+
+        local y = Easing.lerp(debut_y, arrivee_y, t, "easeOutBounce")
+        World.setPosition(entity, 400, y)
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
