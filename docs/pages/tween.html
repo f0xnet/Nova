@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tween — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎞</span>
+    <h1>Tween</h1>
+    <p class="subtitle">Interpoler une valeur de A à B en douceur sur une durée donnée — pour animer positions, couleurs, volumes, opacités…</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Tween = animation automatique.</strong> Vous dites "va de 0 à 100 en 1 seconde" et Nova s'occupe d'appeler votre fonction à chaque frame avec la valeur interpolée.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
+      <tbody>
+        <tr><td>Tween.new(depart, arrivee, duree, easing, onUpdate, onFin)</td><td>Interpole un nombre. <code>onUpdate(v)</code> appelé chaque frame, <code>onFin()</code> à la fin.</td><td class="ret">id</td></tr>
+        <tr><td>Tween.newVec2(debut, fin, duree, easing, onUpdate, onFin)</td><td>Interpole un vecteur <code>{x,y}</code>. <code>onUpdate({x,y})</code> appelé chaque frame.</td><td class="ret">id</td></tr>
+        <tr><td>Tween.cancel(id)</td><td>Arrête un tween en cours.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Easings disponibles</h2>
+    <table class="api-table">
+      <thead><tr><th>Nom</th><th>Effet</th></tr></thead>
+      <tbody>
+        <tr><td>linear</td><td>Vitesse constante (pas d'accélération)</td></tr>
+        <tr><td>easeIn</td><td>Démarre doucement, accélère</td></tr>
+        <tr><td>easeOut</td><td>Démarre vite, freine à la fin ← le plus naturel</td></tr>
+        <tr><td>easeInOut</td><td>Démarre doucement, accélère, puis freine</td></tr>
+        <tr><td>easeInCubic</td><td>Accélération encore plus marquée</td></tr>
+        <tr><td>easeOutCubic</td><td>Freinage encore plus marqué</td></tr>
+        <tr><td>bounce</td><td>Rebondit à la fin (effet ballon)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Animer la position d'une entité</div>
+      <pre><code class="lua">-- Faire glisser une entité de sa position vers (500, 300) en 1 seconde
+local posDepart = World.getPosition(coffre)
+
+Tween.newVec2(posDepart, { x = 500, y = 300 }, 1.0, "easeOut",
+    function(v)
+        -- v.x et v.y changent doucement à chaque frame
+        World.setPosition(coffre, v.x, v.y)
+    end,
+    function()
+        -- Animation terminée
+        Sound.play("data/sounds/coffre_arrive.ogg")
+    end
+)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Faire apparaître un objet en fondu</div>
+      <pre><code class="lua">-- Faire apparaître un panneau UI de 0% à 100% d'opacité en 0.3s
+Tween.new(0, 255, 0.3, "easeOut", function(alpha)
+    -- alpha va de 0 à 255 progressivement
+    local sprite = panneau:getSprite()
+    if sprite then sprite.color.a = math.floor(alpha) end
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Faire rebondir une pièce ramassée</div>
+      <pre><code class="lua">-- La pièce monte puis redescend avec rebond
+local posY = World.getPosition(piece).y
+
+Tween.new(0, -60, 0.4, "easeOut", function(dy)
+    local p = World.getPosition(piece)
+    World.setPosition(piece, p.x, posY + dy)
+end, function()
+    -- Redescente avec bounce
+    Tween.new(-60, 0, 0.5, "bounce", function(dy)
+        local p = World.getPosition(piece)
+        World.setPosition(piece, p.x, posY + dy)
+    end, function()
+        piece:disable()
+    end)
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
