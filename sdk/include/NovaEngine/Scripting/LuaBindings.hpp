@@ -8,6 +8,8 @@
 #include "../ECS/EntityRegistry.hpp"
 #include "../ECS/SceneManager.hpp"
 #include <sol/sol.hpp>
+#include <nlohmann/json.hpp>
+#include <fstream>
 #include <string>
 #include <unordered_map>
 #include <cmath>
@@ -76,6 +78,7 @@ public:
         registerInput(lua);
         registerViewport(lua);
         registerLog(lua);
+        registerDebugDraw(lua);
     }
 
     // Expose le global "Scene" en Lua.
@@ -401,6 +404,23 @@ private:
         res["unloadTexture"] = [](TextureHandle h) { RESOURCES().unloadTexture(h); };
         res["unloadSound"]   = [](SoundHandle h)   { RESOURCES().unloadSound(h);   };
         res["unloadMusic"]   = [](MusicHandle h)   { RESOURCES().unloadMusic(h);   };
+        // Charge un fichier JSON et le convertit en table Lua (deep)
+        res["loadJSON"] = [](sol::this_state ts, const std::string& path) -> sol::object {
+            sol::state_view lua(ts);
+            try {
+                std::ifstream file(path);
+                if (!file.is_open()) {
+                    LOG_WARN("[Lua] Resources.loadJSON: fichier introuvable '{}'", path);
+                    return sol::lua_nil;
+                }
+                nlohmann::json j;
+                file >> j;
+                return LuaBindings::jsonToLua(j, lua);
+            } catch (const std::exception& e) {
+                LOG_ERROR("[Lua] Resources.loadJSON '{}': {}", path, e.what());
+                return sol::lua_nil;
+            }
+        };
         lua["Resources"] = res;
 
         sol::table audio = lua.create_table();
@@ -489,6 +509,105 @@ private:
         log["debug"] = [](const std::string& msg) { LOG_DEBUG("[Lua] {}", msg); };
         lua["Log"]   = log;
         lua["print"] = [](const std::string& msg) { LOG_INFO("[Lua] {}", msg);  };
+    }
+
+    // -------------------------------------------------------------------------
+    // DebugDraw — dessin immédiat de primitives (overlay debug)
+    //
+    // Ces fonctions dessinent IMMÉDIATEMENT via GRAPHICS().
+    // Elles doivent être appelées pendant la phase de rendu (depuis renderDebug
+    // dans ScriptSystem). Le module nova/debug.lua met les commandes en file
+    // et appelle ces fonctions lors du flush.
+    //
+    // Usage Lua (via nova/debug.lua, ne pas appeler directement) :
+    //   DebugDraw.rect(x, y, w, h, color, filled)
+    //   DebugDraw.line(x1, y1, x2, y2, color, thickness)
+    //   DebugDraw.text(x, y, text, color)
+    // -------------------------------------------------------------------------
+    static void registerDebugDraw(sol::state& lua) {
+        sol::table dbg = lua.create_table();
+
+        // Rect : outline (filled=false) ou rempli (filled=true)
+        dbg["rect"] = [](f32 x, f32 y, f32 w, f32 h,
+                         sol::object colorObj, bool filled) {
+            Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color{0, 255, 0, 200};
+            RectData r;
+            r.position = {x, y};
+            r.size     = {w, h};
+            if (filled) {
+                r.fillColor    = c;
+                r.outlineColor = Color::Transparent;
+                r.outlineThickness = 0.f;
+            } else {
+                r.fillColor    = Color::Transparent;
+                r.outlineColor = c;
+                r.outlineThickness = 1.f;
+            }
+            GRAPHICS().drawRect(r);
+        };
+
+        // Line : rect fin rotaté pour simuler un segment
+        dbg["line"] = [](f32 x1, f32 y1, f32 x2, f32 y2,
+                         sol::object colorObj, f32 thickness) {
+            Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color{255, 255, 0, 200};
+            if (thickness <= 0.f) thickness = 1.f;
+            f32 dx  = x2 - x1;
+            f32 dy  = y2 - y1;
+            f32 len = std::sqrt(dx * dx + dy * dy);
+            if (len < 0.001f) return;
+            f32 angle = std::atan2(dy, dx) * (180.f / 3.14159265f);
+            RectData r;
+            r.position         = {x1, y1};
+            r.size             = {len, thickness};
+            r.fillColor        = c;
+            r.outlineColor     = Color::Transparent;
+            r.outlineThickness = 0.f;
+            r.rotation         = angle;
+            r.origin           = {0.f, thickness * 0.5f};
+            GRAPHICS().drawRect(r);
+        };
+
+        // Text (world-space)
+        dbg["text"] = [](f32 x, f32 y, const std::string& text,
+                         sol::object colorObj) {
+            Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color::White;
+            TextData td;
+            td.text          = text;
+            td.position      = {x, y};
+            td.fillColor     = c;
+            td.characterSize = 14;
+            GRAPHICS().drawText(td);
+        };
+
+        lua["DebugDraw"] = dbg;
+    }
+
+    // -------------------------------------------------------------------------
+    // JSON loader — convertit un fichier JSON en table Lua (profond)
+    //
+    // Exposé via Resources.loadJSON(path) → table Lua ou nil
+    // Utilise nlohmann::json.
+    // -------------------------------------------------------------------------
+    static sol::object jsonToLua(const nlohmann::json& j, sol::state_view& lua) {
+        if (j.is_null())             return sol::lua_nil;
+        if (j.is_boolean())          return sol::make_object(lua, j.get<bool>());
+        if (j.is_number_integer())   return sol::make_object(lua, j.get<int64_t>());
+        if (j.is_number_unsigned())  return sol::make_object(lua, j.get<uint64_t>());
+        if (j.is_number_float())     return sol::make_object(lua, j.get<double>());
+        if (j.is_string())           return sol::make_object(lua, j.get<std::string>());
+        if (j.is_array()) {
+            auto t = lua.create_table();
+            for (size_t i = 0; i < j.size(); ++i)
+                t[static_cast<int>(i + 1)] = jsonToLua(j[i], lua);
+            return t;
+        }
+        if (j.is_object()) {
+            auto t = lua.create_table();
+            for (auto& [key, val] : j.items())
+                t[key] = jsonToLua(val, lua);
+            return t;
+        }
+        return sol::lua_nil;
     }
 };
 

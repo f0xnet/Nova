@@ -156,6 +156,11 @@ public:
     // -------------------------------------------------------------------------
     sol::state& getLua() { return m_lua; }
 
+    // Appelé par Game.cpp::onRender() pour dessiner les primitives debug en overlay
+    void renderDebug() {
+        callTableMethod("Debug", "_flush", 0.0f);
+    }
+
     void loadGlobalScript(const std::string& path, float updateInterval = 0.0f) {
         m_globalScripts.push_back({ path, {}, {}, false, false, updateInterval, 0.0f });
         LOG_DEBUG("[ScriptSystem] Global script enregistré : '{}'", path);
@@ -497,6 +502,14 @@ end
             { "InputBind",     "nova/input_bind"    },
             { "Loot",          "nova/loot"          },
             { "Nav",           "nova/nav"           },
+            // Outils de données et debug
+            { "Data",          "nova/data"          },
+            { "Debug",         "nova/debug"         },
+            { "Spatial",       "nova/spatial"       },
+            { "Pool",          "nova/pool"          },
+            { "Easing",        "nova/easing"        },
+            { "I18n",          "nova/i18n"          },
+            { "Achievement",   "nova/achievement"   },
             // Override le global Scene C++ avec le wrapper Lua (capture _sm = Scene avant)
             // Doit être chargé après Nav (qui utilise Scene.findPath)
             { "Scene",         "nova/scene"         },
@@ -527,6 +540,8 @@ end
         callTableMethod("Anim",         "_update", dt);
         callTableMethod("Trigger",      "_update", dt);
         callTableMethod("Nav",          "_update", dt);
+        callTableMethod("Spatial",      "_update", dt);
+        callTableMethod("Debug",        "_update", dt);
     }
 
     void callTableMethod(const char* table, const char* method, float dt) {

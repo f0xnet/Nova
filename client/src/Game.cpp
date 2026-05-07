@@ -398,6 +398,11 @@ void Game::onRender() {
 
     // Render UI directly to screen (no shader applied)
     m_uiManager.render();
+
+    // Debug overlay — drawn last, on top of UI, in screen space
+    if (m_scriptSystem) {
+        m_scriptSystem->renderDebug();
+    }
 }
 
 void Game::onEvent(const NovaEngine::Event& event) {

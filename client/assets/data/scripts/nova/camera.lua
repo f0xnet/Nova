@@ -13,7 +13,8 @@
 --   Camera.setZoom(scale)           -- 1.0 = normal, 2.0 = zoomé x2, 0.5 = dézoomé
 --   Camera.getZoom()                -- scale courant
 --   Camera.zoomTo(scale, dur, ease) -- zoom fluide via Tween
---   Camera.reset()                  -- rétablit zoom par défaut, libère le follow
+--   Camera.path(waypoints, speed, ease, onDone) -- chemin cinématique [{x,y}…]
+--   Camera.reset()                  -- rétablit zoom par défaut, libère le follow et le path
 --
 -- Exemple :
 --   -- Suit le joueur avec légère vibration à l'impact
@@ -125,9 +126,55 @@ function Camera.zoomTo(targetScale, duration, easing)
         function(z) Camera.setZoom(z) end)
 end
 
--- Remet à zéro (zoom + follow)
+-- Déplacement le long d'une liste de waypoints { {x,y}, ... }
+-- speed = pixels/seconde ; easing optionnel par segment ; onDone appelé en fin de chemin
+-- Camera.unfollow() est appelé automatiquement.
+local _pathQueue  = nil   -- { {x,y}, ... } restants
+local _pathSpeed  = 100
+local _pathEasing = "easeOut"
+local _pathDone   = nil
+local _pathStep   -- déclaration forward
+
+_pathStep = function()
+    if not _pathQueue or #_pathQueue == 0 then
+        _pathQueue = nil
+        if _pathDone then _pathDone() end
+        _pathDone = nil
+        return
+    end
+    local wp  = table.remove(_pathQueue, 1)
+    local c   = Viewport.getCenter()
+    local dx  = wp.x - c.x
+    local dy  = wp.y - c.y
+    local dur = math.sqrt(dx * dx + dy * dy) / math.max(_pathSpeed, 1)
+    Tween.newVec2(
+        { x = c.x, y = c.y },
+        { x = wp.x, y = wp.y },
+        dur, _pathEasing,
+        function(v) Viewport.setCenter(v.x, v.y) end,
+        function() _pathStep() end
+    )
+end
+
+function Camera.path(waypoints, speed, easing, onDone)
+    if not waypoints or #waypoints == 0 then
+        if onDone then onDone() end
+        return
+    end
+    _following  = nil
+    _pathQueue  = {}
+    for i, wp in ipairs(waypoints) do _pathQueue[i] = wp end
+    _pathSpeed  = speed  or 100
+    _pathEasing = easing or "easeOut"
+    _pathDone   = onDone
+    _pathStep()
+end
+
+-- Remet à zéro (zoom + follow + path)
 function Camera.reset()
     _following = nil
+    _pathQueue = nil
+    _pathDone  = nil
     if _defaultW then
         Viewport.setSize(_defaultW, _defaultH)
     end
