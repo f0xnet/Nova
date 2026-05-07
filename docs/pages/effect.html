@@ -25,7 +25,8 @@
         <tr><td>Effect.remove(entityId, effectId)</td><td>Retire un effet immédiatement (déclenche <code>onExpire</code>).</td><td>—</td></tr>
         <tr><td>Effect.has(entityId, effectId)</td><td>Vrai si l'effet est actif sur cette entité.</td><td class="ret">bool</td></tr>
         <tr><td>Effect.clear(entityId)</td><td>Retire tous les effets de cette entité.</td><td>—</td></tr>
-        <tr><td>Effect.getRemaining(entityId, effectId)</td><td>Secondes restantes pour cet effet.</td><td class="ret">number</td></tr>
+        <tr><td>Effect.getRemaining(entityId, effectId)</td><td>Secondes restantes pour cet effet. Retourne <code>math.huge</code> si l'effet est permanent, <code>nil</code> si l'effet est absent.</td><td class="ret">number</td></tr>
+        <tr><td>Effect.update(dt)</td><td>Avance tous les effets actifs d'un pas de temps <code>dt</code>. Appelé automatiquement par ScriptSystem — ne pas appeler manuellement.</td><td>—</td></tr>
       </tbody>
     </table>
     <br>

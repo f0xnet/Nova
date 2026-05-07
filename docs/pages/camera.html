@@ -25,12 +25,12 @@
         <tr><td>Camera.unfollow()</td><td>Arrête le suivi d'entité.</td></tr>
         <tr><td>Camera.setPosition(x, y)</td><td>Téléporte la caméra (désactive le follow).</td></tr>
         <tr><td>Camera.getPosition()</td><td>Position actuelle de la caméra.</td></tr>
-        <tr><td>Camera.moveTo(x, y, duree, easing)</td><td>Déplace la caméra en douceur sur la durée.</td></tr>
-        <tr><td>Camera.shake(duree, force)</td><td>Tremblement d'écran. Force = amplitude en pixels.</td></tr>
+        <tr><td>Camera.moveTo(x, y, duration, easing)</td><td>Déplace la caméra en douceur sur la durée.</td></tr>
+        <tr><td>Camera.shake(duration, force)</td><td>Tremblement d'écran. Force = amplitude en pixels.</td></tr>
         <tr><td>Camera.setZoom(scale)</td><td>Zoom. 1.0 = normal, 2.0 = zoomé ×2, 0.5 = dézoomé.</td></tr>
         <tr><td>Camera.getZoom()</td><td>Zoom actuel.</td></tr>
-        <tr><td>Camera.zoomTo(scale, duree, easing)</td><td>Zoom animé en douceur.</td></tr>
-        <tr><td>Camera.path(waypoints, vitesse, easing, onFin)</td><td>Déplace la caméra le long d'une liste de points [{x,y}...].</td></tr>
+        <tr><td>Camera.zoomTo(targetScale, duration, easing)</td><td>Zoom animé en douceur.</td></tr>
+        <tr><td>Camera.path(waypoints, speed, easing, onDone)</td><td>Déplace la caméra le long d'une liste de points [{x,y}...].</td></tr>
         <tr><td>Camera.reset()</td><td>Réinitialise le zoom, libère le follow et le path.</td></tr>
       </tbody>
     </table>

@@ -41,9 +41,9 @@
         <tr><td>speaker</td><td>Nom du personnage qui parle.</td></tr>
         <tr><td>text</td><td>Texte de la réplique.</td></tr>
         <tr><td>choices</td><td>Liste de choix (optionnel). Chaque choix a un <code>text</code> et un <code>next</code>.</td></tr>
-        <tr><td>next</td><td>Index du prochain nœud. Absent = nœud suivant automatiquement.</td></tr>
-        <tr><td>action</td><td>Fonction appelée quand ce nœud est atteint.</td></tr>
-        <tr><td>condition</td><td>Fonction → bool. Si false, le choix n'est pas affiché.</td></tr>
+        <tr><td>next</td><td>Identifiant du nœud suivant (string). Absent ou <code>nil</code> = fin de la conversation.</td></tr>
+        <tr><td>onEnter</td><td>Fonction <code>(ctx)</code> appelée quand ce nœud est atteint (optionnel).</td></tr>
+        <tr><td>cond</td><td>Fonction <code>(ctx) → bool</code> sur un choix. Si false, le choix n'est pas affiché.</td></tr>
       </tbody>
     </table>
   </div>
@@ -54,9 +54,24 @@
       <div class="code-label">lua &nbsp;·&nbsp; Dialogue simple avec un PNJ</div>
       <pre><code class="lua">-- Définir le dialogue une seule fois (script global ou init)
 Conversation.define("marchand_bonjour", {
-    { speaker = "Marchand", text = "Bonjour voyageur ! Que cherches-tu ?" },
-    { speaker = "Marchand", text = "J'ai de belles potions si tu es intéressé." },
-    { speaker = "Marchand", text = "Reviens quand tu veux !" },
+    start = "greet",
+    nodes = {
+        greet = {
+            speaker = "Marchand",
+            text    = "Bonjour voyageur ! Que cherches-tu ?",
+            next    = "suite",
+        },
+        suite = {
+            speaker = "Marchand",
+            text    = "J'ai de belles potions si tu es intéressé.",
+            next    = "fin",
+        },
+        fin = {
+            speaker = "Marchand",
+            text    = "Reviens quand tu veux !",
+            next    = nil,  -- fin de la conversation
+        },
+    }
 })
 
 -- Lancer le dialogue quand le joueur interagit
@@ -68,65 +83,71 @@ end</code></pre>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Dialogue avec choix et branches</div>
       <pre><code class="lua">Conversation.define("garde_entree", {
-    -- Nœud 1 : première réplique avec choix
-    {
-        speaker = "Garde",
-        text    = "Halte ! Qui vas-tu ? Que veux-tu ?",
-        choices = {
-            { text = "Je cherche le roi.",       next = 2 },
-            { text = "Juste passer mon chemin.", next = 3 },
-            { text = "Je t'attaque !",            next = 4 },
-        }
-    },
-
-    -- Nœud 2 : joueur veut voir le roi
-    {
-        speaker = "Garde",
-        text    = "Bien. Suivez le couloir à gauche.",
-        action  = function() Flag.set("garde_parle") end
-    },
-
-    -- Nœud 3 : joueur passe
-    { speaker = "Garde", text = "Très bien. Ne faites pas d'histoires." },
-
-    -- Nœud 4 : joueur attaque
-    {
-        speaker = "Garde",
-        text    = "Quoi ?! Gardes, à moi !",
-        action  = function() EventBus.emit("alerte_gardes", {}) end
-    },
+    start = "halte",
+    nodes = {
+        halte = {
+            speaker = "Garde",
+            text    = "Halte ! Qui vas-tu ? Que veux-tu ?",
+            choices = {
+                { text = "Je cherche le roi.",       next = "roi" },
+                { text = "Juste passer mon chemin.", next = "passe" },
+                { text = "Je t'attaque !",            next = "attaque" },
+            }
+        },
+        roi = {
+            speaker = "Garde",
+            text    = "Bien. Suivez le couloir à gauche.",
+            onEnter = function() Flag.set("garde_parle") end,
+            next    = nil,
+        },
+        passe = {
+            speaker = "Garde",
+            text    = "Très bien. Ne faites pas d'histoires.",
+            next    = nil,
+        },
+        attaque = {
+            speaker = "Garde",
+            text    = "Quoi ?! Gardes, à moi !",
+            onEnter = function() EventBus.emit("alerte_gardes", {}) end,
+            next    = nil,
+        },
+    }
 })</code></pre>
     </div>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Choix conditionnels (selon flags ou inventaire)</div>
       <pre><code class="lua">Conversation.define("sage_antique", {
-    {
-        speaker = "Sage",
-        text    = "Tu es revenu... que veux-tu ?",
-        choices = {
-            -- Ce choix n'apparaît que si le joueur a la gemme
-            {
-                text      = "Je t'apporte la Gemme de Feu.",
-                next      = 2,
-                condition = function() return Inventory.has(joueur.id, "gemme_feu") end
-            },
-            -- Ce choix n'apparaît que si le joueur a parlé au roi
-            {
-                text      = "Le roi m'a parlé de toi.",
-                next      = 3,
-                condition = function() return Flag.get("roi_parle") end
-            },
-            { text = "Rien, au revoir.", next = 4 },
-        }
-    },
-    {
-        speaker = "Sage",
-        text    = "Excellent ! Tu as réussi la quête !",
-        action  = function() Quest.complete("trouver_gemme") end
-    },
-    { speaker = "Sage", text = "Ah oui, Sa Majesté m'a prévenu." },
-    { speaker = "Sage", text = "Comme tu veux, voyageur." },
+    start = "question",
+    nodes = {
+        question = {
+            speaker = "Sage",
+            text    = "Tu es revenu... que veux-tu ?",
+            choices = {
+                -- Ce choix n'apparaît que si le joueur a la gemme
+                {
+                    text = "Je t'apporte la Gemme de Feu.",
+                    next = "gemme",
+                    cond = function() return Inventory.has(joueur.id, "gemme_feu") end,
+                },
+                -- Ce choix n'apparaît que si le joueur a parlé au roi
+                {
+                    text = "Le roi m'a parlé de toi.",
+                    next = "roi",
+                    cond = function() return Flag.get("roi_parle") end,
+                },
+                { text = "Rien, au revoir.", next = "adieu" },
+            }
+        },
+        gemme = {
+            speaker = "Sage",
+            text    = "Excellent ! Tu as réussi la quête !",
+            onEnter = function() Quest.complete("trouver_gemme") end,
+            next    = nil,
+        },
+        roi  = { speaker = "Sage", text = "Ah oui, Sa Majesté m'a prévenu.", next = nil },
+        adieu = { speaker = "Sage", text = "Comme tu veux, voyageur.", next = nil },
+    }
 })
 
 -- Lancer le dialogue

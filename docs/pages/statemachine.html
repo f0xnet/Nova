@@ -24,7 +24,7 @@
         <tr><td>StateMachine.new(etat_initial)</td><td>Crée une machine à états. Retourne un objet <code>fsm</code>.</td></tr>
         <tr><td>fsm:addState(nom, onEnter, onUpdate, onExit)</td><td>Ajoute un état. Les trois fonctions sont optionnelles.</td></tr>
         <tr><td>fsm:update(entity, dt)</td><td>À appeler dans <code>update</code> — exécute l'état actuel.</td></tr>
-        <tr><td>fsm:transition(nom)</td><td>Change d'état : appelle <code>onExit</code> de l'ancien, puis <code>onEnter</code> du nouveau.</td></tr>
+        <tr><td>fsm:transition(nom)</td><td>Planifie un changement d'état. <code>onExit</code> de l'ancien et <code>onEnter</code> du nouveau sont appelés au prochain <code>fsm:update()</code>.</td></tr>
         <tr><td>fsm:getState()</td><td>Nom de l'état actuel.</td></tr>
       </tbody>
     </table>

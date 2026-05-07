@@ -22,12 +22,12 @@
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td>Inventory.defineItem(item, def)</td><td>Enregistre les propriétés d'un type d'objet (poids, maxStack, nom…). Optionnel.</td></tr>
-        <tr><td>Inventory.add(entityId, item, nb)</td><td>Ajoute <code>nb</code> exemplaires (défaut : 1). Retourne la quantité ajoutée.</td></tr>
-        <tr><td>Inventory.remove(entityId, item, nb)</td><td>Retire <code>nb</code> exemplaires. Retourne la quantité réellement retirée.</td></tr>
+        <tr><td>Inventory.add(entityId, item, count)</td><td>Ajoute <code>count</code> exemplaires (défaut : 1). Retourne la quantité ajoutée.</td></tr>
+        <tr><td>Inventory.remove(entityId, item, count)</td><td>Retire <code>count</code> exemplaires. Retourne la quantité réellement retirée.</td></tr>
         <tr><td>Inventory.count(entityId, item)</td><td>Quantité possédée.</td></tr>
-        <tr><td>Inventory.has(entityId, item, nb)</td><td>Vrai si l'entité possède au moins <code>nb</code> exemplaires (défaut : 1).</td></tr>
+        <tr><td>Inventory.has(entityId, item, count)</td><td>Vrai si l'entité possède au moins <code>count</code> exemplaires (défaut : 1).</td></tr>
         <tr><td>Inventory.getAll(entityId)</td><td>Retourne <code>{ item = quantite, ... }</code>.</td></tr>
-        <tr><td>Inventory.transfer(fromId, toId, item, nb)</td><td>Transfert d'un inventaire à l'autre.</td></tr>
+        <tr><td>Inventory.transfer(fromEntity, toEntity, item, count)</td><td>Transfert d'un inventaire à l'autre.</td></tr>
         <tr><td>Inventory.clear(entityId)</td><td>Vide complètement l'inventaire.</td></tr>
         <tr><td>Inventory.clearItem(entityId, item)</td><td>Retire toutes les copies d'un item.</td></tr>
         <tr><td>Inventory.getWeight(entityId)</td><td>Poids total (si les items ont un champ <code>weight</code>).</td></tr>

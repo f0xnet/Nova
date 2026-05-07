@@ -29,8 +29,12 @@
         <tr><td>Math.approach(actuel, cible, delta)</td><td>Avance de <code>delta</code> vers <code>cible</code> sans le dépasser.</td></tr>
         <tr><td>Math.map(v, inMin, inMax, outMin, outMax)</td><td>Convertit une valeur d'un intervalle vers un autre.</td></tr>
         <tr><td>Math.smoothstep(edge0, edge1, t)</td><td>Lissage entre edge0 et edge1.</td></tr>
+        <tr><td>Math.smootherstep(edge0, edge1, t)</td><td>Lissage quintic (encore plus doux que smoothstep).</td></tr>
+        <tr><td>Math.chance(p)</td><td>Retourne <code>true</code> avec une probabilité p ∈ [0.0, 1.0].</td></tr>
+        <tr><td>Math.randomRange(min, max)</td><td>Nombre aléatoire dans [min, max]. Entier si les bornes sont entières, float sinon.</td></tr>
         <tr><td>Math.pingpong(t, longueur)</td><td>Oscille entre 0 et longueur.</td></tr>
-        <tr><td>Math.normalizeAngle(deg)</td><td>Ramène un angle dans [0, 360].</td></tr>
+        <tr><td>Math.distToRange(v, min, max)</td><td>Distance d'une valeur au segment [min, max] ; retourne 0 si v est dans l'intervalle.</td></tr>
+        <tr><td>Math.normalizeAngle(deg)</td><td>Ramène un angle dans [0, 360).</td></tr>
         <tr><td>Math.deg2rad(deg)</td><td>Degrés → radians.</td></tr>
         <tr><td>Math.rad2deg(rad)</td><td>Radians → degrés.</td></tr>
       </tbody>

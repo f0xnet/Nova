@@ -106,20 +106,21 @@ end</code></pre>
             ))
 
             -- Déplacement rapide en ligne droite
+            local FRAME_DT = 0.016  -- pas fixe par frame (~60 fps)
             Scheduler.start(function()
                 local temps = 0
                 while temps < 0.4 do
-                    local dt = Scheduler.wait(0)
+                    Scheduler.wait(0)
                     local p  = entity:getPosition()
-                    entity:setPosition(p.x + dir.x * 600 * dt,
-                                       p.y + dir.y * 600 * dt)
+                    entity:setPosition(p.x + dir.x * 600 * FRAME_DT,
+                                       p.y + dir.y * 600 * FRAME_DT)
                     -- Dégâts si proche du joueur
                     if entity:getDistance(joueur) < 60 then
                         Stats.mod(joueur.id, "Vie", -30)
                         Camera.shake(0.3, 10)
                         break
                     end
-                    temps = temps + dt
+                    temps = temps + FRAME_DT
                 end
                 f:transition("Repos")
             end)

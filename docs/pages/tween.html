@@ -25,8 +25,8 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
       <tbody>
-        <tr><td>Tween.new(depart, arrivee, duree, easing, onUpdate, onFin)</td><td>Interpole un nombre. <code>onUpdate(v)</code> appelé chaque frame, <code>onFin()</code> à la fin.</td><td class="ret">id</td></tr>
-        <tr><td>Tween.newVec2(debut, fin, duree, easing, onUpdate, onFin)</td><td>Interpole un vecteur <code>{x,y}</code>. <code>onUpdate({x,y})</code> appelé chaque frame.</td><td class="ret">id</td></tr>
+        <tr><td>Tween.new(depart, arrivee, duree, easing, onUpdate, onFin)</td><td>Interpole un nombre ou une table de valeurs numériques. <code>onUpdate(v)</code> appelé chaque frame, <code>onFin()</code> à la fin (optionnel).</td><td class="ret">id</td></tr>
+        <tr><td>Tween.newVec2(debut, fin, duree, easing, onUpdate, onFin)</td><td>Interpole un vecteur <code>{x,y}</code>. <code>onUpdate({x,y})</code> appelé chaque frame, <code>onFin()</code> à la fin (optionnel).</td><td class="ret">id</td></tr>
         <tr><td>Tween.cancel(id)</td><td>Arrête un tween en cours.</td><td>—</td></tr>
       </tbody>
     </table>

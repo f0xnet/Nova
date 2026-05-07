@@ -28,6 +28,7 @@
         <tr><td>Cooldown.getProgress(entityId, action, duree)</td><td>Progression de 0.0 à 1.0 (utile pour les barres d'UI).</td></tr>
         <tr><td>Cooldown.reset(entityId, action)</td><td>Remet le cooldown à zéro immédiatement.</td></tr>
         <tr><td>Cooldown.resetAll(entityId)</td><td>Réinitialise tous les cooldowns de cette entité.</td></tr>
+        <tr><td>Cooldown.update(dt)</td><td>Fait avancer tous les timers. Appelé automatiquement par ScriptSystem chaque frame — ne pas appeler manuellement.</td></tr>
       </tbody>
     </table>
   </div>

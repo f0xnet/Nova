@@ -29,6 +29,8 @@
         <tr><td>Flag.unset(nom)</td><td>Désactive le flag.</td><td>—</td></tr>
         <tr><td>Flag.toggle(nom)</td><td>Inverse l'état du flag.</td><td>—</td></tr>
         <tr><td>Flag.get(nom)</td><td>Vrai si le flag est actif.</td><td class="ret">bool</td></tr>
+        <tr><td>Flag.clear(nom)</td><td>Alias de <code>Flag.unset</code> — désactive le flag.</td><td>—</td></tr>
+        <tr><td>Flag.require(nom)</td><td>Alias de <code>Flag.get</code> — lecture sémantique ("nécessite le flag X").</td><td class="ret">bool</td></tr>
         <tr><td>Flag.getAll()</td><td>Table de tous les flags actifs.</td><td class="ret">table</td></tr>
         <tr><td>Flag.clearAll()</td><td>Désactive tous les flags.</td><td>—</td></tr>
       </tbody>

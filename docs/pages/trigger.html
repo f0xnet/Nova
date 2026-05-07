@@ -35,6 +35,7 @@
         <tr><td>onExit = function(entityId)</td><td>Appelée quand une entité sort de la zone.</td></tr>
         <tr><td>onStay = function(entityId, dt)</td><td>Appelée chaque frame tant qu'une entité est dans la zone.</td></tr>
         <tr><td>tags = {"player"}</td><td>Ne déclencher que pour les entités avec ce tag.</td></tr>
+        <tr><td>filter = function(entityId)</td><td>Fonction de filtre personnalisée : retourne <code>true</code> pour accepter une entité. Prioritaire sur <code>tags</code>.</td></tr>
         <tr><td>once = true</td><td>Se désactive automatiquement après le premier déclenchement.</td></tr>
       </tbody>
     </table>

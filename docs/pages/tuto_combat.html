@@ -166,11 +166,11 @@ function dash(entity, dx, dy)
     end
 
     -- Exécuter via Scheduler pour une animation fluide
+    local FRAME_DT = 0.016  -- pas fixe par frame (~60 fps)
     Scheduler.start(function()
-        local dt_frame = Scheduler.wait(0)
         while temps < DUREE_DASH do
-            avancer(dt_frame)
-            dt_frame = Scheduler.wait(0)
+            avancer(FRAME_DT)
+            Scheduler.wait(0)
         end
         Particles.stop(trainee)
         Timer.after(0.3, function() invincible = false end)

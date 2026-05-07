@@ -29,9 +29,10 @@
         <tr><td>Debug.drawRect(x,y,w,h,color,duree)</td><td>Rectangle en fil de fer. <code>duree=0</code> = 1 seul frame.</td></tr>
         <tr><td>Debug.fillRect(x,y,w,h,color,duree)</td><td>Rectangle rempli.</td></tr>
         <tr><td>Debug.drawLine(x1,y1,x2,y2,color,duree,epaisseur)</td><td>Ligne. <code>epaisseur</code> en pixels (défaut 1).</td></tr>
-        <tr><td>Debug.drawCircle(x,y,r,color,duree)</td><td>Cercle.</td></tr>
+        <tr><td>Debug.drawCircle(x,y,r,color,duree,segments)</td><td>Cercle (approximé par polygone). <code>segments</code> optionnel, défaut 16.</td></tr>
         <tr><td>Debug.label(x,y,texte,color,duree)</td><td>Texte à une position.</td></tr>
         <tr><td>Debug.watch(cle,valeur)</td><td>Affiche <code>cle = valeur</code> en coin d'écran jusqu'au prochain frame.</td></tr>
+        <tr><td>Debug.clear()</td><td>Efface toutes les commandes en attente et les watches.</td></tr>
       </tbody>
     </table>
   </div>

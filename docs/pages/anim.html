@@ -23,10 +23,10 @@
       <tbody>
         <tr><td>Anim.play(entity, id, loop)</td><td>Joue l'animation. <code>loop</code> = true par défaut. Repart du début si déjà en cours.</td></tr>
         <tr><td>Anim.stop(entity)</td><td>Arrête l'animation (reste sur le frame courant).</td></tr>
-        <tr><td>Anim.setSpeed(entity, vitesse)</td><td>Vitesse de lecture. 1.0 = normale, 0.5 = ralenti, 2.0 = rapide.</td></tr>
+        <tr><td>Anim.setSpeed(entity, speed)</td><td>Vitesse de lecture. 1.0 = normale, 0.5 = ralenti, 2.0 = rapide.</td></tr>
         <tr><td>Anim.current(entity)</td><td>Nom de l'animation en cours.</td></tr>
-        <tr><td>Anim.onFrame(entity, frame, fonction)</td><td>Appelée une seule fois quand l'animation atteint le frame N.</td></tr>
-        <tr><td>Anim.onFinish(entity, fonction)</td><td>Appelée quand une animation non-boucle se termine.</td></tr>
+        <tr><td>Anim.onFrame(entity, frame, fn)</td><td>Appelée une seule fois quand l'animation atteint le frame N.</td></tr>
+        <tr><td>Anim.onFinish(entity, fn)</td><td>Appelée quand une animation non-boucle se termine.</td></tr>
         <tr><td>Anim.clearCallbacks(entity)</td><td>Supprime tous les callbacks de cette entité.</td></tr>
       </tbody>
     </table>
