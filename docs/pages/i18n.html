@@ -34,16 +34,16 @@
 
   <div class="section">
     <h2>Fichiers de traduction</h2>
-    <p>Placez vos fichiers dans <code>data/lang/</code>. Un fichier JSON par langue, chargé manuellement au démarrage :</p>
+    <p>Placez vos fichiers dans <code>data/i18n/</code>. Un module Lua par langue, chargé manuellement au démarrage :</p>
     <div class="code-wrap">
-      <div class="code-label">json &nbsp;·&nbsp; data/lang/fr.json</div>
-      <pre><code class="lua">{
-    "menu.jouer":        "Jouer",
-    "menu.quitter":      "Quitter",
-    "hud.vie":           "Vie",
-    "notif.niveau":      "Niveau {1} atteint !",
-    "notif.objet":       "Obtenu : {1}",
-    "dialogue.marchand": "Bonjour, aventurier !"
+      <div class="code-label">lua &nbsp;·&nbsp; data/i18n/fr.lua</div>
+      <pre><code class="lua">return {
+    ["menu.jouer"]        = "Jouer",
+    ["menu.quitter"]      = "Quitter",
+    ["hud.vie"]           = "Vie",
+    ["notif.niveau"]      = "Niveau %d atteint !",
+    ["notif.objet"]       = "Obtenu : %s",
+    ["dialogue.marchand"] = "Bonjour, aventurier !",
 }</code></pre>
     </div>
   </div>
@@ -53,8 +53,8 @@
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Charger et utiliser les traductions</div>
       <pre><code class="lua">-- Charger au démarrage (script global)
-I18n.load("fr", "data/lang/fr.json")
-I18n.load("en", "data/lang/en.json")
+I18n.load("fr", "data/i18n/fr")
+I18n.load("en", "data/i18n/en")
 I18n.fallback("en")   -- si une clé manque en fr, utiliser en
 
 -- Restaurer la langue de la dernière session
@@ -64,7 +64,7 @@ I18n.set(langue)
 -- Texte simple
 local texte_jouer = I18n.t("menu.jouer")   -- "Jouer" ou "Play"
 
--- Texte avec arguments ({1}, {2}…)
+-- Texte avec arguments (string.format : %d, %s, %f…)
 local notif = I18n.t("notif.niveau", 5)
 Notify.show(notif,  { color = "lime" })   -- "Niveau 5 atteint !"
 

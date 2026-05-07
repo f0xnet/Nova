@@ -51,8 +51,9 @@ function allerVersLaVille()
 end
 
 -- Déclencher depuis un trigger
-function OnTriggerEnter(entity, other)
-    if other:hasTag("player") then
+function OnTriggerEnter(triggerId, entityId)
+    local joueur = World.findByTag("player")
+    if joueur and entityId == joueur.id then
         entrerDansLeDonjon()
     end
 end</code></pre>

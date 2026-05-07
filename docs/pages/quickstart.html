@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Guide de démarrage rapide — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">⚡</span>
+    <h1>Guide de démarrage rapide</h1>
+    <p class="subtitle">De zéro à un script fonctionnel en quelques minutes — les bases essentielles pour scripter dans Nova.</p>
+  </div>
+
+  <!-- ─── Étape 1 ─── -->
+  <div class="section">
+    <h2>1. Le squelette d'un script</h2>
+    <p>Chaque script attache deux fonctions à une entité. Nova les appelle automatiquement :</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; structure minimale</div>
+      <pre><code class="lua">-- init est appelé une seule fois quand l'entité est créée.
+-- 'entity' est l'entité propriétaire du script (global injecté).
+function init(entity)
+    Log.info("Entité prête : " .. tostring(entity.id))
+end
+
+-- update est appelé à chaque frame.
+-- dt = temps écoulé depuis la dernière frame (en secondes).
+function update(entity, dt)
+    -- logique frame par frame ici
+end</code></pre>
+    </div>
+    <div class="callout info">
+      <strong>Globals automatiques :</strong> <code>entity</code>, <code>self</code> (propriétés JSON de la scène), et tous les modules Nova (<code>Stats</code>, <code>Anim</code>, <code>Timer</code>…) sont disponibles sans <code>require</code>.
+    </div>
+  </div>
+
+  <!-- ─── Étape 2 ─── -->
+  <div class="section">
+    <h2>2. Lire les propriétés de la scène</h2>
+    <p>Les propriétés définies dans l'éditeur de scène sont accessibles via <code>self</code> :</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; propriétés JSON → self</div>
+      <pre><code class="lua">-- Dans l'éditeur, l'entité a les propriétés : { "vie": 80, "vitesse": 120 }
+function init(entity)
+    local vie     = self.vie     or 100
+    local vitesse = self.vitesse or 80
+
+    Stats.init(entity.id, {
+        Vie    = vie,
+        VieMax = vie,
+    })
+end</code></pre>
+    </div>
+  </div>
+
+  <!-- ─── Étape 3 ─── -->
+  <div class="section">
+    <h2>3. Réagir à des événements</h2>
+    <p>Nova déclenche des fonctions nommées sur votre script en réponse à des événements moteur :</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; handlers nommés</div>
+      <pre><code class="lua">-- Appelé quand une stat de CETTE entité atteint zéro.
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        Anim.play(entity, "death", false)
+        Sound.play("data/sounds/mort.ogg")
+        Timer.after(1.0, function()
+            entity:disable()
+        end)
+    end
+end
+
+-- Appelé quand une entité entre dans la zone de trigger.
+-- triggerId = nom (string) de la zone ; entityId = id numérique de l'entrant.
+function OnTriggerEnter(triggerId, entityId)
+    local joueur = World.findByTag("player")
+    if joueur and entityId == joueur.id then
+        Notify.show("Zone atteinte !", { color = "lime" })
+    end
+end
+
+-- Appelé quand le script reçoit un message via EventBus.
+function OnMessage(msg, data)
+    if msg == "alerte" then
+        Log.info("Message reçu : " .. msg)
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <!-- ─── Étape 4 ─── -->
+  <div class="section">
+    <h2>4. Utiliser les modules courants</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; modules essentiels</div>
+      <pre><code class="lua">function init(entity)
+    -- Initialiser les stats depuis les propriétés de scène
+    Stats.init(entity.id, { Vie = self.vie or 100, VieMax = self.vie or 100 })
+
+    -- Jouer l'animation idle en boucle
+    Anim.play(entity, "idle", true)
+
+    -- Pré-charger les sons pour éviter la latence
+    Sound.preload("data/sounds/attaque.ogg")
+end
+
+function update(entity, dt)
+    local joueur = World.findByTag("player")
+    if not joueur then return end
+
+    -- Poursuivre le joueur s'il est proche
+    if entity:getDistance(joueur) < 300 then
+        Nav.moveTo(entity, joueur, 120)
+        Anim.play(entity, "run", true)
+    else
+        Nav.stop(entity)
+        Anim.play(entity, "idle", true)
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <!-- ─── Étape 5 ─── -->
+  <div class="section">
+    <h2>5. Script complet — ennemi simple</h2>
+    <p>Ce script combine tout ce qui précède : initialisation, poursuite, attaque et mort.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; ennemi_simple.lua</div>
+      <pre><code class="lua">local VITESSE    = 120
+local DIST_AGGRO = 300
+local DIST_ATK   = 60
+local DMG        = 15
+local cd_attaque = Cooldown.new(1.2)
+
+function init(entity)
+    local pv = self.vie or 60
+    Stats.init(entity.id, { Vie = pv, VieMax = pv })
+    Anim.play(entity, "idle", true)
+end
+
+function update(entity, dt)
+    local joueur = World.findByTag("player")
+    if not joueur then return end
+
+    local dist = entity:getDistance(joueur)
+
+    if dist < DIST_ATK then
+        -- Attaque au corps à corps
+        Nav.stop(entity)
+        Anim.play(entity, "attack", false)
+        if Cooldown.ready(cd_attaque) then
+            Stats.mod(joueur.id, "Vie", -DMG)
+            Camera.shake(0.2, 6)
+            Cooldown.reset(cd_attaque)
+        end
+    elseif dist < DIST_AGGRO then
+        -- Poursuite
+        Nav.moveTo(entity, joueur, VITESSE)
+        Anim.play(entity, "run", true)
+    else
+        Nav.stop(entity)
+        Anim.play(entity, "idle", true)
+    end
+end
+
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        Nav.stop(entity)
+        Anim.play(entity, "death", false)
+        Sound.play("data/sounds/ennemi_mort.ogg")
+
+        local joueur = World.findByTag("player")
+        if joueur then
+            Loot.dropFor(joueur, "gobelin")
+        end
+
+        Timer.after(1.5, function()
+            entity:disable()
+        end)
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="callout success">
+    <strong>Prochaines étapes :</strong> consultez <a href="structure.html" target="_self">Structure d'un script</a> pour les détails sur le cycle de vie, ou les tutoriels <a href="tuto_ennemi.html" target="_self">Ennemi avec IA</a> et <a href="tuto_boss.html" target="_self">Boss de donjon</a> pour des exemples complets.
+  </div>
+
+</div>
+</body>
+</html>
