@@ -170,6 +170,18 @@ end</code></pre>
         <tr><td>entity:sendMessage(msg, data)</td><td>Envoie un message → déclenche <code>OnMessage</code> sur cette entité.</td></tr>
         <tr><td>entity:enable()</td><td>Rend l'entité visible et active.</td></tr>
         <tr><td>entity:disable()</td><td>Cache l'entité et désactive ses collisions.</td></tr>
+        <tr><td>entity:isEnabled()</td><td>Vrai si l'entité est visible et active.</td></tr>
+        <tr><td>entity:isNearby(other, rayon)</td><td>Raccourci : vrai si <code>getDistance(other) &lt; rayon</code>.</td></tr>
+        <tr><td>entity:getAudio()</td><td>Composant audio.</td></tr>
+        <tr><td>entity:getLight()</td><td>Composant lumière.</td></tr>
+        <tr><td>entity:getShader()</td><td>Composant shader.</td></tr>
+        <tr><td>entity:modStat(stat, delta)</td><td>Raccourci pour <code>Stats.mod(entity.id, stat, delta)</code>.</td></tr>
+        <tr><td>entity:getStat(stat, défaut)</td><td>Raccourci pour <code>Stats.get(entity.id, stat, défaut)</code>.</td></tr>
+        <tr><td>entity:setStat(stat, valeur)</td><td>Raccourci pour <code>Stats.set(entity.id, stat, valeur)</code>.</td></tr>
+        <tr><td>entity:hasStat(stat)</td><td>Raccourci pour <code>Stats.has(entity.id, stat)</code>.</td></tr>
+        <tr><td>entity:hasComponent(typeID)</td><td>Vrai si le composant existe.</td></tr>
+        <tr><td>entity:addComponent(typeID)</td><td>Ajoute un composant par nom de type.</td></tr>
+        <tr><td>entity:removeComponent(typeID)</td><td>Retire un composant par nom de type.</td></tr>
       </tbody>
     </table>
   </div>
