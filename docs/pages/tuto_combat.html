@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tutoriel : Système de combat — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">⚔️</span>
+    <h1>Tutoriel : Système de combat</h1>
+    <p class="subtitle">Créer un système de combat complet pour le joueur — attaque au corps à corps, dash, invincibilité, barre de vie, mort et respawn.</p>
+  </div>
+
+  <div class="callout info">
+    <strong>Ce que vous allez créer :</strong> le script du joueur avec attaque (cooldown, animation, zone de dégâts), dash (invincibilité temporaire), et gestion de la mort avec respawn.
+  </div>
+
+  <div class="section">
+    <h2>1. Initialisation du joueur</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — OnInit</div>
+      <pre><code class="lua">local VITESSE       = 180
+local VIE_MAX       = 100
+local DEGATS_BASE   = 25
+local PORTEE_ATK    = 80
+local DUREE_DASH    = 0.2
+local VITESSE_DASH  = 500
+local INVINCIBLE_APRES_HIT = 1.0  -- secondes
+
+local en_dash       = false
+local invincible    = false
+local checkpoint    = { x = 200, y = 300 }
+
+function OnInit(entity)
+    -- Stats du joueur
+    Stats.init(entity.id, {
+        Vie    = VIE_MAX,
+        VieMax = VIE_MAX,
+        Degats = DEGATS_BASE,
+    })
+
+    -- Démarrer le suivi caméra
+    Camera.follow(entity)
+
+    -- Musique de jeu
+    Sound.playMusic("data/music/combat.ogg")
+
+    -- Réagir quand les PV tombent à 0
+    EventBus.on("stat_zeroed_" .. tostring(entity.id), function(data)
+        if data.stat == "Vie" then
+            mourir(entity)
+        end
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. Déplacement et actions</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — OnUpdate</div>
+      <pre><code class="lua">function OnUpdate(entity, dt)
+    -- Pendant un dash : ne pas lire les inputs
+    if en_dash then return end
+
+    -- === Déplacement ===
+    local dx, dy = 0, 0
+    if InputBind.isDown("bouger_gauche") then dx = -1 end
+    if InputBind.isDown("bouger_droite") then dx =  1 end
+    if InputBind.isDown("bouger_haut")   then dy = -1 end
+    if InputBind.isDown("bouger_bas")    then dy =  1 end
+
+    -- Normaliser la diagonale
+    if dx ~= 0 and dy ~= 0 then dx = dx * 0.707; dy = dy * 0.707 end
+
+    local pos = World.getPosition(entity)
+    World.setPosition(entity, pos.x + dx * VITESSE * dt,
+                               pos.y + dy * VITESSE * dt)
+
+    -- Animation selon le mouvement
+    if dx ~= 0 or dy ~= 0 then
+        if Anim.current(entity) ~= "run" then
+            Anim.play(entity, "run", true)
+        end
+    else
+        if Anim.current(entity) ~= "idle" then
+            Anim.play(entity, "idle", true)
+        end
+    end
+
+    -- === Attaque ===
+    if InputBind.isPressed("attaquer") then
+        attaquer(entity)
+    end
+
+    -- === Dash ===
+    if InputBind.isPressed("dash") then
+        dash(entity, dx, dy)
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Attaque</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — attaquer()</div>
+      <pre><code class="lua">function attaquer(entity)
+    -- Cooldown : ne pas spammer
+    if not Cooldown.ready("attaque") then return end
+    Cooldown.use("attaque", 0.5)
+
+    -- Jouer l'animation (pas en boucle)
+    Anim.play(entity, "attack", false)
+    Sound.play("data/sounds/epee_swing.ogg")
+
+    -- Au frame 4 : zone de dégâts
+    Anim.onFrame(entity, 4, function()
+        local pos     = World.getPosition(entity)
+        local victimes = Spatial.findInRadius(pos.x, pos.y, PORTEE_ATK, "enemy")
+
+        for _, victime in ipairs(victimes) do
+            local degats = Stats.get(entity.id, "Degats", DEGATS_BASE)
+            Stats.mod(victime.id, "Vie", -degats)
+
+            -- Flash sur le coup critique (10% de chance)
+            if Random.bool(0.10) then
+                degats = degats * 2
+                SceneFX.flash(Color.new(255, 255, 200, 150), 0.1)
+                Sound.play("data/sounds/critique.ogg")
+            end
+        end
+    end)
+
+    -- Reprendre idle après l'attaque
+    Anim.onFinish(entity, function()
+        Anim.play(entity, "idle", true)
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>4. Dash avec invincibilité</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — dash()</div>
+      <pre><code class="lua">function dash(entity, dx, dy)
+    if not Cooldown.ready("dash") then return end
+    if dx == 0 and dy == 0 then return end  -- pas de direction : annuler
+
+    Cooldown.use("dash", 1.5)
+
+    en_dash    = true
+    invincible = true
+
+    -- Traînée de particules
+    local trainee = Particles.emitter(0, 0, {
+        rate = 0.02, count = 1, speed = 10, spread = 360,
+        lifetime = 0.3, size = 6, sizeEnd = 0,
+        color = Color.new(100, 200, 255),
+    })
+
+    Scheduler.start(function()
+        -- Dash rapide pendant DUREE_DASH secondes
+        local temps = 0
+        while temps < DUREE_DASH do
+            local dt_frame = Scheduler.wait(0)  -- attendre 1 frame
+            local pos = World.getPosition(entity)
+            World.setPosition(entity,
+                pos.x + dx * VITESSE_DASH * dt_frame,
+                pos.y + dy * VITESSE_DASH * dt_frame)
+            local p = World.getPosition(entity)
+            Particles.move(trainee, p.x, p.y)
+            temps = temps + dt_frame
+        end
+
+        Particles.stop(trainee)
+        en_dash = false
+
+        -- Invincibilité pendant encore 0.3 secondes après le dash
+        Scheduler.wait(0.3)
+        invincible = false
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>5. Recevoir des dégâts et mourir</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — dégâts et mort</div>
+      <pre><code class="lua">-- Être touché (appelé par l'ennemi via EventBus ou collision)
+EventBus.on("joueur_touche", function(data)
+    if invincible then return end
+
+    -- Flash rouge + tremblement
+    SceneFX.flash(Color.new(255, 0, 0, 120), 0.15)
+    Camera.shake(0.2, 6)
+    Sound.play("data/sounds/joueur_touche.ogg")
+
+    -- Invincibilité temporaire après le coup
+    invincible = true
+    Timer.after(INVINCIBLE_APRES_HIT, function()
+        invincible = false
+    end)
+end)
+
+-- Mort et respawn
+function mourir(entity)
+    Sound.play("data/sounds/joueur_mort.ogg")
+
+    SceneFX.fadeIn(1.5, function()
+        -- Remettre en vie
+        Stats.set(entity.id, "Vie", VIE_MAX)
+        invincible = false
+
+        -- Revenir au checkpoint
+        World.setPosition(entity, checkpoint.x, checkpoint.y)
+        Sound.playMusic("data/music/combat.ogg")
+
+        Notify.show("Vous êtes mort. Retour au checkpoint.", "warn")
+        SceneFX.fadeOut(1.0)
+    end)
+end
+
+-- Sauvegarder le checkpoint quand on le touche
+function OnTriggerEnter(entity, other)
+    if other:hasTag("checkpoint") then
+        local pos = World.getPosition(other)
+        checkpoint = { x = pos.x, y = pos.y }
+        Notify.show("Checkpoint sauvegardé !", "success")
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
