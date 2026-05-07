@@ -36,11 +36,12 @@
         <tr><td>OnInit(entity, props)</td><td>Une seule fois, au chargement de l'entité. <code>props</code> contient les données du JSON de scène.</td></tr>
         <tr><td>OnUpdate(entity, dt)</td><td>Chaque frame (~60×/seconde). <code>dt</code> = secondes écoulées depuis la frame précédente.</td></tr>
         <tr><td>OnDestroy(entity)</td><td>Quand l'entité est détruite. Idéal pour nettoyer des timers ou des effets.</td></tr>
-        <tr><td>OnMessage(entity, msg, data)</td><td>Quand un autre script appelle <code>entity:sendMessage(msg, data)</code>.</td></tr>
+        <tr><td>OnMessage(msg, payload)</td><td>Quand un autre script appelle <code>entity:sendMessage(msg, data)</code>.</td></tr>
         <tr><td>OnKeyDown(key)</td><td>À chaque appui de touche (une seule fois par appui).</td></tr>
         <tr><td>OnKeyUp(key)</td><td>À chaque relâchement de touche.</td></tr>
-        <tr><td>OnCollisionEnter(entityId)</td><td>Quand cette entité entre en contact avec une autre.</td></tr>
-        <tr><td>OnCollisionExit(entityId)</td><td>Quand le contact se termine.</td></tr>
+        <tr><td>OnActivate(activatorId, actionID)</td><td>Quand un trigger ou une interaction déclenche cette entité.</td></tr>
+        <tr><td>OnDeactivate(activatorId, actionID)</td><td>Quand le trigger se désactive.</td></tr>
+        <tr><td>OnAnimationEvent(animID, frame)</td><td>À un frame précis d'une animation (défini dans l'éditeur).</td></tr>
       </tbody>
     </table>
   </div>
@@ -95,7 +96,7 @@ function OnUpdate(entity, dt)
 end
 
 -- ─── Réception de messages ────────────────────────────────────
-function OnMessage(entity, msg, data)
+function OnMessage(msg, data)
     if msg == "takeDamage" then
         vie = vie - data.amount
 

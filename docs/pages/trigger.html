@@ -90,7 +90,9 @@ Trigger.create("cristal_save", { x = 512, y = 256, w = 32, h = 32 }, {
     tags    = { "player" },
     once    = true,
     onEnter = function()
-        Persist.set("derniere_position", World.getPosition(World.findByTag("player")))
+        local pos = World.findByTag("player"):getPosition()
+        Persist.set("checkpoint_x", pos.x)
+        Persist.set("checkpoint_y", pos.y)
         Persist.set("dernier_checkpoint", "salle_cristal")
         Notify.show("✓ Progression sauvegardée", { color = "cyan", duration = 3 })
         Sound.play("data/sounds/save.ogg")
