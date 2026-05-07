@@ -448,6 +448,8 @@ void Game::onUpdate(float deltaTime) {
         m_dialogueSystem->showNPCIndicator(nearestNPC != nullptr && !m_dialogueSystem->isActive());
     }
 
+    m_lastDeltaTime = deltaTime;
+
     // Update ECS scene
     m_sceneManager.update(deltaTime);
 
@@ -466,7 +468,7 @@ void Game::onRender() {
 
     // End scene rendering and apply post-processing effects
     if (m_postProcessPipeline) {
-        m_postProcessPipeline->endSceneRender(0.016f); // ~60fps delta
+        m_postProcessPipeline->endSceneRender(m_lastDeltaTime);
     }
 
     // Reset view to default before rendering UI (avoid camera offset)

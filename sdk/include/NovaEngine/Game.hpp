@@ -43,6 +43,7 @@ private:
     NovaEngine::ScriptSystem* m_scriptSystem = nullptr;
 
     NovaEngine::FontHandle m_font;
+    float m_lastDeltaTime = 0.016f;
 
 public:
     Game();

@@ -53,7 +53,7 @@ function Scene_module.setActive(name)
     EventBus.emit("scene_changed", { name = name })
 end
 
--- Transition avec fondu au noir optionnel (via PostFX + Tween)
+-- Transition avec fondu au noir via SceneFX (plein écran, UI incluse)
 function Scene_module.transition(name, opts)
     opts = opts or {}
     local fade     = opts.fade ~= false   -- true par défaut
@@ -64,22 +64,10 @@ function Scene_module.transition(name, opts)
         return
     end
 
-    if fade and PostFX then
-        -- Fondu vers le noir
-        Tween.new(0, 1, duration, "easeIn",
-            function(t)
-                PostFX.setSaturation(1.3 * (1 - t))
-                PostFX.setBrightness(-t * 2.0)
-            end,
-            function()
-                Scene_module.setActive(name)
-                -- Fondu depuis le noir
-                Tween.new(0, 1, duration, "easeOut",
-                    function(t)
-                        PostFX.setSaturation(1.3 * t)
-                        PostFX.setBrightness(-2.0 + t * 2.0)
-                    end)
-            end)
+    if fade then
+        SceneFX.transition(function()
+            Scene_module.setActive(name)
+        end, duration)
     else
         Scene_module.setActive(name)
     end

@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <set>
+#include <utility>
 #include <filesystem>
 #include <chrono>
 
@@ -111,6 +113,7 @@ public:
         callTableMethod("InputEx", "_clear", 0.0f);
 
         updateActivatorBridge(registry);
+        updateCollisionBridge(registry);
         updateInputBridge();
         updateNovaRuntime(deltaTime);
 
@@ -202,6 +205,7 @@ private:
     std::unordered_map<std::string, bool>   m_prevMouseState;
     std::unordered_map<u64, u32>            m_animPrevFrame;
     std::unordered_map<u64, std::string>    m_animPrevAnimID;
+    std::set<std::pair<u64,u64>>            m_prevCollisions;
 
     // -------------------------------------------------------------------------
     // Initialisation
@@ -464,6 +468,18 @@ function __wireNamedHandlers(env, entityId)
             safe(env.OnUIAction, data.action, data.value, data.id)
         end)
     end
+
+    -- OnCollisionEnter(otherEntityId) / OnCollisionExit(otherEntityId)
+    if type(env.OnCollisionEnter) == "function" then
+        EventBus.on("collision_enter_" .. tostring(entityId), function(data)
+            safe(env.OnCollisionEnter, data.entityId)
+        end)
+    end
+    if type(env.OnCollisionExit) == "function" then
+        EventBus.on("collision_exit_" .. tostring(entityId), function(data)
+            safe(env.OnCollisionExit, data.entityId)
+        end)
+    end
 end
         )", sol::script_pass_on_error);
         if (!r.valid()) {
@@ -517,8 +533,12 @@ end
             { "Easing",        "nova/easing"        },
             { "I18n",          "nova/i18n"          },
             { "Achievement",   "nova/achievement"   },
+            // Effets visuels écran (fondu, flash) — doit précéder Scene
+            { "SceneFX",       "nova/scene_fx"      },
+            // Système de particules 2D via DebugDraw
+            { "Particles",     "nova/particles"     },
             // Override le global Scene C++ avec le wrapper Lua (capture _sm = Scene avant)
-            // Doit être chargé après Nav (qui utilise Scene.findPath)
+            // Doit être chargé après Nav (qui utilise Scene.findPath) et après SceneFX
             { "Scene",         "nova/scene"         },
         };
         for (auto& [global, mod] : modules) {
@@ -548,6 +568,8 @@ end
         callTableMethod("Trigger",      "_update", dt);
         callTableMethod("Nav",          "_update", dt);
         callTableMethod("Spatial",      "_update", dt);
+        callTableMethod("SceneFX",      "_update", dt);
+        callTableMethod("Particles",    "_update", dt);
         callTableMethod("Debug",        "_update", dt);
     }
 
@@ -561,6 +583,81 @@ end
             sol::error err = r;
             LOG_WARN("[ScriptSystem] {}.{}(dt) error: {}", table, method, err.what());
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Bridge ColliderComponent → EventBus (AABB + circle, enter/exit)
+    // Émet par entité : collision_enter_<id> / collision_exit_<id>  { entityId }
+    // Émet global    : collision_enter / collision_exit  { entityIdA, entityIdB }
+    // -------------------------------------------------------------------------
+    static bool s_collidersOverlap(
+        const TransformComponent* ta, const ColliderComponent* ca,
+        const TransformComponent* tb, const ColliderComponent* cb)
+    {
+        using CT = ColliderComponent::ColliderType;
+        bool aBox = (ca->type == CT::Box);
+        bool bBox = (cb->type == CT::Box);
+
+        if (aBox && bBox) {
+            Vec2f a = ta->position + ca->offset;
+            Vec2f b = tb->position + cb->offset;
+            return a.x < b.x + cb->size.x && a.x + ca->size.x > b.x &&
+                   a.y < b.y + cb->size.y && a.y + ca->size.y > b.y;
+        }
+        if (!aBox && !bBox) {
+            Vec2f d = (ta->position + ca->offset) - (tb->position + cb->offset);
+            float r = ca->radius + cb->radius;
+            return d.x*d.x + d.y*d.y < r * r;
+        }
+        // Box vs Circle
+        const TransformComponent* tBox  = aBox ? ta : tb;
+        const ColliderComponent*  cBox  = aBox ? ca : cb;
+        const TransformComponent* tCirc = aBox ? tb : ta;
+        const ColliderComponent*  cCirc = aBox ? cb : ca;
+        Vec2f mn  = tBox->position  + cBox->offset;
+        Vec2f mx  = { mn.x + cBox->size.x, mn.y + cBox->size.y };
+        Vec2f ctr = tCirc->position + cCirc->offset;
+        Vec2f cl  = { std::max(mn.x, std::min(ctr.x, mx.x)),
+                      std::max(mn.y, std::min(ctr.y, mx.y)) };
+        Vec2f d   = ctr - cl;
+        return d.x*d.x + d.y*d.y < cCirc->radius * cCirc->radius;
+    }
+
+    void updateCollisionBridge(EntityRegistry& registry) {
+        auto entities = registry.getEntitiesWith({"TransformComponent", "ColliderComponent"});
+        std::set<std::pair<u64,u64>> current;
+
+        for (size_t i = 0; i < entities.size(); ++i) {
+            for (size_t j = i + 1; j < entities.size(); ++j) {
+                auto* ta = entities[i]->getComponent<TransformComponent>();
+                auto* ca = entities[i]->getComponent<ColliderComponent>();
+                auto* tb = entities[j]->getComponent<TransformComponent>();
+                auto* cb = entities[j]->getComponent<ColliderComponent>();
+                if (!ca->enabled || !cb->enabled) continue;
+                if (!s_collidersOverlap(ta, ca, tb, cb)) continue;
+
+                u64 a = entities[i]->getID(), b = entities[j]->getID();
+                if (a > b) std::swap(a, b);
+                current.insert({a, b});
+            }
+        }
+
+        auto emitPair = [&](const char* event, u64 a, u64 b) {
+            auto dA = m_lua.create_table();
+            dA["entityId"]  = b; dA["entityIdA"] = a; dA["entityIdB"] = b;
+            callEventBusEmit(std::string(event) + "_" + std::to_string(a), dA);
+            auto dB = m_lua.create_table();
+            dB["entityId"]  = a; dB["entityIdA"] = a; dB["entityIdB"] = b;
+            callEventBusEmit(std::string(event) + "_" + std::to_string(b), dB);
+            callEventBusEmit(event, dA);
+        };
+
+        for (auto& [a, b] : current)
+            if (!m_prevCollisions.count({a, b})) emitPair("collision_enter", a, b);
+        for (auto& [a, b] : m_prevCollisions)
+            if (!current.count({a, b}))           emitPair("collision_exit",  a, b);
+
+        m_prevCollisions = std::move(current);
     }
 
     // -------------------------------------------------------------------------
