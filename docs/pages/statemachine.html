@@ -21,24 +21,11 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>StateMachine.new(etats, etat_initial)</td><td>Crée une nouvelle machine à états. Retourne un objet <code>sm</code>.</td></tr>
-        <tr><td>sm:update(dt)</td><td>À appeler dans <code>OnUpdate</code> — exécute l'état actuel.</td></tr>
-        <tr><td>sm:setState(nom)</td><td>Change d'état immédiatement. Appelle <code>onExit</code> de l'ancien puis <code>onEnter</code> du nouveau.</td></tr>
-        <tr><td>sm:getState()</td><td>Nom de l'état actuel.</td></tr>
-        <tr><td>sm:is(nom)</td><td>Vrai si l'état actuel est <code>nom</code>.</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>Structure d'un état</h2>
-    <p>Chaque état est une table avec trois fonctions optionnelles :</p>
-    <table class="api-table">
-      <thead><tr><th>Champ</th><th>Appelé quand</th></tr></thead>
-      <tbody>
-        <tr><td>onEnter()</td><td>Au moment d'entrer dans cet état.</td></tr>
-        <tr><td>onUpdate(dt)</td><td>Chaque frame tant que l'état est actif.</td></tr>
-        <tr><td>onExit()</td><td>Au moment de quitter cet état.</td></tr>
+        <tr><td>StateMachine.new(etat_initial)</td><td>Crée une machine à états. Retourne un objet <code>fsm</code>.</td></tr>
+        <tr><td>fsm:addState(nom, onEnter, onUpdate, onExit)</td><td>Ajoute un état. Les trois fonctions sont optionnelles.</td></tr>
+        <tr><td>fsm:update(entity, dt)</td><td>À appeler dans <code>OnUpdate</code> — exécute l'état actuel.</td></tr>
+        <tr><td>fsm:transition(nom)</td><td>Change d'état : appelle <code>onExit</code> de l'ancien, puis <code>onEnter</code> du nouveau.</td></tr>
+        <tr><td>fsm:getState()</td><td>Nom de l'état actuel.</td></tr>
       </tbody>
     </table>
   </div>
@@ -50,76 +37,67 @@
       <pre><code class="lua">local DISTANCE_DETECTION = 250
 local DISTANCE_ATTAQUE   = 60
 
-local sm   -- La machine à états (déclarée ici pour y accéder dans les états)
+local fsm    -- La machine à états
 local joueur
 
 function OnInit(entity)
     joueur = World.findByTag("player")
 
-    sm = StateMachine.new({
+    -- 1. Créer la machine avec l'état de départ
+    fsm = StateMachine.new("Patrouille")
 
-        -- État 1 : Patrouille
-        Patrouille = {
-            onEnter = function()
-                Anim.play(entity, "walk", true)
-                Nav.patrol(entity, entity:getData("points_patrol"))
-            end,
-            onUpdate = function(dt)
-                local pos_j = World.getPosition(joueur)
-                local pos_e = World.getPosition(entity)
-                local dist  = Math.distance(pos_j.x, pos_j.y, pos_e.x, pos_e.y)
+    -- 2. Ajouter chaque état
+    fsm:addState("Patrouille",
+        -- onEnter
+        function()
+            Anim.play(entity, "walk", true)
+        end,
+        -- onUpdate
+        function(e, dt)
+            local dist = e:getDistance(joueur)
+            if dist < DISTANCE_DETECTION then
+                fsm:transition("Poursuite")
+            end
+        end,
+        -- onExit
+        function()
+            Nav.stop(entity)
+        end
+    )
 
-                if dist < DISTANCE_DETECTION then
-                    sm:setState("Poursuite")
-                end
-            end,
-            onExit = function()
-                Nav.stop(entity)
-            end,
-        },
+    fsm:addState("Poursuite",
+        function()
+            Anim.play(entity, "run", true)
+        end,
+        function(e, dt)
+            local dist = e:getDistance(joueur)
+            if dist > DISTANCE_DETECTION * 1.5 then
+                fsm:transition("Patrouille")
+            elseif dist < DISTANCE_ATTAQUE then
+                fsm:transition("Attaque")
+            else
+                local pos_j = joueur:getPosition()
+                Nav.moveTo(entity, pos_j, 120)
+            end
+        end
+    )
 
-        -- État 2 : Poursuite
-        Poursuite = {
-            onEnter = function()
-                Anim.play(entity, "run", true)
-            end,
-            onUpdate = function(dt)
-                local pos_j = World.getPosition(joueur)
-                local pos_e = World.getPosition(entity)
-                local dist  = Math.distance(pos_j.x, pos_j.y, pos_e.x, pos_e.y)
-
-                if dist > DISTANCE_DETECTION * 1.5 then
-                    sm:setState("Patrouille")
-                elseif dist < DISTANCE_ATTAQUE then
-                    sm:setState("Attaque")
-                else
-                    Nav.moveTo(entity, pos_j.x, pos_j.y)
-                end
-            end,
-        },
-
-        -- État 3 : Attaque
-        Attaque = {
-            onEnter = function()
-                Nav.stop(entity)
-                Anim.play(entity, "attack", false)
-                Anim.onFinish(entity, function()
-                    sm:setState("Poursuite")
-                end)
-            end,
-            onUpdate = function(dt)
-                -- Infliger des dégâts au frame 4 de l'animation
-                Anim.onFrame(entity, 4, function()
-                    Stats.mod(joueur.id, "Vie", -15)
-                end)
-            end,
-        },
-
-    }, "Patrouille")  -- État de départ
+    fsm:addState("Attaque",
+        function()
+            Nav.stop(entity)
+            Anim.play(entity, "attack", false)
+            Anim.onFrame(entity, 4, function()
+                Stats.mod(joueur.id, "Vie", -15)
+            end)
+            Anim.onFinish(entity, function()
+                fsm:transition("Poursuite")
+            end)
+        end
+    )
 end
 
 function OnUpdate(entity, dt)
-    sm:update(dt)
+    fsm:update(entity, dt)
 end</code></pre>
     </div>
   </div>
