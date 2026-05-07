@@ -527,6 +527,12 @@ private:
     static void registerDebugDraw(sol::state& lua) {
         sol::table dbg = lua.create_table();
 
+        // Police chargée une fois pour DebugDraw.text
+        static FontHandle s_debugFont = INVALID_HANDLE;
+        if (s_debugFont == INVALID_HANDLE) {
+            s_debugFont = FONTS().loadFont("data/font/SpaceMono-Regular.ttf");
+        }
+
         // Rect : outline (filled=false) ou rempli (filled=true)
         dbg["rect"] = [](f32 x, f32 y, f32 w, f32 h,
                          sol::object colorObj, bool filled) {
@@ -567,15 +573,17 @@ private:
             GRAPHICS().drawRect(r);
         };
 
-        // Text (world-space)
+        // Text (screen-space, après resetView)
         dbg["text"] = [](f32 x, f32 y, const std::string& text,
                          sol::object colorObj) {
+            if (s_debugFont == INVALID_HANDLE) return;
             Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color::White;
             TextData td;
             td.text          = text;
             td.position      = {x, y};
             td.fillColor     = c;
             td.characterSize = 14;
+            td.font          = s_debugFont;
             GRAPHICS().drawText(td);
         };
 
