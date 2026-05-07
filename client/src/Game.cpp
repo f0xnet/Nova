@@ -219,7 +219,7 @@ bool Game::onInitialize() {
             };
             ui["setEnabled"] = [this](const std::string& id, bool v) {
                 auto comp = m_uiManager.getComponent(id);
-                if (comp) comp->setEnabled(v);
+                if (comp) comp->setActive(v);
             };
 
             // Texte (Text component)
