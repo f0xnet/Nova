@@ -333,11 +333,6 @@ bool Game::onInitialize() {
     // Initialize dialogue system with UI manager
     m_dialogueSystem->initialize(&m_uiManager);
 
-    // Debug console overlay — pre-loads SpaceMono into the font cache for DebugDraw.text
-    if (!m_uiLoader.loadFromFile("data/ui/json/debug_console.json", m_uiManager)) {
-        LOG_WARN("Failed to load debug console UI");
-    }
-
     // Initialize post-processing pipeline
     m_postProcessPipeline = std::make_unique<NovaEngine::PostProcessPipeline>(&GRAPHICS());
     if (!m_postProcessPipeline->initialize(
