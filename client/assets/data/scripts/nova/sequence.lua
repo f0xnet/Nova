@@ -26,6 +26,7 @@
 
 local Sequence = {}
 local _running = {}  -- liste des séquences actives
+local _advanceSeq   -- forward declaration
 
 function Sequence.new()
     local seq = {
@@ -76,6 +77,7 @@ function Sequence.new()
         self._cursor     = 1
         self._onComplete = onComplete
         _running[#_running + 1] = self
+        _advanceSeq(self, 0)
         return self
     end
 
@@ -87,7 +89,7 @@ function Sequence.new()
 end
 
 -- Avance une séquence d'un dt ; retourne false quand terminée
-local function _advanceSeq(seq, dt)
+_advanceSeq = function(seq, dt)
     if not seq._active then return false end
 
     -- Bloc tween en cours
@@ -108,11 +110,12 @@ local function _advanceSeq(seq, dt)
     -- Bloc wait en cours
     if seq._timer > 0 then
         seq._timer = seq._timer - dt
-        if seq._timer <= 0 then
-            seq._timer  = 0
-            seq._cursor = seq._cursor + 1
+        if seq._timer > 0 then
+            return true
         end
-        return true
+        seq._timer  = 0
+        seq._cursor = seq._cursor + 1
+        -- fall through to process next steps
     end
 
     -- Exécute les étapes instantanées jusqu'à bloquer

@@ -160,7 +160,13 @@ end
 function Conversation.getCurrent()
     if not _session then return nil end
     local node = _trees[_session.treeId].nodes[_session.currentNodeId]
-    return { node = node, choices = _session.visibleChoices }
+    if not node then return nil end
+    return {
+        node    = node,
+        choices = _session.visibleChoices,
+        text    = node.text,
+        speaker = node.speaker,
+    }
 end
 
 function Conversation.isRunning()
