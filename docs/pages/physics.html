@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Physics — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">⚡</span>
+    <h1>Physics</h1>
+    <p class="subtitle">Appliquer des forces et des impulsions aux entités — lancer, repousser, simuler de la gravité ou des rebonds.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Physics.setVelocity(entity, vx, vy)</td><td>Définit la vitesse instantanée en pixels/seconde.</td></tr>
+        <tr><td>Physics.getVelocity(entity)</td><td>Retourne <code>{x, y}</code> — la vitesse actuelle.</td></tr>
+        <tr><td>Physics.addForce(entity, fx, fy)</td><td>Applique une force continue (s'additionne chaque frame).</td></tr>
+        <tr><td>Physics.addImpulse(entity, ix, iy)</td><td>Applique une impulsion instantanée (poussée ponctuelle).</td></tr>
+        <tr><td>Physics.setGravity(entity, gy)</td><td>Gravité personnalisée pour cette entité (pixels/s²).</td></tr>
+        <tr><td>Physics.setDamping(entity, d)</td><td>Frottement (0.0 = sans frottement, 1.0 = stop immédiat).</td></tr>
+        <tr><td>Physics.isGrounded(entity)</td><td>Vrai si l'entité touche le sol.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Saut et gravité</div>
+      <pre><code class="lua">local FORCE_SAUT = -500  -- vers le haut (y négatif)
+
+function OnInit(entity)
+    Physics.setGravity(entity, 800)   -- gravité forte
+    Physics.setDamping(entity, 0.1)   -- léger frottement au sol
+end
+
+function OnUpdate(entity, dt)
+    -- Sauter quand on appuie sur espace et qu'on est au sol
+    if InputBind.isPressed("sauter") and Physics.isGrounded(entity) then
+        Physics.addImpulse(entity, 0, FORCE_SAUT)
+        Anim.play(entity, "jump", false)
+        Sound.play("data/sounds/saut.ogg")
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Knockback (repousser un ennemi)</div>
+      <pre><code class="lua">-- Repousser un ennemi dans la direction opposée au joueur
+function knockback(ennemi, joueur, force)
+    local pos_j = World.getPosition(joueur)
+    local pos_e = World.getPosition(ennemi)
+
+    -- Direction de la poussée (de joueur vers ennemi)
+    local dir = Vec2.normalize(Vec2.sub(
+        Vec2.new(pos_e.x, pos_e.y),
+        Vec2.new(pos_j.x, pos_j.y)
+    ))
+
+    Physics.addImpulse(ennemi, dir.x * force, dir.y * force)
+end
+
+-- Quand le joueur attaque
+knockback(ennemi, joueur, 400)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Projectile avec gravité</div>
+      <pre><code class="lua">-- Flèche qui suit une parabole
+function tirerFleche(x, y, angle_deg)
+    local proj = Pool.acquire("fleche")
+    World.setPosition(proj, x, y)
+
+    local dir     = Vec2.fromAngle(angle_deg)
+    local vitesse = 300
+    Physics.setVelocity(proj, dir.x * vitesse, dir.y * vitesse)
+    Physics.setGravity(proj, 400)   -- retombe naturellement
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
