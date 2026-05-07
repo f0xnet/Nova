@@ -42,6 +42,7 @@ local _offsetX      = 0
 local _offsetY      = 0
 local _defaultW     = nil
 local _defaultH     = nil
+local _activeTwID   = nil   -- tween caméra actif (moveTo/zoomTo/path segment)
 
 -- Appelé automatiquement par ScriptSystem chaque frame
 function Camera._update(dt)
@@ -92,13 +93,15 @@ end
 -- Déplacement fluide via Tween
 function Camera.moveTo(x, y, duration, easing)
     _following = nil
+    if _activeTwID then Tween.cancel(_activeTwID); _activeTwID = nil end
     local c = Viewport.getCenter()
-    Tween.newVec2(
+    _activeTwID = Tween.newVec2(
         { x = c.x, y = c.y },
         { x = x,   y = y   },
         duration or 1.0,
         easing or "easeOut",
-        function(v) Viewport.setCenter(v.x, v.y) end
+        function(v) Viewport.setCenter(v.x, v.y) end,
+        function() _activeTwID = nil end
     )
 end
 
@@ -121,9 +124,11 @@ end
 
 -- Zoom fluide via Tween
 function Camera.zoomTo(targetScale, duration, easing)
+    if _activeTwID then Tween.cancel(_activeTwID); _activeTwID = nil end
     local currentZoom = Camera.getZoom()
-    Tween.new(currentZoom, targetScale, duration or 1.0, easing or "easeOut",
-        function(z) Camera.setZoom(z) end)
+    _activeTwID = Tween.new(currentZoom, targetScale, duration or 1.0, easing or "easeOut",
+        function(z) Camera.setZoom(z) end,
+        function() _activeTwID = nil end)
 end
 
 -- Déplacement le long d'une liste de waypoints { {x,y}, ... }
@@ -136,6 +141,7 @@ local _pathDone   = nil
 local _pathStep   -- déclaration forward
 
 _pathStep = function()
+    _activeTwID = nil
     if not _pathQueue or #_pathQueue == 0 then
         _pathQueue = nil
         if _pathDone then _pathDone() end
@@ -147,7 +153,7 @@ _pathStep = function()
     local dx  = wp.x - c.x
     local dy  = wp.y - c.y
     local dur = math.sqrt(dx * dx + dy * dy) / math.max(_pathSpeed, 1)
-    Tween.newVec2(
+    _activeTwID = Tween.newVec2(
         { x = c.x, y = c.y },
         { x = wp.x, y = wp.y },
         dur, _pathEasing,
@@ -170,13 +176,15 @@ function Camera.path(waypoints, speed, easing, onDone)
     _pathStep()
 end
 
--- Remet à zéro (zoom + follow + path)
+-- Remet à zéro (zoom + follow + path + tween actif)
 function Camera.reset()
     _following = nil
     _pathQueue = nil
     _pathDone  = nil
+    if _activeTwID then Tween.cancel(_activeTwID); _activeTwID = nil end
     if _defaultW then
         Viewport.setSize(_defaultW, _defaultH)
+        Viewport.setCenter(_defaultW / 2, _defaultH / 2)
     end
 end
 

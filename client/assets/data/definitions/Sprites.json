@@ -40,6 +40,54 @@
       "size": [32, 32],
       "scale": [1.0, 1.0],
       "zOrder": -10
+    },
+    {
+      "id": "wall",
+      "texture": "data/sprites/wall.png",
+      "width": 768,
+      "height": 432,
+      "scale": 1.0,
+      "zOrder": 1
+    },
+    {
+      "id": "border",
+      "texture": "data/sprites/border.png",
+      "width": 768,
+      "height": 64,
+      "scale": 1.0,
+      "zOrder": 6
+    },
+    {
+      "id": "tv",
+      "texture": "data/sprites/tv.png",
+      "width": 256,
+      "height": 256,
+      "scale": 2.0,
+      "zOrder": 3
+    },
+    {
+      "id": "tv_screen",
+      "texture": "data/sprites/tv_screen.png",
+      "width": 192,
+      "height": 128,
+      "scale": 2.0,
+      "zOrder": 2
+    },
+    {
+      "id": "sofa",
+      "texture": "data/sprites/sofa.png",
+      "width": 320,
+      "height": 192,
+      "scale": 2.0,
+      "zOrder": 3
+    },
+    {
+      "id": "carpet",
+      "texture": "data/sprites/carpet.png",
+      "width": 400,
+      "height": 200,
+      "scale": 2.0,
+      "zOrder": 2
     }
   ]
 }
