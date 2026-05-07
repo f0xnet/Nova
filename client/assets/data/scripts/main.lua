@@ -70,5 +70,5 @@ end
 -- ── Logique de mise à jour ─────────────────────────────────────────────────
 -- Appelé chaque frame par ScriptSystem
 function update(dt)
-    -- Placeholder : logique globale future (ex: day-night cycle automatique)
+    IngameTest.update(dt)
 end

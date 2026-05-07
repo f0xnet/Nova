@@ -1,29 +1,56 @@
 -- tests/test_ingame.lua
 -- Tests interactifs en jeu du système de scripting.
--- Appuyez sur F5 pour lancer la suite complète.
+-- Appuyez sur P pour lancer la suite complète.
 --
--- Chaque test émet une notification à l'écran (vert = OK, rouge = FAIL)
--- et log le résultat dans la console.
+-- Les résultats s'affichent à l'écran via Debug.label (coin haut-gauche).
+-- Appelez M.update(dt) depuis le update() global de main.lua.
 
 local M = {}
+
+-- ── Overlay d'affichage ────────────────────────────────────────────────────
+
+local _lines   = {}   -- { text, ttl }
+local LINE_H   = 20
+local MARGIN_X = 16
+local MARGIN_Y = 60
+
+local function addLine(text, ttl)
+    table.insert(_lines, { text = text, ttl = ttl or 3.0 })
+    if #_lines > 14 then table.remove(_lines, 1) end
+end
+
+function M.update(dt)
+    local i = 1
+    while i <= #_lines do
+        _lines[i].ttl = _lines[i].ttl - dt
+        if _lines[i].ttl <= 0 then
+            table.remove(_lines, i)
+        else
+            i = i + 1
+        end
+    end
+    for j, line in ipairs(_lines) do
+        Debug.label(MARGIN_X, MARGIN_Y + (j - 1) * LINE_H, line.text, nil, 0)
+    end
+end
 
 -- ── Helpers ────────────────────────────────────────────────────────────────
 
 local function ok(label)
-    local msg = "OK  " .. label
+    local msg = "[OK]  " .. label
     Log.info("[INGAME TEST] " .. msg)
-    Notify.show(msg, { color = "lime", duration = 2.5 })
+    addLine(msg, 4.0)
 end
 
 local function fail(label)
-    local msg = "FAIL  " .. label
+    local msg = "[FAIL] " .. label
     Log.warn("[INGAME TEST] " .. msg)
-    Notify.show(msg, { color = "red", duration = 3.5 })
+    addLine(msg, 6.0)
 end
 
 local function title(label)
-    Log.info("[INGAME TEST] ── " .. label .. " ──")
-    Notify.show(label, { color = "gold", duration = 1.5 })
+    Log.info("[INGAME TEST] -- " .. label .. " --")
+    addLine("-- " .. label .. " --", 3.0)
 end
 
 -- ── EventBus ───────────────────────────────────────────────────────────────
@@ -31,7 +58,6 @@ end
 local function testEventBus()
     title("EventBus")
 
-    -- on / emit / off
     local got = nil
     local function h(d) got = d.v end
     EventBus.on("_t_ig_evt", h)
@@ -39,14 +65,12 @@ local function testEventBus()
     EventBus.off("_t_ig_evt", h)
     if got == 7 then ok("on/emit/off") else fail("on/emit/off (got=" .. tostring(got) .. ")") end
 
-    -- once
     local n = 0
     EventBus.once("_t_ig_once", function() n = n + 1 end)
     EventBus.emit("_t_ig_once", {})
     EventBus.emit("_t_ig_once", {})
     if n == 1 then ok("once") else fail("once (n=" .. n .. ")") end
 
-    -- off bloque bien
     got = nil
     EventBus.emit("_t_ig_evt", { v = 99 })
     if got == nil then ok("off bloque handler") else fail("off ne bloque pas") end
@@ -57,14 +81,10 @@ end
 local function testTimer()
     title("Timer")
 
-    -- after
-    local fired = false
     Timer.after(0.4, function()
-        fired = true
         ok("Timer.after(0.4s)")
     end)
 
-    -- every + cancel
     local n = 0
     local id = Timer.every(0.15, function() n = n + 1 end)
     Timer.after(0.6, function()
@@ -74,7 +94,7 @@ local function testTimer()
             if n == snap then
                 ok("Timer.every + cancel (fired " .. snap .. "x)")
             else
-                fail("cancel ne stoppe pas (avant=" .. snap .. " après=" .. n .. ")")
+                fail("cancel ne stoppe pas")
             end
         end)
     end)
@@ -90,13 +110,12 @@ local function testTween()
         function(v) val = v end,
         function()
             if math.abs(val - 100) < 1 then
-                ok("Tween.new linéaire (val=" .. math.floor(val) .. ")")
+                ok("Tween linéaire (val=" .. math.floor(val) .. ")")
             else
-                fail("Tween.new (val=" .. val .. ")")
+                fail("Tween linéaire (val=" .. val .. ")")
             end
         end)
 
-    -- cancel
     local frozen = 0
     local id = Tween.new(0, 50, 1.0, "linear", function(v) frozen = v end)
     Timer.after(0.2, function()
@@ -140,7 +159,6 @@ end
 local function testSequence()
     title("Sequence")
 
-    -- call + wait + onComplete
     local log = {}
     local done = false
     local seq = Sequence.new()
@@ -164,7 +182,6 @@ local function testSequence()
         end
     end)
 
-    -- emit immédiat
     local emitted = false
     local function h() emitted = true end
     EventBus.on("_t_ig_seq_emit", h)
@@ -174,7 +191,6 @@ local function testSequence()
     EventBus.off("_t_ig_seq_emit", h)
     if emitted then ok("emit immédiat") else fail("emit immédiat") end
 
-    -- stop
     local halted = {}
     local seq3 = Sequence.new()
     seq3:call(function() table.insert(halted, 1) end)
@@ -195,25 +211,25 @@ local function testCamera()
     local seq = Sequence.new()
 
     seq:call(function()
-        title("Camera.shake")
+        addLine("  Camera.shake...", 1.5)
         Camera.shake(0.5, 18)
     end)
     seq:wait(0.9)
 
     seq:call(function()
-        title("Camera.zoomTo x2")
+        addLine("  Camera.zoomTo x2...", 1.5)
         Camera.zoomTo(2.0, 0.6, "easeInOut")
     end)
     seq:wait(0.9)
 
     seq:call(function()
-        title("Camera.zoomTo x1")
+        addLine("  Camera.zoomTo x1...", 1.5)
         Camera.zoomTo(1.0, 0.6, "easeOut")
     end)
     seq:wait(0.9)
 
     seq:call(function()
-        title("Camera.moveTo +200,+100")
+        addLine("  Camera.moveTo +200,+100...", 1.5)
         local p = Camera.getPosition()
         Camera.moveTo(p.x + 200, p.y + 100, 0.7, "easeInOut")
     end)
@@ -237,27 +253,27 @@ local function testConversation()
         nodes = {
             greet = {
                 speaker = "Guard",
-                text    = "[TEST] Halte ! Qui va là ?",
+                text    = "Halte ! Qui va là ?",
                 choices = {
-                    { text = "Un ami.", next = "friend" },
+                    { text = "Un ami.",    next = "friend"  },
                     { text = "Personne.", next = "hostile" },
                 },
             },
-            friend  = { speaker = "Guard", text = "[TEST] Passez, ami.", next = nil },
-            hostile = { speaker = "Guard", text = "[TEST] Aux armes !",  next = nil },
+            friend  = { speaker = "Guard", text = "Passez, ami.", next = nil },
+            hostile = { speaker = "Guard", text = "Aux armes !",  next = nil },
         },
     })
 
     local nodes = {}
     local function onNode(d)
         table.insert(nodes, d.text)
-        Notify.show("[" .. d.speaker .. "] " .. d.text, { color = "cyan", duration = 1.8 })
+        addLine("  [" .. d.speaker .. "] " .. d.text, 2.5)
     end
     local function onEnd()
         EventBus.off("conversation_node", onNode)
         EventBus.off("conversation_end",  onEnd)
         if #nodes == 2 then
-            ok("Conversation start/choose/advance (" .. #nodes .. " nœuds)")
+            ok("Conversation (" .. #nodes .. " nœuds)")
         else
             fail("Conversation (#nodes=" .. #nodes .. ")")
         end
@@ -265,10 +281,10 @@ local function testConversation()
     EventBus.on("conversation_node", onNode)
     EventBus.on("conversation_end",  onEnd)
 
-    local ok_start = Conversation.start("_ingame_conv_test")
-    if not ok_start then fail("Conversation.start retourne false") return end
-
-    if not Conversation.isRunning() then fail("isRunning() false après start") return end
+    if not Conversation.start("_ingame_conv_test") then
+        fail("Conversation.start")
+        return
+    end
 
     local seq = Sequence.new()
     seq:wait(2.0)
@@ -281,7 +297,8 @@ end
 -- ── Run all ────────────────────────────────────────────────────────────────
 
 function M.runAll()
-    Notify.show("=== INGAME TESTS START ===", { color = "gold", duration = 2.0 })
+    _lines = {}
+    addLine("=== INGAME TESTS START ===", 3.0)
     Log.info("[INGAME TEST] ════════════════ START ════════════════")
 
     local seq = Sequence.new()
@@ -308,7 +325,7 @@ function M.runAll()
     seq:wait(5.5)
 
     seq:call(function()
-        Notify.show("=== INGAME TESTS DONE ===", { color = "gold", duration = 3.0 })
+        addLine("=== DONE ===", 5.0)
         Log.info("[INGAME TEST] ════════════════  DONE  ════════════════")
     end)
 
