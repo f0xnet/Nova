@@ -62,7 +62,7 @@ end
 
 
 -- Changer l'animation selon le mouvement
-function OnUpdate(entity, dt)
+function update(entity, dt)
     if Nav.isMoving(entity) then
         if Anim.current(entity) ~= "run" then
             Anim.play(entity, "run", true)

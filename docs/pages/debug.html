@@ -28,7 +28,7 @@
         <tr><td>Debug.enabled</td><td>Variable booléenne. Mettre à <code>false</code> pour tout désactiver.</td></tr>
         <tr><td>Debug.drawRect(x,y,w,h,color,duree)</td><td>Rectangle en fil de fer. <code>duree=0</code> = 1 seul frame.</td></tr>
         <tr><td>Debug.fillRect(x,y,w,h,color,duree)</td><td>Rectangle rempli.</td></tr>
-        <tr><td>Debug.drawLine(x1,y1,x2,y2,color,duree)</td><td>Ligne.</td></tr>
+        <tr><td>Debug.drawLine(x1,y1,x2,y2,color,duree,epaisseur)</td><td>Ligne. <code>epaisseur</code> en pixels (défaut 1).</td></tr>
         <tr><td>Debug.drawCircle(x,y,r,color,duree)</td><td>Cercle.</td></tr>
         <tr><td>Debug.label(x,y,texte,color,duree)</td><td>Texte à une position.</td></tr>
         <tr><td>Debug.watch(cle,valeur)</td><td>Affiche <code>cle = valeur</code> en coin d'écran jusqu'au prochain frame.</td></tr>
@@ -40,7 +40,7 @@
     <h2>Exemples</h2>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Visualiser les zones de collision et d'attaque</div>
-      <pre><code class="lua">function OnUpdate(entity, dt)
+      <pre><code class="lua">function update(entity, dt)
     local pos = World.getPosition(entity)
 
     -- Zone d'attaque (cercle rouge)

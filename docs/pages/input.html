@@ -66,7 +66,7 @@
       <div class="code-label">lua &nbsp;·&nbsp; Déplacement clavier 4 directions</div>
       <pre><code class="lua">local VITESSE = 200
 
-function OnUpdate(entity, dt)
+function update(entity, dt)
     local dx, dy = 0, 0
 
     if Input.isKeyPressed("Left")  or Input.isKeyPressed("A") then dx = -1 end
@@ -88,17 +88,17 @@ end</code></pre>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Attaque au clic souris</div>
-      <pre><code class="lua">function OnUpdate(entity, dt)
+      <pre><code class="lua">function update(entity, dt)
     -- Tirer vers la souris au clic gauche (une seule fois par clic)
     if InputEx.isMouseJustPressed("left") then
         local pos    = entity:getPosition()
         local souris = Input.getMousePosition()
+        local angle  = Math.angleTo(pos.x, pos.y, souris.x, souris.y)
 
         Projectile.fire(pos.x, pos.y, {
-            dx      = souris.x - pos.x,
-            dy      = souris.y - pos.y,
-            vitesse = 400,
-            prefab  = "projectile_boule_de_feu",
+            angle    = angle,
+            speed    = 400,
+            lifetime = 2.0,
         })
     end
 

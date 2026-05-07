@@ -22,7 +22,7 @@
   <div class="section">
     <h2>1. Initialisation</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; ennemi_gobelin.lua — OnInit</div>
+      <div class="code-label">lua &nbsp;·&nbsp; ennemi_gobelin.lua — init</div>
       <pre><code class="lua">-- Variables du script (privées à chaque gobelin)
 local fsm              -- Machine à états
 local joueur           -- Référence au joueur
@@ -34,20 +34,13 @@ local dist_atk  = 70
 -- Définir le loot (une fois dans le script global de démarrage)
 -- Loot.define("gobelin", { ... })
 
-function OnInit(entity)
+function init(entity)
     joueur = World.findByTag("player")
 
     Stats.init(entity.id, {
         Vie    = pv_max,
         VieMax = pv_max,
     })
-
-    -- Réagir quand les PV tombent à 0
-    EventBus.on("stat_zeroed_" .. tostring(entity.id), function(data)
-        if data.stat == "Vie" then
-            fsm:transition("Mort")
-        end
-    end)
 
     -- Créer la machine à états
     fsm = StateMachine.new("Patrouille")
@@ -127,7 +120,7 @@ function OnInit(entity)
     )
 end
 
-function OnUpdate(entity, dt)
+function update(entity, dt)
     if fsm then
         fsm:update(entity, dt)
     end
@@ -136,8 +129,10 @@ function OnUpdate(entity, dt)
     Debug.watch("gobelin_etat", fsm and fsm:getState() or "init")
 end
 
-function OnDestroy(entity)
-    Anim.clearCallbacks(entity)
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        fsm:transition("Mort")
+    end
 end</code></pre>
     </div>
   </div>

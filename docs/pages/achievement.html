@@ -83,10 +83,12 @@ Achievement.load()
 -- Débloquer
 Achievement.unlock("premier_pas")
 
--- À la mort du boss
-function OnDestroy(entity)
-    Achievement.unlock("tueur_de_dragon")
-    Achievement.save()
+-- À la mort du boss (dans le script du boss)
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        Achievement.unlock("tueur_de_dragon")
+        Achievement.save()
+    end
 end</code></pre>
     </div>
     <br>

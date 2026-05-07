@@ -17,7 +17,7 @@
   </div>
 
   <div class="callout info">
-    <strong>Comment ça marche :</strong> quand vous appelez <code>EntityState.disable(entity)</code>, l'état "mort" est sauvegardé automatiquement via <code>Persist</code>. Au prochain chargement de la scène, l'entité sera désactivée immédiatement lors de son <code>OnInit</code>.
+    <strong>Comment ça marche :</strong> quand vous appelez <code>EntityState.disable(entity)</code>, l'état "mort" est sauvegardé automatiquement via <code>Persist</code>. Au prochain chargement de la scène, l'entité sera désactivée immédiatement lors de son <code>init</code>.
   </div>
 
   <div class="section">
@@ -43,7 +43,7 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>EntityState.register(entity, stateID)</td><td>Enregistre l'entité. Si elle était morte, la désactive immédiatement. À appeler dans <code>OnInit</code>.</td></tr>
+        <tr><td>EntityState.register(entity, stateID)</td><td>Enregistre l'entité. Si elle était morte, la désactive immédiatement. À appeler dans <code>init</code>.</td></tr>
         <tr><td>EntityState.disable(entity)</td><td>Désactive l'entité ET sauvegarde l'état "mort" sur disque.</td></tr>
         <tr><td>EntityState.enable(entity)</td><td>Réactive l'entité ET efface l'état sauvegardé.</td></tr>
         <tr><td>EntityState.isDead(stateID)</td><td>Vrai si cet ID est marqué comme "mort" en sauvegarde.</td></tr>
@@ -60,16 +60,16 @@
       <pre><code class="lua">local vie      = 30
 local monStateID = ""
 
-function OnInit(entity, props)
+function init(entity)
     -- 1. Calculer un ID unique (depuis le JSON ou depuis l'entity.id)
-    monStateID = props.stateID or ("ennemi_" .. tostring(entity.id))
+    monStateID = self.stateID or ("ennemi_" .. tostring(entity.id))
 
     -- 2. Enregistrer : si cet ennemi a déjà été tué, il sera
     --    automatiquement désactivé ICI. Pas besoin de vérifier manuellement.
     EntityState.register(entity, monStateID)
 
     -- 3. Initialiser les stats normalement
-    vie = props.vie or 30
+    vie = self.vie or 30
     Anim.play(entity, "idle", true)
 end
 
@@ -86,7 +86,7 @@ function mourir(entity)
     Loot.dropFor(entity, "goblin")
 end
 
-function OnMessage(entity, msg, data)
+function OnMessage(msg, data)
     if msg == "takeDamage" then
         vie = vie - data.amount
         if vie &lt;= 0 then mourir(entity) end

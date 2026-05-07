@@ -78,14 +78,16 @@ local trainee = Particles.emitter(0, 0, {
 })
 
 -- Chaque frame : déplacer l'émetteur avec le joueur
-function OnUpdate(entity, dt)
+function update(entity, dt)
     local pos = World.getPosition(entity)
     Particles.move(trainee, pos.x, pos.y)
 end
 
--- Quand le sort se termine
-function OnDestroy(entity)
-    Particles.stop(trainee)
+-- Stopper l'émetteur quand le sort se termine (via un message)
+function OnMessage(msg, data)
+    if msg == "sort_termine" then
+        Particles.stop(trainee)
+    end
 end</code></pre>
     </div>
     <br>

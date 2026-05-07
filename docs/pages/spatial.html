@@ -69,7 +69,7 @@ end</code></pre>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Compter les ennemis sur la carte</div>
       <pre><code class="lua">-- Vérifier si tous les ennemis sont vaincus
-function OnUpdate(entity, dt)
+function update(entity, dt)
     local nb_ennemis = Spatial.count("enemy")
 
     if nb_ennemis == 0 then

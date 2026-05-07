@@ -25,8 +25,9 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Scheduler.start(fonction)</td><td>Lance une séquence asynchrone. La fonction peut contenir des <code>Scheduler.wait()</code>.</td></tr>
+        <tr><td>Scheduler.start(fonction, ...)</td><td>Lance une séquence asynchrone. Les arguments supplémentaires sont passés à la fonction. La fonction peut contenir des <code>Scheduler.wait()</code>.</td></tr>
         <tr><td>Scheduler.wait(secondes)</td><td>Met la séquence en pause N secondes. <strong>À appeler uniquement à l'intérieur d'un <code>Scheduler.start()</code></strong>.</td></tr>
+        <tr><td>Scheduler.clear()</td><td>Annule toutes les coroutines en cours.</td></tr>
       </tbody>
     </table>
   </div>

@@ -65,8 +65,9 @@ end
 -- Étape 2 : tuer les gobelins (dans le script gobelin)
 local gobelins_tues = 0
 
-function OnDestroy(entity)
-    if Quest.isActive("delivrance_village") and Quest.getStageIndex("delivrance_village") == 2 then
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" and Quest.isActive("delivrance_village")
+        and Quest.getStageIndex("delivrance_village") == 2 then
         gobelins_tues = gobelins_tues + 1
         Notify.show("Gobelins : " .. gobelins_tues .. " / 5")
 

@@ -97,7 +97,7 @@ end)</code></pre>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Afficher le temps de jeu</div>
-      <pre><code class="lua">function OnUpdate(entity, dt)
+      <pre><code class="lua">function update(entity, dt)
     local t      = Game.getTime()
     local heures = math.floor(t / 3600)
     local mins   = math.floor((t % 3600) / 60)

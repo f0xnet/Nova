@@ -44,13 +44,13 @@
       <pre><code class="lua">Log.info("Scène chargée : " .. Scene.current())
 Log.warn("Entité introuvable pour le tag 'boss'")
 Log.error("Fichier de données manquant : data/items.json")
-Log.debug("OnUpdate — dt=" .. tostring(dt))</code></pre>
+Log.debug("update — dt=" .. tostring(dt))</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Diagnostiquer OnInit</div>
-      <pre><code class="lua">function OnInit(entity)
-    Log.info("OnInit — entité id=" .. tostring(entity.id)
+      <div class="code-label">lua &nbsp;·&nbsp; Diagnostiquer init</div>
+      <pre><code class="lua">function init(entity)
+    Log.info("init — entité id=" .. tostring(entity.id)
              .. " tag=" .. tostring(entity.tag))
 
     local joueur = World.findByTag("player")
@@ -82,7 +82,7 @@ local function logI(msg) Log.info(TAG  .. msg) end
 local function logW(msg) Log.warn(TAG  .. msg) end
 local function logE(msg) Log.error(TAG .. msg) end
 
-function OnInit(entity)
+function init(entity)
     logI("init id=" .. tostring(entity.id))
 end</code></pre>
     </div>

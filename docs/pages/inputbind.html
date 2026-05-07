@@ -48,7 +48,7 @@ InputBind.register("interagir",      "E")
 InputBind.register("inventaire",     "I")
 
 -- Utiliser les actions dans le script joueur
-function OnUpdate(entity, dt)
+function update(entity, dt)
     local dx, dy = 0, 0
 
     if InputBind.isPressed("bouger_gauche") then dx = -1 end

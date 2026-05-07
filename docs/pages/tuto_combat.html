@@ -18,7 +18,7 @@
   <div class="section">
     <h2>1. Initialisation du joueur</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — OnInit</div>
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — init</div>
       <pre><code class="lua">local VITESSE       = 180
 local VIE_MAX       = 100
 local DEGATS_BASE   = 25
@@ -27,7 +27,7 @@ local PORTEE_ATK    = 80
 local invincible    = false
 local checkpoint    = { x = 200, y = 300 }
 
-function OnInit(entity)
+function init(entity)
     Stats.init(entity.id, {
         Vie    = VIE_MAX,
         VieMax = VIE_MAX,
@@ -38,8 +38,8 @@ function OnInit(entity)
     Sound.playMusic("data/music/combat.ogg")
 
     -- Mort quand les PV tombent à 0
-    EventBus.on("stat_zeroed_" .. tostring(entity.id), function(data)
-        if data.stat == "Vie" then
+    EventBus.on("stat_zeroed", function(data)
+        if data.entityId == entity.id and data.stat == "Vie" then
             mourir(entity)
         end
     end)
@@ -63,8 +63,8 @@ end</code></pre>
   <div class="section">
     <h2>2. Déplacement et actions</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — OnUpdate</div>
-      <pre><code class="lua">function OnUpdate(entity, dt)
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — update</div>
+      <pre><code class="lua">function update(entity, dt)
     -- Déplacement
     local dx, dy = 0, 0
     if InputBind.isPressed("bouger_gauche") then dx = -1 end
@@ -201,10 +201,10 @@ end</code></pre>
 end
 
 -- Sauvegarder le checkpoint quand on le touche
-function OnTriggerEnter(entity, other)
-    if other.tag == "checkpoint" then
-        local pos = other:getPosition()
-        checkpoint = { x = pos.x, y = pos.y }
+-- triggerId = identifiant string de la zone Trigger (ex: "checkpoint_zone")
+function OnTriggerEnter(triggerId, entityId)
+    if triggerId == "checkpoint_zone" then
+        checkpoint = entity:getPosition()
         Notify.show("Checkpoint sauvegardé !",  { color = "lime" })
     end
 end</code></pre>

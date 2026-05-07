@@ -71,7 +71,7 @@ end
 
 
 -- ── RENDRE LA BALLE AU POOL (depuis le script de la balle) ──
-function OnMessage(entity, msg, data)
+function OnMessage(msg, data)
     if msg == "impact" or msg == "expiration" then
         Pool.release("balle", entity)
     end

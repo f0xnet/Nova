@@ -21,9 +21,11 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
       <tbody>
+        <tr><td>Stats.init(entityId, defaults)</td><td>Initialise un ensemble de stats depuis une table. N'écrase pas les valeurs déjà définies.</td><td>—</td></tr>
         <tr><td>Stats.get(entityId, stat, defaut)</td><td>Lit la valeur d'une stat. Si absente, retourne <code>defaut</code>.</td><td class="ret">number</td></tr>
         <tr><td>Stats.set(entityId, stat, valeur)</td><td>Définit une stat à une valeur précise.</td><td>—</td></tr>
         <tr><td>Stats.mod(entityId, stat, delta)</td><td>Ajoute <code>delta</code> à la stat (négatif = enlever). Retourne la nouvelle valeur.</td><td class="ret">number</td></tr>
+        <tr><td>Stats.modClamped(entityId, stat, delta, min, max)</td><td>Comme <code>mod</code> mais borne le résultat entre min et max. Retourne la nouvelle valeur.</td><td class="ret">number</td></tr>
         <tr><td>Stats.has(entityId, stat)</td><td>Vrai si la stat existe.</td><td class="ret">bool</td></tr>
         <tr><td>Stats.getAll(entityId)</td><td>Retourne toutes les stats de l'entité.</td><td class="ret">table</td></tr>
         <tr><td>Stats.remove(entityId, stat)</td><td>Supprime une stat.</td><td>—</td></tr>
@@ -45,12 +47,14 @@
     <h2>Exemple — Initialisation et combat</h2>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; scripts/ennemi.lua</div>
-      <pre><code class="lua">function OnInit(entity, props)
-    -- Lire les stats depuis le JSON de scène, avec des valeurs par défaut
-    Stats.set(entity.id, "Vie",     props.vie     or 50)
-    Stats.set(entity.id, "VieMax",  props.vie     or 50)
-    Stats.set(entity.id, "Attaque", props.attaque or 10)
-    Stats.set(entity.id, "Defense", props.defense or 3)
+      <pre><code class="lua">function init(entity)
+    -- Lire les stats depuis le JSON de scène (self = propriétés JSON)
+    Stats.init(entity.id, {
+        Vie     = self.vie     or 50,
+        VieMax  = self.vie     or 50,
+        Attaque = self.attaque or 10,
+        Defense = self.defense or 3,
+    })
 end
 
 -- Recevoir des dégâts
@@ -68,7 +72,7 @@ function recevoirDegats(entity, montantBrut)
     end
 end
 
-function OnMessage(entity, msg, data)
+function OnMessage(msg, data)
     if msg == "takeDamage" then
         recevoirDegats(entity, data.amount)
     end

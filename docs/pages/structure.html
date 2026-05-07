@@ -95,7 +95,7 @@ local fsm
 local joueur
 local hp_max = 40
 
-function OnInit(entity)
+function init(entity)
     -- Initialiser les stats
     Stats.init(entity.id, { Vie = hp_max, VieMax = hp_max, Degats = 10 })
 
@@ -122,15 +122,17 @@ function OnInit(entity)
     )
 end
 
-function OnUpdate(entity, dt)
+function update(entity, dt)
     fsm:update(entity, dt)
 end
 
-function OnDestroy(entity)
-    -- Loot et effets à la mort
-    local pos = entity:getPosition()
-    Loot.dropFor(entity, "gobelin")
-    Particles.emit(pos.x, pos.y, { count = 10, speed = 100, spread = 360 })
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        local pos = entity:getPosition()
+        Loot.dropFor(entity, "gobelin")
+        Particles.emit(pos.x, pos.y, { count = 10, speed = 100, spread = 360 })
+        EntityState.disable(entity)
+    end
 end</code></pre>
     </div>
   </div>

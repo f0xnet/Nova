@@ -83,7 +83,7 @@ end</code></pre>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Préchargement pour éviter la latence</div>
-      <pre><code class="lua">function OnInit(entity, props)
+      <pre><code class="lua">function init(entity)
     -- Charger tous les sons utilisés par ce script
     Sound.preload("data/sounds/attaque.ogg")
     Sound.preload("data/sounds/impact.ogg")

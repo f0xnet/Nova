@@ -34,7 +34,7 @@
     <h2>Exemples</h2>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Déplacer un ennemi vers le joueur</div>
-      <pre><code class="lua">function OnUpdate(entity, dt)
+      <pre><code class="lua">function update(entity, dt)
     local joueur = World.findByTag("player")
     if not joueur then return end
 
@@ -109,7 +109,7 @@ function allerAuProchainPoint()
     end)
 end
 
-function OnInit(entity)
+function init(entity)
     allerAuProchainPoint()
 end</code></pre>
     </div>

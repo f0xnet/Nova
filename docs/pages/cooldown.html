@@ -42,7 +42,7 @@
       <div class="code-label">lua &nbsp;·&nbsp; Attaque avec cooldown</div>
       <pre><code class="lua">local COOLDOWN_ATTAQUE = 0.5  -- secondes
 
-function OnUpdate(entity, dt)
+function update(entity, dt)
     if InputBind.isJustPressed("attaquer") then
         -- Cooldown.use retourne true seulement si l'action est disponible
         if Cooldown.use(entity.id, "attaque", COOLDOWN_ATTAQUE) then
@@ -63,7 +63,7 @@ end</code></pre>
       <pre><code class="lua">local COOLDOWN_SOIN = 8.0   -- secondes entre chaque soin
 local SEUIL_VIE    = 30     -- se soigne sous 30 PV
 
-function OnUpdate(entity, dt)
+function update(entity, dt)
     local vie = Stats.get(entity.id, "Vie", 0)
 
     if vie < SEUIL_VIE and Cooldown.isReady(entity.id, "soin_auto") then
@@ -89,7 +89,7 @@ end</code></pre>
       <div class="code-label">lua &nbsp;·&nbsp; Barre de recharge UI</div>
       <pre><code class="lua">local COOLDOWN_DASH = 2.0
 
-function OnUpdate(entity, dt)
+function update(entity, dt)
     if InputBind.isJustPressed("dash") then
         if Cooldown.use(entity.id, "dash", COOLDOWN_DASH) then
             faireUnDash(entity)

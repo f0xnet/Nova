@@ -15,142 +15,178 @@
     <p class="subtitle">Tout ce qu'il faut savoir pour écrire votre premier script de jeu.</p>
   </div>
 
-  <!-- ══ C'EST QUOI UN SCRIPT ? ══ -->
   <div class="section">
     <h2>C'est quoi un script ?</h2>
     <p>Un script est un fichier <strong>.lua</strong> attaché à une entité (joueur, ennemi, objet…). Il définit le <em>comportement</em> de cette entité : que fait-elle à chaque frame ? Comment réagit-elle aux coups ? Aux touches du joueur ?</p>
-    <br>
     <div class="callout info">
       <strong>Aucun <code>require()</code> nécessaire.</strong> Tous les modules Nova (Timer, World, Sound, etc.) sont disponibles partout, directement, comme des variables globales.
     </div>
   </div>
 
-  <!-- ══ FONCTIONS DU CYCLE DE VIE ══ -->
   <div class="section">
-    <h2>Les fonctions du cycle de vie</h2>
-    <p>Un script peut définir ces fonctions — Nova les appellera automatiquement au bon moment. Toutes sont <strong>optionnelles</strong> : définissez seulement celles dont vous avez besoin.</p>
-    <br>
+    <h2>Fonctions principales du cycle de vie</h2>
+    <p>Les deux fonctions fondamentales d'un script d'entité — définissez-les en minuscules :</p>
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Quand est-elle appelée ?</th></tr></thead>
       <tbody>
-        <tr><td>OnInit(entity, props)</td><td>Une seule fois, au chargement de l'entité. <code>props</code> contient les données du JSON de scène.</td></tr>
-        <tr><td>OnUpdate(entity, dt)</td><td>Chaque frame (~60×/seconde). <code>dt</code> = secondes écoulées depuis la frame précédente.</td></tr>
-        <tr><td>OnDestroy(entity)</td><td>Quand l'entité est détruite. Idéal pour nettoyer des timers ou des effets.</td></tr>
-        <tr><td>OnMessage(msg, payload)</td><td>Quand un autre script appelle <code>entity:sendMessage(msg, data)</code>.</td></tr>
-        <tr><td>OnKeyDown(key)</td><td>À chaque appui de touche (une seule fois par appui).</td></tr>
-        <tr><td>OnKeyUp(key)</td><td>À chaque relâchement de touche.</td></tr>
-        <tr><td>OnActivate(activatorId, actionID)</td><td>Quand un trigger ou une interaction déclenche cette entité.</td></tr>
-        <tr><td>OnDeactivate(activatorId, actionID)</td><td>Quand le trigger se désactive.</td></tr>
-        <tr><td>OnAnimationEvent(animID, frame)</td><td>À un frame précis d'une animation (défini dans l'éditeur).</td></tr>
+        <tr><td>init(entity)</td><td>Une seule fois au chargement. Les propriétés JSON de la scène sont accessibles via <code>self</code>.</td></tr>
+        <tr><td>update(entity, dt)</td><td>Chaque frame. <code>dt</code> = secondes depuis la frame précédente.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong><code>entity</code> est un global.</strong> La variable <code>entity</code> est injectée dans l'environnement du script et accessible depuis <em>toutes</em> les fonctions (init, update, OnMessage, OnKeyDown…) sans avoir à la passer ou la sauvegarder manuellement.
+    </div>
+
+    <div class="callout info">
+      <strong>Propriétés JSON → <code>self</code>.</strong> Les propriétés définies dans le JSON de scène (<code>"properties": { "vie": 50 }</code>) sont disponibles dans <code>self.vie</code>, <code>self.vitesse</code>, etc.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Named handlers (handlers nommés)</h2>
+    <p>Ces fonctions sont branchées automatiquement sur les événements correspondants. Définissez celles dont vous avez besoin — elles seront appelées sans EventBus.on() manuel.</p>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Déclencheur</th></tr></thead>
+      <tbody>
+        <tr><td>OnMessage(msg, payload)</td><td><code>entity:sendMessage(msg, data)</code> appelé sur cette entité.</td></tr>
+        <tr><td>OnActivate(activatorId, actionID)</td><td>Un trigger ou une interaction active cette entité.</td></tr>
+        <tr><td>OnDeactivate(activatorId, actionID)</td><td>Le trigger se désactive.</td></tr>
+        <tr><td>OnStatZeroed(entityId, stat)</td><td>Une stat de cette entité atteint 0 (ex : Vie à 0 = mort).</td></tr>
+        <tr><td>OnKeyDown(key)</td><td>Touche enfoncée. Reçoit toutes les touches — filtrez dans le handler.</td></tr>
+        <tr><td>OnKeyUp(key)</td><td>Touche relâchée.</td></tr>
+        <tr><td>OnMouseDown(button, x, y)</td><td>Bouton souris enfoncé.</td></tr>
+        <tr><td>OnMouseUp(button, x, y)</td><td>Bouton souris relâché.</td></tr>
+        <tr><td>OnAnimationEvent(animID, frame)</td><td>Frame précis d'une animation (défini dans l'éditeur).</td></tr>
+        <tr><td>OnAnimationChanged(newID, prevID)</td><td>L'animation de l'entité change.</td></tr>
+        <tr><td>OnCollisionEnter(otherEntityId)</td><td>Collision avec une autre entité.</td></tr>
+        <tr><td>OnCollisionExit(otherEntityId)</td><td>Fin de collision.</td></tr>
+        <tr><td>OnTriggerEnter(triggerId, entityId)</td><td>Cette entité entre dans un Trigger.</td></tr>
+        <tr><td>OnTriggerExit(triggerId, entityId)</td><td>Cette entité sort d'un Trigger.</td></tr>
+        <tr><td>OnItemAdded(item, count)</td><td>Un item est ajouté à l'inventaire de cette entité.</td></tr>
+        <tr><td>OnItemRemoved(item, count)</td><td>Un item est retiré.</td></tr>
+        <tr><td>OnEffectApplied(effectId, entityId)</td><td>Un Effect est appliqué à cette entité.</td></tr>
+        <tr><td>OnEffectExpired(effectId, entityId)</td><td>Un Effect expire.</td></tr>
+        <tr><td>OnFlagSet(name)</td><td>Un Flag est activé (global à tous les scripts).</td></tr>
+        <tr><td>OnFlagUnset(name)</td><td>Un Flag est désactivé.</td></tr>
+        <tr><td>OnSceneChanged(name)</td><td>La scène active change.</td></tr>
+        <tr><td>OnQuestComplete(questId)</td><td>Une quête est complétée.</td></tr>
+        <tr><td>OnQuestAdvanced(questId, stageIndex)</td><td>Une quête avance d'étape.</td></tr>
+        <tr><td>OnConversationNode(nodeId, speaker, text)</td><td>Un nœud de dialogue s'affiche.</td></tr>
+        <tr><td>OnConversationEnd(conversationId)</td><td>Un dialogue se termine.</td></tr>
+        <tr><td>OnUIAction(action, value, componentId)</td><td>Une action UI est déclenchée (bouton, slider…).</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- ══ PREMIER SCRIPT COMPLET ══ -->
+  <div class="section">
+    <h2>Contrôle de la fréquence d'update</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>RegisterForUpdate(interval)</td><td>Change la fréquence d'appel de <code>update</code> à toutes les <code>interval</code> secondes.</td></tr>
+        <tr><td>UnregisterForUpdate()</td><td>Suspend les appels à <code>update</code> (init reste actif).</td></tr>
+        <tr><td>ResumeUpdate()</td><td>Reprend les appels à <code>update</code> à chaque frame.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <div class="section">
     <h2>Votre premier script complet</h2>
-    <p>Un ennemi simple qui suit le joueur et lui inflige des dégâts.</p>
-    <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; scripts/ennemi_simple.lua</div>
-      <pre><code class="lua">-- Variables locales au script (invisibles depuis l'extérieur)
-local vie      = 30    -- points de vie de cet ennemi
-local vitesse  = 80    -- pixels par seconde
-local portee   = 100   -- distance pour détecter le joueur
+      <pre><code class="lua">-- Variables locales (persistent entre les frames)
+local vie     = 30
+local vitesse = 80
+local portee  = 100
 
--- ─── Initialisation ────────────────────────────────────────────
-function OnInit(entity, props)
-    -- props vient du JSON de scène, ex: "props": { "vie": 50 }
-    vie     = props.vie     or 30
-    vitesse = props.vitesse or 80
+-- ─── Initialisation ──────────────────────────────────────────────
+function init(entity)
+    -- Les propriétés JSON de la scène sont dans `self`
+    vie     = self.vie     or 30
+    vitesse = self.vitesse or 80
 
-    -- Jouer l'animation de repos au démarrage
     Anim.play(entity, "idle", true)
 end
 
--- ─── Mise à jour chaque frame ──────────────────────────────────
-function OnUpdate(entity, dt)
-    -- Trouver le joueur dans la scène
+-- ─── Mise à jour chaque frame ────────────────────────────────────
+function update(entity, dt)
     local joueur = World.findByTag("player")
-    if not joueur then return end  -- pas de joueur = rien à faire
+    if not joueur then return end
 
-    local distance = World.distance(entity, joueur)
+    local distance = entity:getDistance(joueur)
 
-    if distance &lt; portee then
-        -- Le joueur est proche : poursuivre
+    if distance < portee then
         Nav.moveTo(entity, joueur, vitesse)
         Anim.play(entity, "run", true)
 
-        if distance &lt; 30 then
-            -- Le joueur est à portée d'attaque
+        if distance < 30 then
             if Cooldown.use(entity.id, "attaque", 1.0) then
                 joueur:sendMessage("takeDamage", { amount = 10 })
                 Sound.play("data/sounds/hit.ogg")
             end
         end
     else
-        -- Joueur trop loin : rester sur place
         Nav.stop(entity)
         Anim.play(entity, "idle", true)
     end
 end
 
--- ─── Réception de messages ────────────────────────────────────
+-- ─── Stat atteint zéro ───────────────────────────────────────────
+-- `entity` est accessible ici comme global, pas besoin de paramètre
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        Sound.play("data/sounds/mort.ogg")
+        local pos = entity:getPosition()
+        Particles.emit(pos.x, pos.y, { count = 20, speed = 150, lifetime = 0.6 })
+        EntityState.disable(entity)
+    end
+end
+
+-- ─── Réception de messages ───────────────────────────────────────
 function OnMessage(msg, data)
     if msg == "takeDamage" then
-        vie = vie - data.amount
-
-        -- Flash rouge pour signaler le dégât
+        Stats.mod(entity.id, "Vie", -data.amount)
         Notify.floatingText(entity, "-" .. data.amount, { color = "red" })
-
-        if vie &lt;= 0 then
-            -- L'ennemi est mort
-            Sound.play("data/sounds/mort.ogg")
-            Particles.emit(
-                World.getPosition(entity).x,
-                World.getPosition(entity).y,
-                { count = 20, speed = 150, lifetime = 0.6 }
-            )
-            EntityState.disable(entity)  -- reste mort entre les sessions
-        end
     end
 end</code></pre>
     </div>
   </div>
 
-  <!-- ══ LES ENTITÉS ══ -->
   <div class="section">
     <h2>Ce qu'on peut faire avec une entité</h2>
     <table class="api-table">
-      <thead><tr><th>Méthode</th><th>Description</th></tr></thead>
+      <thead><tr><th>Méthode / Propriété</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>entity:getTransform()</td><td>Retourne la position, rotation, échelle</td></tr>
-        <tr><td>entity:getPosition()</td><td>Raccourci → <code>{x, y}</code></td></tr>
-        <tr><td>entity:getTag()</td><td>Retourne le composant tag (<code>.tag</code> = la chaîne)</td></tr>
-        <tr><td>entity:getCollider()</td><td>Retourne le collider (<code>.size</code>, <code>.radius</code>, <code>.enabled</code>)</td></tr>
-        <tr><td>entity:getSprite()</td><td>Retourne le sprite (position, taille, visible)</td></tr>
-        <tr><td>entity:sendMessage(msg, data)</td><td>Envoie un message à tous les scripts de cette entité</td></tr>
-        <tr><td>entity:enable()</td><td>Rend l'entité visible et active</td></tr>
-        <tr><td>entity:disable()</td><td>Cache l'entité et désactive ses collisions</td></tr>
-        <tr><td>entity.id</td><td>Identifiant numérique unique de l'entité</td></tr>
+        <tr><td>entity.id</td><td>Identifiant numérique unique.</td></tr>
+        <tr><td>entity.tag</td><td>Tag de l'entité (string).</td></tr>
+        <tr><td>entity:getPosition()</td><td>Retourne <code>{x, y}</code>.</td></tr>
+        <tr><td>entity:setPosition(x, y)</td><td>Téléporte l'entité.</td></tr>
+        <tr><td>entity:getDistance(other)</td><td>Distance en pixels vers une autre entité.</td></tr>
+        <tr><td>entity:getTransform()</td><td>Composant transform (position, rotation, scale).</td></tr>
+        <tr><td>entity:getSprite()</td><td>Composant sprite (visible, taille, couleur).</td></tr>
+        <tr><td>entity:getCollider()</td><td>Composant collider (size, radius, enabled).</td></tr>
+        <tr><td>entity:getAnimation()</td><td>Composant animation.</td></tr>
+        <tr><td>entity:sendMessage(msg, data)</td><td>Envoie un message → déclenche <code>OnMessage</code> sur cette entité.</td></tr>
+        <tr><td>entity:enable()</td><td>Rend l'entité visible et active.</td></tr>
+        <tr><td>entity:disable()</td><td>Cache l'entité et désactive ses collisions.</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- ══ RÈGLES D'OR ══ -->
   <div class="section">
     <h2>Les règles d'or</h2>
     <div class="callout tip">
-      <strong>🟢 dt (delta time)</strong> — Multipliez toujours les vitesses par <code>dt</code> dans <code>OnUpdate</code>. Sans ça, le jeu ira plus vite sur les PC rapides.
+      <strong>dt (delta time)</strong> — Multipliez toujours les vitesses par <code>dt</code> dans <code>update</code>. Sans ça, le jeu ira plus vite sur les PC rapides.
     </div>
     <div class="callout tip">
-      <strong>🟢 Variables locales</strong> — Déclarez les variables avec <code>local</code> en dehors des fonctions pour qu'elles persistent entre les frames.
+      <strong>Variables locales</strong> — Déclarez avec <code>local</code> en dehors des fonctions pour qu'elles persistent entre les frames.
     </div>
     <div class="callout warn">
-      <strong>⚠️ Vérifiez nil</strong> — <code>World.findByTag()</code> peut retourner <code>nil</code> si l'entité n'existe pas. Vérifiez toujours avant d'utiliser le résultat.
+      <strong>Vérifiez nil</strong> — <code>World.findByTag()</code> peut retourner <code>nil</code>. Vérifiez avant d'utiliser.
     </div>
     <div class="callout info">
-      <strong>💡 Pas de require()</strong> — Timer, Sound, World, etc. sont déjà disponibles. Utilisez-les directement.
+      <strong><code>self</code> = propriétés JSON</strong> — Les données de votre scène sont dans <code>self.monChamp</code>. Les valeurs par défaut se font avec <code>self.champ or valeur_par_defaut</code>.
     </div>
   </div>
 

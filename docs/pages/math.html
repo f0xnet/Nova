@@ -48,8 +48,8 @@
         <tr><td>Vec2.distance(a, b)</td><td>Distance entre deux Vec2.</td></tr>
         <tr><td>Vec2.lerp(a, b, t)</td><td>Interpolation entre deux Vec2.</td></tr>
         <tr><td>Vec2.dot(a, b)</td><td>Produit scalaire.</td></tr>
-        <tr><td>Vec2.fromAngle(deg, longueur)</td><td>Vecteur depuis un angle en degrés. Longueur optionnelle (défaut : 1).</td></tr>
-        <tr><td>Vec2.angle(v)</td><td>Angle en degrés du vecteur.</td></tr>
+        <tr><td>Vec2.fromAngle(rad, longueur)</td><td>Vecteur depuis un angle en <strong>radians</strong>. Longueur optionnelle (défaut : 1). Utilisez <code>Math.deg2rad()</code> si vous partez de degrés.</td></tr>
+        <tr><td>Vec2.angle(v)</td><td>Angle en <strong>radians</strong> du vecteur.</td></tr>
       </tbody>
     </table>
   </div>
@@ -65,11 +65,11 @@ if dist < 100 then
     print("Le joueur est proche !")
 end
 
--- Orienter un projectile vers la souris
+-- Orienter un projectile vers la souris (fromAngle attend des radians)
 local pos    = entity:getPosition()
 local souris = Input.getMousePosition()
-local angle  = Math.angleTo(pos.x, pos.y, souris.x, souris.y)
-local dir    = Vec2.fromAngle(angle)
+local angle  = Math.angleTo(pos.x, pos.y, souris.x, souris.y)  -- degrés
+local dir    = Vec2.fromAngle(Math.deg2rad(angle))
 
 -- Limiter la vie entre 0 et 100
 local vie = Stats.get(entity.id, "Vie", 100)
@@ -83,7 +83,7 @@ Stats.set(entity.id, "Vie", vie)</code></pre>
 local vitesse_actuelle = 0
 local vitesse_max      = 200
 
-function OnUpdate(entity, dt)
+function update(entity, dt)
     -- Math.approach avance de (acceleration * dt) sans dépasser vitesse_max
     vitesse_actuelle = Math.approach(vitesse_actuelle, vitesse_max, 300 * dt)
 

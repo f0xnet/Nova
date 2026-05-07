@@ -71,10 +71,12 @@ Loot.define("gobelin", {
 })
 
 -- À la mort du gobelin : donner le butin au joueur
-function OnDestroy(entity)
-    local joueur = World.findByTag("player")
-    if joueur then
-        Loot.dropFor(joueur, "gobelin")
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        local joueur = World.findByTag("player")
+        if joueur then
+            Loot.dropFor(joueur, "gobelin")
+        end
     end
 end</code></pre>
     </div>

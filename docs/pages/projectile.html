@@ -29,6 +29,7 @@
         <tr><td>Projectile.fire(x, y, opts)</td><td>Tire un projectile depuis (x, y). Retourne l'entité ou <code>nil</code> si le pool est vide.</td><td class="ret">entity</td></tr>
         <tr><td>Projectile.release(entity)</td><td>Libère manuellement un projectile (le remet dans le pool).</td><td>—</td></tr>
         <tr><td>Projectile.activeCount()</td><td>Nombre de projectiles actuellement en vol.</td><td class="ret">number</td></tr>
+        <tr><td>Projectile.clearPool(poolID)</td><td>Libère tous les projectiles actifs d'un pool et détruit ce pool.</td><td>—</td></tr>
         <tr><td>Projectile.clearAll()</td><td>Détruit tous les pools et projectiles.</td><td>—</td></tr>
       </tbody>
     </table>
@@ -52,7 +53,7 @@
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; scripts/archer.lua</div>
       <pre><code class="lua">-- ── Initialiser le pool de flèches (une seule fois) ──
-function OnInit(entity, props)
+function init(entity)
     if not Pool.size("fleche") or Pool.size("fleche") == 0 then
         Projectile.init({
             poolID     = "fleche",
@@ -101,7 +102,7 @@ function tirer(entity, cible)
 end
 
 -- ── IA de l'archer ──
-function OnUpdate(entity, dt)
+function update(entity, dt)
     local joueur = World.findByTag("player")
     if not joueur then return end
 
