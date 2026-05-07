@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova Script — Documentation</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { overflow: hidden; }
+  #sidebar { user-select: none; }
+  .search-box {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-box input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+  }
+  .search-box input::placeholder { color: var(--text2); }
+  .search-box input:focus { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <h1>Nova Script</h1>
+      <p>Documentation du système de scripting</p>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="search" placeholder="🔍 Rechercher un module..." oninput="filterNav(this.value)">
+    </div>
+
+    <nav id="nav">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Démarrer</div>
+        <a href="pages/demarrer.html" target="content" onclick="setActive(this)">🚀 Introduction</a>
+        <a href="pages/structure.html" target="content" onclick="setActive(this)">📄 Structure d'un script</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Temps &amp; Communication</div>
+        <a href="pages/eventbus.html" target="content" onclick="setActive(this)">📡 EventBus</a>
+        <a href="pages/timer.html" target="content" onclick="setActive(this)">⏱ Timer</a>
+        <a href="pages/scheduler.html" target="content" onclick="setActive(this)">⏳ Scheduler</a>
+        <a href="pages/tween.html" target="content" onclick="setActive(this)">🎞 Tween</a>
+        <a href="pages/cooldown.html" target="content" onclick="setActive(this)">🔄 Cooldown</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Monde &amp; Entités</div>
+        <a href="pages/world.html" target="content" onclick="setActive(this)">🌍 World</a>
+        <a href="pages/spatial.html" target="content" onclick="setActive(this)">🔲 Spatial</a>
+        <a href="pages/physics.html" target="content" onclick="setActive(this)">⚙️ Physics</a>
+        <a href="pages/nav.html" target="content" onclick="setActive(this)">🧭 Nav</a>
+        <a href="pages/trigger.html" target="content" onclick="setActive(this)">🎯 Trigger</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Stats &amp; Gameplay</div>
+        <a href="pages/stats.html" target="content" onclick="setActive(this)">📊 Stats</a>
+        <a href="pages/inventory.html" target="content" onclick="setActive(this)">🎒 Inventory</a>
+        <a href="pages/effect.html" target="content" onclick="setActive(this)">✨ Effect</a>
+        <a href="pages/cooldown.html" target="content" onclick="setActive(this)">🔄 Cooldown</a>
+        <a href="pages/flag.html" target="content" onclick="setActive(this)">🚩 Flag</a>
+        <a href="pages/entity_state.html" target="content" onclick="setActive(this)">💾 EntityState</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Combat</div>
+        <a href="pages/pool.html" target="content" onclick="setActive(this)">♻️ Pool</a>
+        <a href="pages/projectile.html" target="content" onclick="setActive(this)">🏹 Projectile</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Son</div>
+        <a href="pages/sound.html" target="content" onclick="setActive(this)">🔊 Sound</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Visuels</div>
+        <a href="pages/camera.html" target="content" onclick="setActive(this)">🎥 Camera</a>
+        <a href="pages/anim.html" target="content" onclick="setActive(this)">🎬 Anim</a>
+        <a href="pages/particles.html" target="content" onclick="setActive(this)">✨ Particles</a>
+        <a href="pages/scene_fx.html" target="content" onclick="setActive(this)">🌑 SceneFX</a>
+        <a href="pages/debug.html" target="content" onclick="setActive(this)">🐛 Debug</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Narration</div>
+        <a href="pages/conversation.html" target="content" onclick="setActive(this)">💬 Conversation</a>
+        <a href="pages/quest.html" target="content" onclick="setActive(this)">📜 Quest</a>
+        <a href="pages/sequence.html" target="content" onclick="setActive(this)">🎭 Sequence</a>
+        <a href="pages/notify.html" target="content" onclick="setActive(this)">🔔 Notify</a>
+        <a href="pages/loot.html" target="content" onclick="setActive(this)">💰 Loot</a>
+        <a href="pages/achievement.html" target="content" onclick="setActive(this)">🏆 Achievement</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Scènes &amp; Données</div>
+        <a href="pages/scene.html" target="content" onclick="setActive(this)">🗺 Scene</a>
+        <a href="pages/persist.html" target="content" onclick="setActive(this)">💿 Persist</a>
+        <a href="pages/data.html" target="content" onclick="setActive(this)">📁 Data</a>
+        <a href="pages/i18n.html" target="content" onclick="setActive(this)">🌐 I18n</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Input</div>
+        <a href="pages/input.html" target="content" onclick="setActive(this)">⌨️ Input / InputEx</a>
+        <a href="pages/inputbind.html" target="content" onclick="setActive(this)">🎮 InputBind</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Utilitaires</div>
+        <a href="pages/math.html" target="content" onclick="setActive(this)">🔢 Math &amp; Vec2</a>
+        <a href="pages/random.html" target="content" onclick="setActive(this)">🎲 Random</a>
+        <a href="pages/table.html" target="content" onclick="setActive(this)">📋 Table</a>
+        <a href="pages/easing.html" target="content" onclick="setActive(this)">〰️ Easing</a>
+        <a href="pages/statemachine.html" target="content" onclick="setActive(this)">🔀 StateMachine</a>
+        <a href="pages/class.html" target="content" onclick="setActive(this)">🏗 Class</a>
+      </div>
+
+      <div class="sidebar-group">
+        <div class="sidebar-group-label">Tutoriels</div>
+        <a href="pages/tuto_ennemi.html" target="content" onclick="setActive(this)">⚔️ Ennemi avec IA</a>
+        <a href="pages/tuto_combat.html" target="content" onclick="setActive(this)">🗡 Système de combat</a>
+        <a href="pages/tuto_boss.html" target="content" onclick="setActive(this)">👹 Boss de donjon</a>
+      </div>
+    </nav>
+  </aside>
+
+  <iframe id="content-frame" name="content" src="pages/demarrer.html"></iframe>
+</div>
+
+<script>
+function setActive(el) {
+  document.querySelectorAll('#nav a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function filterNav(q) {
+  q = q.toLowerCase().trim();
+  document.querySelectorAll('#nav a').forEach(a => {
+    a.style.display = (!q || a.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+  document.querySelectorAll('.sidebar-group').forEach(g => {
+    const links = g.querySelectorAll('a');
+    const anyVisible = Array.from(links).some(a => a.style.display !== 'none');
+    g.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+// Marquer le lien actif au chargement
+document.addEventListener('DOMContentLoaded', function() {
+  const first = document.querySelector('#nav a');
+  if (first) first.classList.add('active');
+});
+</script>
+</body>
+</html>
