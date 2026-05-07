@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Debug — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🐛</span>
+    <h1>Debug</h1>
+    <p class="subtitle">Dessiner des formes et afficher des valeurs à l'écran pour déboguer votre jeu. Mettre <code>Debug.enabled = false</code> en production.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout warn">
+    <strong>Production :</strong> pensez à désactiver le debug avec <code>Debug.enabled = false</code> dans votre script de jeu principal avant de livrer.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Debug.enabled</td><td>Variable booléenne. Mettre à <code>false</code> pour tout désactiver.</td></tr>
+        <tr><td>Debug.drawRect(x,y,w,h,color,duree)</td><td>Rectangle en fil de fer. <code>duree=0</code> = 1 seul frame.</td></tr>
+        <tr><td>Debug.fillRect(x,y,w,h,color,duree)</td><td>Rectangle rempli.</td></tr>
+        <tr><td>Debug.drawLine(x1,y1,x2,y2,color,duree)</td><td>Ligne.</td></tr>
+        <tr><td>Debug.drawCircle(x,y,r,color,duree)</td><td>Cercle.</td></tr>
+        <tr><td>Debug.label(x,y,texte,color,duree)</td><td>Texte à une position.</td></tr>
+        <tr><td>Debug.watch(cle,valeur)</td><td>Affiche <code>cle = valeur</code> en coin d'écran jusqu'au prochain frame.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Visualiser les zones de collision et d'attaque</div>
+      <pre><code class="lua">function OnUpdate(entity, dt)
+    local pos = World.getPosition(entity)
+
+    -- Zone d'attaque (cercle rouge)
+    Debug.drawCircle(pos.x, pos.y, 80, Color.new(255, 0, 0, 80), 0)
+
+    -- Zone de détection (cercle jaune)
+    Debug.drawCircle(pos.x, pos.y, 200, Color.new(255, 220, 0, 40), 0)
+
+    -- Valeurs en temps réel
+    Debug.watch("vie",      Stats.get(entity.id, "Vie", 0))
+    Debug.watch("état",     sm:getState())
+    Debug.watch("vitesse",  string.format("%.1f", vitesseActuelle))
+    Debug.watch("fps",      math.floor(1/dt))
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Tracer un chemin Nav</div>
+      <pre><code class="lua">-- Afficher le chemin calculé par Nav
+local chemin = Nav.findPath(entity, joueur)
+for i = 1, #chemin - 1 do
+    Debug.drawLine(
+        chemin[i].x,   chemin[i].y,
+        chemin[i+1].x, chemin[i+1].y,
+        Color.new(0, 200, 255), 0
+    )
+end
+
+-- Point de destination
+if #chemin > 0 then
+    local dest = chemin[#chemin]
+    Debug.drawCircle(dest.x, dest.y, 6, Color.new(0, 255, 0), 0)
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
