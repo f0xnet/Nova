@@ -39,8 +39,8 @@ function M.update(dt)
     local panelY = sh - panelH - 8
     local panelW = sw - 16
 
-    Debug.fillRect(panelX, panelY, panelW, panelH, Color(0, 0, 0, 210), 0)
-    Debug.drawRect(panelX, panelY, panelW, panelH, Color(80, 80, 80, 180), 0)
+    Debug.fillRect(panelX, panelY, panelW, panelH, Color.new(0, 0, 0, 210), 0)
+    Debug.drawRect(panelX, panelY, panelW, panelH, Color.new(80, 80, 80, 180), 0)
 
     for j, line in ipairs(_lines) do
         local ty = panelY + PANEL_PAD + (j - 1) * LINE_H
