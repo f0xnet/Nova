@@ -94,7 +94,23 @@ public:
                 return s.hasScene(name);
             },
             "sceneCount",    [](SceneManager& s) { return s.getSceneCount(); },
-            "getActiveName", [](SceneManager& s) { return s.getActiveSceneName(); }
+            "getActiveName", [](SceneManager& s) { return s.getActiveSceneName(); },
+            // findPath(x1, y1, x2, y2) → table of {x, y} waypoints via WaypointGraph
+            "findPath",      [](sol::this_state ts, SceneManager& s,
+                                f32 x1, f32 y1, f32 x2, f32 y2) -> sol::table {
+                sol::state_view lua(ts);
+                auto result = lua.create_table();
+                auto* scene = s.getActiveScene();
+                if (!scene) return result;
+                auto path = scene->findPath(Vec2f{x1, y1}, Vec2f{x2, y2});
+                for (size_t i = 0; i < path.size(); ++i) {
+                    auto pt = lua.create_table();
+                    pt["x"] = path[i].x;
+                    pt["y"] = path[i].y;
+                    result[static_cast<int>(i + 1)] = pt;
+                }
+                return result;
+            }
         );
         lua["Scene"] = &sm;
     }

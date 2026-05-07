@@ -27,6 +27,9 @@ namespace NovaEngine {
 // COUCHE 2 — Modules Lua nova (data/scripts/nova/) auto-chargés comme globals :
 //   EventBus, Timer, Scheduler, StateMachine, Vec2, World
 //   Tween, Class, Quest, Persist, Game, Stats
+//   Camera, InputEx, Effect, Cooldown, Sound, Inventory, Notify, Physics, Flag, Scene
+//   Math, Table, Random, Color (étend le type C++), Sequence, Conversation, Anim
+//   Trigger, InputBind, Loot, Nav
 //
 // COUCHE 3 — Scripts jeu (data/scripts/) :
 //   Scripts entité : init(entity) + update(entity, dt)
@@ -365,6 +368,90 @@ function __wireNamedHandlers(env, entityId)
             safe(env.OnQuestAdvanced, data.questId, data.stageIndex)
         end)
     end
+
+    -- OnStatZeroed(entityId, stat) — émis par Stats quand une stat atteint 0
+    if type(env.OnStatZeroed) == "function" then
+        EventBus.on("stat_zeroed", function(data)
+            if entityId == 0 or data.entityId == entityId then
+                safe(env.OnStatZeroed, data.entityId, data.stat)
+            end
+        end)
+    end
+
+    -- OnItemAdded(item, count) / OnItemRemoved(item, count)
+    if type(env.OnItemAdded) == "function" then
+        EventBus.on("item_added", function(data)
+            if entityId == 0 or data.entityId == entityId then
+                safe(env.OnItemAdded, data.item, data.count)
+            end
+        end)
+    end
+    if type(env.OnItemRemoved) == "function" then
+        EventBus.on("item_removed", function(data)
+            if entityId == 0 or data.entityId == entityId then
+                safe(env.OnItemRemoved, data.item, data.count)
+            end
+        end)
+    end
+
+    -- OnEffectApplied(effectId, entityId) / OnEffectExpired(effectId, entityId)
+    if type(env.OnEffectApplied) == "function" then
+        EventBus.on("effect_applied", function(data)
+            if entityId == 0 or data.entityId == entityId then
+                safe(env.OnEffectApplied, data.effectId, data.entityId)
+            end
+        end)
+    end
+    if type(env.OnEffectExpired) == "function" then
+        EventBus.on("effect_expired", function(data)
+            if entityId == 0 or data.entityId == entityId then
+                safe(env.OnEffectExpired, data.effectId, data.entityId)
+            end
+        end)
+    end
+
+    -- OnFlagSet(name) / OnFlagUnset(name)
+    if type(env.OnFlagSet) == "function" then
+        EventBus.on("flag_set",   function(data) safe(env.OnFlagSet,   data.name) end)
+    end
+    if type(env.OnFlagUnset) == "function" then
+        EventBus.on("flag_unset", function(data) safe(env.OnFlagUnset, data.name) end)
+    end
+
+    -- OnTriggerEnter(triggerId, entityId) / OnTriggerExit(triggerId, entityId)
+    if type(env.OnTriggerEnter) == "function" then
+        EventBus.on("trigger_enter", function(data)
+            if entityId == 0 or data.entityId == entityId then
+                safe(env.OnTriggerEnter, data.id, data.entityId)
+            end
+        end)
+    end
+    if type(env.OnTriggerExit) == "function" then
+        EventBus.on("trigger_exit", function(data)
+            if entityId == 0 or data.entityId == entityId then
+                safe(env.OnTriggerExit, data.id, data.entityId)
+            end
+        end)
+    end
+
+    -- OnSceneChanged(name) — émis lors des changements de scène
+    if type(env.OnSceneChanged) == "function" then
+        EventBus.on("scene_changed", function(data) safe(env.OnSceneChanged, data.name) end)
+    end
+
+    -- OnConversationNode(nodeId, speaker, text)
+    if type(env.OnConversationNode) == "function" then
+        EventBus.on("conversation_node", function(data)
+            safe(env.OnConversationNode, data.nodeId, data.speaker, data.text)
+        end)
+    end
+
+    -- OnConversationEnd(conversationId)
+    if type(env.OnConversationEnd) == "function" then
+        EventBus.on("conversation_end", function(data)
+            safe(env.OnConversationEnd, data.id)
+        end)
+    end
 end
         )", sol::script_pass_on_error);
         if (!r.valid()) {
@@ -375,29 +462,44 @@ end
 
     void loadNovaModules() {
         const std::pair<const char*, const char*> modules[] = {
-            { "EventBus",     "nova/event_bus"    },
-            { "Timer",        "nova/timer"        },
-            { "Scheduler",    "nova/scheduler"    },
-            { "StateMachine", "nova/state_machine"},
-            { "Vec2",         "nova/vec2"         },
-            { "World",        "nova/world"        },
-            { "Tween",        "nova/tween"        },
-            { "Class",        "nova/class"        },
-            { "Quest",        "nova/quest"        },
-            { "Persist",      "nova/persist"      },
-            { "Game",         "nova/game"         },
-            { "Stats",        "nova/stats"        },
-            { "Camera",       "nova/camera"       },
-            { "InputEx",      "nova/input_ext"    },
-            { "Effect",       "nova/effect"       },
-            { "Cooldown",     "nova/cooldown"     },
-            { "Sound",        "nova/sound"        },
-            { "Inventory",    "nova/inventory"    },
-            { "Notify",       "nova/notify"       },
-            { "Physics",      "nova/physics"      },
-            { "Flag",         "nova/flag"         },
+            { "EventBus",      "nova/event_bus"     },
+            { "Timer",         "nova/timer"         },
+            { "Scheduler",     "nova/scheduler"     },
+            { "StateMachine",  "nova/state_machine" },
+            { "Vec2",          "nova/vec2"          },
+            { "World",         "nova/world"         },
+            { "Tween",         "nova/tween"         },
+            { "Class",         "nova/class"         },
+            { "Quest",         "nova/quest"         },
+            { "Persist",       "nova/persist"       },
+            { "Game",          "nova/game"          },
+            { "Stats",         "nova/stats"         },
+            { "Camera",        "nova/camera"        },
+            { "InputEx",       "nova/input_ext"     },
+            { "Effect",        "nova/effect"        },
+            { "Cooldown",      "nova/cooldown"      },
+            { "Sound",         "nova/sound"         },
+            { "Inventory",     "nova/inventory"     },
+            { "Notify",        "nova/notify"        },
+            { "Physics",       "nova/physics"       },
+            { "Flag",          "nova/flag"          },
+            // Utilitaires purs Lua
+            { "Math",          "nova/math_ext"      },
+            { "Table",         "nova/table_ext"     },
+            { "Random",        "nova/random"        },
+            // Étend le type Color C++ avec lerp/fromHex/fromHSV/etc. (retourne Color)
+            { "Color",         "nova/color_ext"     },
+            // Modules haut niveau
+            { "Sequence",      "nova/sequence"      },
+            { "Conversation",  "nova/conversation"  },
+            { "Anim",          "nova/anim"          },
+            { "Trigger",       "nova/trigger"       },
+            { "InputBind",     "nova/input_bind"    },
+            { "Loot",          "nova/loot"          },
+            { "Nav",           "nova/nav"           },
             // Override le global Scene C++ avec le wrapper Lua (capture _sm = Scene avant)
-            { "Scene",        "nova/scene"        },
+            // Doit être chargé après Nav (qui utilise Scene.findPath)
+            { "Scene",         "nova/scene"         },
         };
         for (auto& [global, mod] : modules) {
             std::string code = std::string(global) + " = require('" + mod + "')";
@@ -413,14 +515,18 @@ end
     // Runtime nova
     // -------------------------------------------------------------------------
     void updateNovaRuntime(float dt) {
-        callTableMethod("Timer",     "update", dt);
-        callTableMethod("Scheduler", "update", dt);
-        callTableMethod("Tween",     "update", dt);
-        callTableMethod("Game",      "_update", dt);
-        callTableMethod("Camera",    "_update", dt);
-        callTableMethod("World",     "_update", dt);
-        callTableMethod("Effect",    "update",  dt);
-        callTableMethod("Cooldown",  "update",  dt);
+        callTableMethod("Timer",        "update",  dt);
+        callTableMethod("Scheduler",    "update",  dt);
+        callTableMethod("Tween",        "update",  dt);
+        callTableMethod("Game",         "_update", dt);
+        callTableMethod("Camera",       "_update", dt);
+        callTableMethod("World",        "_update", dt);
+        callTableMethod("Effect",       "update",  dt);
+        callTableMethod("Cooldown",     "update",  dt);
+        callTableMethod("Sequence",     "_update", dt);
+        callTableMethod("Anim",         "_update", dt);
+        callTableMethod("Trigger",      "_update", dt);
+        callTableMethod("Nav",          "_update", dt);
     }
 
     void callTableMethod(const char* table, const char* method, float dt) {
@@ -644,6 +750,16 @@ end
             gs.fnUpdate = gs.env["update"];
             gs.loaded   = true;
             LOG_DEBUG("[ScriptSystem] Global chargé '{}'", gs.path);
+
+            // Wire les named handlers pour les scripts globaux (entityId=0 = tous)
+            sol::protected_function wire = m_lua["__wireNamedHandlers"];
+            if (wire.valid()) {
+                auto wr = wire(gs.env, u64{0});
+                if (!wr.valid()) {
+                    sol::error err = wr;
+                    LOG_WARN("[ScriptSystem] wireHandlers global '{}' : {}", gs.path, err.what());
+                }
+            }
 
             sol::protected_function fnInit = gs.env["init"];
             if (fnInit.valid()) {

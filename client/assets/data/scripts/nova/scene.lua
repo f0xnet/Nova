@@ -109,4 +109,10 @@ function Scene_module.reload()
     end
 end
 
+-- Pathfinding via le WaypointGraph de la scène active
+-- Retourne une table de { x, y } formant le chemin entre deux positions
+function Scene_module.findPath(x1, y1, x2, y2)
+    return _sm:findPath(x1, y1, x2, y2)
+end
+
 return Scene_module

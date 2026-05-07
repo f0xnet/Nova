@@ -134,7 +134,64 @@ bool Game::onInitialize() {
             pfx["setAmbientDark"] = [this](float v) {
                 if (m_dynamicLightingEffect) m_dynamicLightingEffect->setAmbientDarkness(v);
             };
+            pfx["toggleSSAO"]     = [this]() {
+                if (m_ssaoEffect) m_ssaoEffect->setEnabled(!m_ssaoEffect->isEnabled());
+            };
+            pfx["toggleBloom"]    = [this]() {
+                if (m_bloomEffect) m_bloomEffect->setEnabled(!m_bloomEffect->isEnabled());
+            };
+            pfx["toggleGrading"]  = [this]() {
+                if (m_colorGradingEffect)
+                    m_colorGradingEffect->setEnabled(!m_colorGradingEffect->isEnabled());
+            };
+            pfx["toggleLighting"] = [this]() {
+                if (m_dynamicLightingEffect)
+                    m_dynamicLightingEffect->setEnabled(!m_dynamicLightingEffect->isEnabled());
+            };
             lua["PostFX"] = pfx;
+        }
+
+        // --- Time : contrôle du cycle jour/nuit depuis les scripts ---
+        // Time.getHour()        → 0..23
+        // Time.setHour(n)       → positionne l'heure
+        // Time.advance(n)       → avance de n heures
+        // Time.getTimeOfDay()   → 0.0..1.0 (0 = minuit, 0.5 = midi)
+        // Time.setTimeOfDay(t)  → 0.0..1.0
+        // Time.isDaytime()      → 6h00 – 20h00
+        // Time.isNight()        → 20h00 – 6h00
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table time = lua.create_table();
+            time["getTimeOfDay"]  = [this]() -> float {
+                return m_lightingSystem ? m_lightingSystem->getTimeOfDay() : 0.0f;
+            };
+            time["setTimeOfDay"]  = [this](float t) {
+                if (m_lightingSystem) m_lightingSystem->setTimeOfDay(t);
+            };
+            time["getHour"]       = [this]() -> int {
+                if (!m_lightingSystem) return 0;
+                return static_cast<int>(m_lightingSystem->getTimeOfDay() * 24.0f) % 24;
+            };
+            time["setHour"]       = [this](int h) {
+                if (m_lightingSystem) m_lightingSystem->setTimeOfDay(h / 24.0f);
+            };
+            time["advance"]       = [this](float hours) {
+                if (!m_lightingSystem) return;
+                float t = m_lightingSystem->getTimeOfDay() + hours / 24.0f;
+                if (t >= 1.0f) t -= 1.0f;
+                m_lightingSystem->setTimeOfDay(t);
+            };
+            time["isDaytime"]     = [this]() -> bool {
+                if (!m_lightingSystem) return true;
+                float t = m_lightingSystem->getTimeOfDay() * 24.0f;
+                return t >= 6.0f && t < 20.0f;
+            };
+            time["isNight"]       = [this]() -> bool {
+                if (!m_lightingSystem) return false;
+                float t = m_lightingSystem->getTimeOfDay() * 24.0f;
+                return t < 6.0f || t >= 20.0f;
+            };
+            lua["Time"] = time;
         }
 
         // --- UI : contrôle de l'interface depuis les scripts ---
@@ -196,6 +253,9 @@ bool Game::onInitialize() {
             scene->getEntityRegistry().invalidateQueryCache();
             LOG_INFO("Player script attached: data/scripts/player.lua");
         }
+
+        // Script global de jeu — gère les raccourcis clavier et la logique globale
+        m_scriptSystem->loadGlobalScript("data/scripts/main.lua");
     }
 
     // Initialize UI system
@@ -346,75 +406,13 @@ void Game::onEvent(const NovaEngine::Event& event) {
     // Dispatch to UI first
     m_uiManager.dispatchEvent(event);
 
-    // Handle game-specific input
+    // Seule la touche Escape est gérée ici (niveau moteur).
+    // Toutes les autres touches sont gérées depuis data/scripts/main.lua.
     if (event.type == EventType::Input &&
         event.inputEvent.type == InputEventType::KeyPressed) {
 
         if (event.inputEvent.key.code == KeyCode::Escape) {
             quit();
-        }
-        else if (event.inputEvent.key.code == KeyCode::E) {
-            // Handle dialogue interaction
-            if (m_dialogueSystem->isActive()) {
-                m_dialogueSystem->advanceDialogue();
-            } else {
-                Entity* nearestNPC = m_playerController->getNearestNPC();
-                if (nearestNPC) {
-                    m_dialogueSystem->startDialogue(nearestNPC);
-                }
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num1) {
-            // Toggle SSAO effect
-            if (m_ssaoEffect) {
-                bool newState = !m_ssaoEffect->isEnabled();
-                m_ssaoEffect->setEnabled(newState);
-                LOG_INFO("SSAO effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num2) {
-            // Toggle Bloom effect
-            if (m_bloomEffect) {
-                bool newState = !m_bloomEffect->isEnabled();
-                m_bloomEffect->setEnabled(newState);
-                LOG_INFO("Bloom effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num3) {
-            // Toggle Color Grading effect
-            if (m_colorGradingEffect) {
-                bool newState = !m_colorGradingEffect->isEnabled();
-                m_colorGradingEffect->setEnabled(newState);
-                LOG_INFO("Color grading effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num4) {
-            // Toggle Dynamic Lighting effect
-            if (m_dynamicLightingEffect) {
-                bool newState = !m_dynamicLightingEffect->isEnabled();
-                m_dynamicLightingEffect->setEnabled(newState);
-                LOG_INFO("Dynamic lighting effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::T) {
-            // Advance time by 1 hour
-            if (m_lightingSystem && m_dynamicLightingEffect) {
-                // 1 hour = 1/24 of a full day (1.0)
-                const float oneHour = 1.0f / 24.0f;
-                float currentTime = m_lightingSystem->getTimeOfDay();
-                float newTime = currentTime + oneHour;
-
-                // Wrap around if we exceed 1.0 (midnight)
-                if (newTime >= 1.0f) {
-                    newTime -= 1.0f;
-                }
-
-                m_lightingSystem->setTimeOfDay(newTime);
-
-                // Convert timeOfDay to hours (0.0 = 0h, 0.5 = 12h, 1.0 = 24h)
-                int hours = static_cast<int>(newTime * 24.0f);
-                LOG_INFO("Time advanced to {}:00 ({}h)", hours < 10 ? "0" + std::to_string(hours) : std::to_string(hours), hours);
-            }
         }
     }
 }
