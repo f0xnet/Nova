@@ -41,15 +41,6 @@ namespace NovaEngine {
 class LuaBindings {
 public:
     // -------------------------------------------------------------------------
-    // Police dédiée au debug overlay (DebugDraw.text).
-    // À appeler depuis Game::onInitialize() après que les fonts sont accessibles.
-    // -------------------------------------------------------------------------
-    static void setDebugFont(const std::string& path) {
-        FontHandle h = FONTS().loadFont(path);
-        if (h != INVALID_HANDLE) s_debugFont() = h;
-    }
-
-    // -------------------------------------------------------------------------
     // Shared key map — used by registerInput() and ScriptSystem input bridge
     // -------------------------------------------------------------------------
     static const std::unordered_map<std::string, KeyCode>& getKeyMap() {
@@ -128,7 +119,6 @@ public:
     }
 
 private:
-    // Storage for the debug font handle (set via setDebugFont)
     static FontHandle& s_debugFont() {
         static FontHandle h = INVALID_HANDLE;
         return h;
@@ -510,6 +500,10 @@ private:
             v.rotation = r;
             VIEWPORT().setView(v);
         };
+        vp["getWindowSize"] = []() -> Vec2f {
+            return Vec2f(static_cast<f32>(WINDOW().getWidth()),
+                         static_cast<f32>(WINDOW().getHeight()));
+        };
         lua["Viewport"] = vp;
     }
 
@@ -585,6 +579,8 @@ private:
         // Text (screen-space, après resetView)
         dbg["text"] = [](f32 x, f32 y, const std::string& text,
                          sol::object colorObj) {
+            if (s_debugFont() == INVALID_HANDLE)
+                s_debugFont() = FONTS().loadFont("data/font/SpaceMono-Regular.ttf");
             if (s_debugFont() == INVALID_HANDLE) return;
             Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color::White;
             TextData td;

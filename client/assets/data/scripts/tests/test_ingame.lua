@@ -9,14 +9,14 @@ local M = {}
 
 -- ── Overlay d'affichage ────────────────────────────────────────────────────
 
-local _lines   = {}   -- { text, ttl }
-local LINE_H   = 20
-local MARGIN_X = 16
-local MARGIN_Y = 60
+local _lines    = {}   -- { text, ttl }
+local LINE_H    = 36
+local PANEL_PAD = 10
+local MAX_LINES = 14
 
 local function addLine(text, ttl)
     table.insert(_lines, { text = text, ttl = ttl or 3.0 })
-    if #_lines > 14 then table.remove(_lines, 1) end
+    if #_lines > MAX_LINES then table.remove(_lines, 1) end
 end
 
 function M.update(dt)
@@ -29,8 +29,22 @@ function M.update(dt)
             i = i + 1
         end
     end
+
+    if #_lines == 0 then return end
+
+    local ws     = Viewport.getWindowSize()
+    local sw, sh = ws.x, ws.y
+    local panelH = #_lines * LINE_H + PANEL_PAD * 2
+    local panelX = 8
+    local panelY = sh - panelH - 8
+    local panelW = sw - 16
+
+    Debug.fillRect(panelX, panelY, panelW, panelH, Color(0, 0, 0, 210), 0)
+    Debug.drawRect(panelX, panelY, panelW, panelH, Color(80, 80, 80, 180), 0)
+
     for j, line in ipairs(_lines) do
-        Debug.label(MARGIN_X, MARGIN_Y + (j - 1) * LINE_H, line.text, nil, 0)
+        local ty = panelY + PANEL_PAD + (j - 1) * LINE_H
+        Debug.label(panelX + PANEL_PAD, ty, line.text, nil, 0)
     end
 end
 

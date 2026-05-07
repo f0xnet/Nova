@@ -1,0 +1,23 @@
+{
+    "name": "debug_console",
+    "UIID": "debug",
+    "description": "Debug overlay console — font preload, no visible UI components",
+    "layers": 1,
+    "text": [
+        {
+            "ID": "debug_font_loader",
+            "groupID": "debug_hidden",
+            "description": "Never displayed — exists only to register SpaceMono in the font cache",
+            "content": "",
+            "x": -9999,
+            "y": -9999,
+            "width": 1,
+            "height": 1,
+            "font": "data/font/SpaceMono-Regular.ttf",
+            "fontSize": 28,
+            "color": "0,0,0",
+            "layer": 1,
+            "isActive": false
+        }
+    ]
+}
