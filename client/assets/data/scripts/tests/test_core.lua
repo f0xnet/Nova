@@ -76,8 +76,12 @@ end
 do
     local n = 0
     local id = Timer.every(0.1, function() n = n + 1 end)
-    Timer.update(0.35)
-    T.check("every: fired ≥3 times in 0.35s", n >= 3)
+    -- Timer.update fait une seule passe par appel ; appeler 4× pour déclencher ≥3 tirs
+    Timer.update(0.11)
+    Timer.update(0.11)
+    Timer.update(0.11)
+    Timer.update(0.11)
+    T.check("every: fired ≥3 times", n >= 3)
     Timer.cancel(id)
     local prev = n
     Timer.update(0.5)

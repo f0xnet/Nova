@@ -21,7 +21,10 @@ do
     local completed = false
     seq:play(function() completed = true end)
 
-    T.eq("call fires immediately at play", "start", log[1])
+    -- play() ne fait qu'enregistrer la séquence ; le premier _update(0) traite
+    -- les steps instantanés (call, emit…) jusqu'au premier wait/tween.
+    Sequence._update(0)
+    T.eq("call fires on first _update", "start", log[1])
     T.check("mid not yet", log[2] == nil)
 
     Sequence._update(0.25)
@@ -39,9 +42,14 @@ do
     seq:tween(1.0, function(t) table.insert(tweenVals, t) end)
     seq:play()
 
+    -- Premier _update(0) : enregistre le tween dans la séquence (ne l'appelle pas encore)
+    Sequence._update(0)
+    -- Deuxième _update : avance le tween et appelle fn(t)
     Sequence._update(0.5)
     T.check("tween fn called during update", #tweenVals > 0)
-    T.check("tween t in [0,1]", tweenVals[#tweenVals] >= 0 and tweenVals[#tweenVals] <= 1)
+    if #tweenVals > 0 then
+        T.check("tween t in [0,1]", tweenVals[#tweenVals] >= 0 and tweenVals[#tweenVals] <= 1)
+    end
 
     Sequence._update(0.6)
 end

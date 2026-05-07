@@ -72,6 +72,7 @@ function Tween.cancel(id)
 end
 
 function Tween.update(dt)
+    local completed = {}
     for id, tw in pairs(tweens) do
         tw.elapsed = tw.elapsed + dt
         local t = math.min(tw.elapsed / tw.duration, 1.0)
@@ -94,10 +95,15 @@ function Tween.update(dt)
         if t >= 1.0 then
             tweens[id] = nil
             if tw.onComplete then
-                local ok2, err2 = pcall(tw.onComplete)
-                if not ok2 then Log.error("Tween.onComplete: " .. tostring(err2)) end
+                table.insert(completed, tw.onComplete)
             end
         end
+    end
+    -- Appelle les onComplete APRÈS l'itération pour éviter de modifier `tweens`
+    -- pendant pairs() — ce qui causerait "invalid key to 'next'".
+    for _, fn in ipairs(completed) do
+        local ok, err = pcall(fn)
+        if not ok then Log.error("Tween.onComplete: " .. tostring(err)) end
     end
 end
 
