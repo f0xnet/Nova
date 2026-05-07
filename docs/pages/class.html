@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Class — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🧱</span>
+    <h1>Class</h1>
+    <p class="subtitle">Créer des classes Lua réutilisables — organiser son code avec l'orienté objet simple : héritage, constructeur, méthodes.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Class.new(nom, parent)</td><td>Crée une nouvelle classe. <code>parent</code> est optionnel (héritage).</td></tr>
+        <tr><td>MaClasse:new(...)</td><td>Crée une instance. Appelle <code>init(...)</code> si défini.</td></tr>
+        <tr><td>MaClasse:extend(nom)</td><td>Crée une sous-classe qui hérite de <code>MaClasse</code>.</td></tr>
+        <tr><td>instance:is(Classe)</td><td>Vrai si l'instance est de ce type (ou d'un parent).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Classe simple</div>
+      <pre><code class="lua">-- Définir une classe "Arme"
+local Arme = Class.new("Arme")
+
+function Arme:init(nom, degats)
+    self.nom    = nom
+    self.degats = degats
+end
+
+function Arme:attaquer(cible)
+    Stats.mod(cible.id, "Vie", -self.degats)
+    print(self.nom .. " inflige " .. self.degats .. " dégâts !")
+end
+
+function Arme:getDescription()
+    return self.nom .. " (" .. self.degats .. " dégâts)"
+end
+
+-- Utiliser la classe
+local epee   = Arme:new("Épée longue",  25)
+local hache  = Arme:new("Hache de fer", 35)
+
+epee:attaquer(ennemi)
+print(hache:getDescription())</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Héritage</div>
+      <pre><code class="lua">-- Sous-classe "ArmeEnchantee" qui hérite de "Arme"
+local ArmeEnchantee = Arme:extend("ArmeEnchantee")
+
+function ArmeEnchantee:init(nom, degats, element)
+    Arme.init(self, nom, degats)  -- appeler le parent
+    self.element = element
+end
+
+function ArmeEnchantee:attaquer(cible)
+    Arme.attaquer(self, cible)    -- dégâts normaux
+
+    -- Effet supplémentaire selon l'élément
+    if self.element == "feu" then
+        Effect.apply(cible, "brulure", 5.0)
+    elseif self.element == "glace" then
+        Effect.apply(cible, "ralenti", 3.0)
+    end
+end
+
+-- Utiliser
+local baton_feu  = ArmeEnchantee:new("Bâton de feu",  30, "feu")
+local epee_glace = ArmeEnchantee:new("Épée de glace", 20, "glace")
+
+baton_feu:attaquer(ennemi)
+
+-- Vérifier le type
+print(baton_feu:is(Arme))          -- true (héritage)
+print(baton_feu:is(ArmeEnchantee)) -- true</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
