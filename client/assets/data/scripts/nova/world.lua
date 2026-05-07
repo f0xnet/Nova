@@ -13,6 +13,7 @@
 --   World.setPosition(entity, x, y)   -- téléporte une entité
 --   World.spawn(typeID)               -- crée une entité avec un composant
 --   World.destroy(entityId)           -- détruit une entité
+--   World.raycast(x1,y1,x2,y2,tag)   -- rayon ; retourne { entity,x,y,distance,t } ou nil
 --
 -- PERFORMANCE :
 --   Le cache par tag est reconstruit une fois par frame maximum.
@@ -116,6 +117,96 @@ end
 
 function World.destroy(entityId)
     Registry:destroyEntity(toId(entityId))
+end
+
+-- Lance un rayon de (x1,y1) à (x2,y2) et retourne le premier hit :
+--   { entity, x, y, distance, t }   où t ∈ [0,1] le long du rayon
+-- filterTag : si fourni, ne teste que les entités avec ce tag.
+-- Retourne nil si aucun hit.
+--
+-- Exemple (ligne de vue mur → joueur) :
+--   local hit = World.raycast(npc.x, npc.y, player.x, player.y, "wall")
+--   if not hit then -- aucun mur entre les deux → ligne de vue libre end
+function World.raycast(x1, y1, x2, y2, filterTag)
+    local dx  = x2 - x1
+    local dy  = y2 - y1
+    local len = math.sqrt(dx * dx + dy * dy)
+    if len == 0 then return nil end
+
+    local bestT, bestEnt = math.huge, nil
+    local bestX, bestY   = 0, 0
+
+    local candidates = filterTag
+        and World.findAllByTag(filterTag)
+        or  Registry:getAllEntities()
+
+    for _, e in ipairs(candidates) do
+        local tr  = e:getTransform()
+        if not tr then goto continue end
+        local col = e:getCollider()
+        if not col or not col.enabled then goto continue end
+
+        local cx = tr.position.x + col.offset.x
+        local cy = tr.position.y + col.offset.y
+        local t
+
+        if col.radius > 0 then
+            -- Rayon vs Cercle (quadratique)
+            local ox  = x1 - cx
+            local oy  = y1 - cy
+            local a   = dx * dx + dy * dy
+            local b   = 2 * (ox * dx + oy * dy)
+            local c   = ox * ox + oy * oy - col.radius * col.radius
+            local d   = b * b - 4 * a * c
+            if d < 0 then goto continue end
+            local sq  = math.sqrt(d)
+            local t0  = (-b - sq) / (2 * a)
+            local t1  = (-b + sq) / (2 * a)
+            if t1 < 0 or t0 > 1 then goto continue end
+            t = (t0 >= 0) and t0 or 0
+        else
+            -- Rayon vs AABB (méthode des slabs)
+            local hw     = col.size.x * 0.5
+            local hh     = col.size.y * 0.5
+            local tEnter = -math.huge
+            local tExit  =  math.huge
+
+            if dx == 0 then
+                if x1 < cx - hw or x1 > cx + hw then goto continue end
+            else
+                local t1x = (cx - hw - x1) / dx
+                local t2x = (cx + hw - x1) / dx
+                if t1x > t2x then t1x, t2x = t2x, t1x end
+                tEnter = math.max(tEnter, t1x)
+                tExit  = math.min(tExit,  t2x)
+            end
+
+            if dy == 0 then
+                if y1 < cy - hh or y1 > cy + hh then goto continue end
+            else
+                local t1y = (cy - hh - y1) / dy
+                local t2y = (cy + hh - y1) / dy
+                if t1y > t2y then t1y, t2y = t2y, t1y end
+                tEnter = math.max(tEnter, t1y)
+                tExit  = math.min(tExit,  t2y)
+            end
+
+            if tEnter > tExit or tExit < 0 or tEnter > 1 then goto continue end
+            t = math.max(0, tEnter)
+        end
+
+        if t < bestT then
+            bestT    = t
+            bestEnt  = e
+            bestX    = x1 + dx * t
+            bestY    = y1 + dy * t
+        end
+
+        ::continue::
+    end
+
+    if not bestEnt then return nil end
+    return { entity = bestEnt, x = bestX, y = bestY, distance = bestT * len, t = bestT }
 end
 
 -- Retourne l'entité la plus proche ayant ce tag, et la distance

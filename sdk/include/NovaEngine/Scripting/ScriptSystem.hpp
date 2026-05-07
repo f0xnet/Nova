@@ -537,6 +537,10 @@ end
             { "SceneFX",       "nova/scene_fx"      },
             // Système de particules 2D via DebugDraw
             { "Particles",     "nova/particles"     },
+            // Projectiles via Pool — doit être chargé après Pool
+            { "Projectile",    "nova/projectile"    },
+            // Persistance d'état des entités pré-placées — doit être chargé après Persist et EventBus
+            { "EntityState",   "nova/entity_state"  },
             // Override le global Scene C++ avec le wrapper Lua (capture _sm = Scene avant)
             // Doit être chargé après Nav (qui utilise Scene.findPath) et après SceneFX
             { "Scene",         "nova/scene"         },
@@ -570,6 +574,7 @@ end
         callTableMethod("Spatial",      "_update", dt);
         callTableMethod("SceneFX",      "_update", dt);
         callTableMethod("Particles",    "_update", dt);
+        callTableMethod("Projectile",   "_update", dt);
         callTableMethod("Debug",        "_update", dt);
     }
 

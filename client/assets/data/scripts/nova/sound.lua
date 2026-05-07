@@ -15,6 +15,8 @@
 --   Sound.setMusicVolume(v)             -- volume musique (0.0–1.0)
 --   Sound.preload(path)                 -- précharge un son sans le jouer
 --   Sound.preloadMusic(path)            -- précharge une musique sans la jouer
+--   Sound.fadeMusic(target, dur, cb)    -- fondu progressif du volume musique
+--   Sound.getMusicVolume()              -- volume musique courant (0.0–1.0)
 --
 -- Exemple :
 --   Sound.play("data/sounds/sword.ogg")
@@ -27,8 +29,10 @@
 
 local Sound = {}
 
-local _soundCache = {}   -- path → SoundHandle
-local _musicCache = {}   -- path → MusicHandle
+local _soundCache    = {}   -- path → SoundHandle
+local _musicCache    = {}   -- path → MusicHandle
+local _musicVolume   = 1.0  -- volume courant suivi en Lua
+local _fadeTweenId   = nil  -- tween actif de fondu musique
 
 local function loadSound(path)
     if not _soundCache[path] then
@@ -81,8 +85,39 @@ function Sound.stopMusic()    Audio.stopMusic()    end
 function Sound.pauseMusic()   Audio.pauseMusic()   end
 function Sound.resumeMusic()  Audio.resumeMusic()  end
 
-function Sound.setVolume(v)        Audio.setVolume(v)       end
-function Sound.setMusicVolume(v)   Audio.setMusicVolume(v)  end
+function Sound.setVolume(v)
+    Audio.setVolume(v)
+end
+
+function Sound.setMusicVolume(v)
+    _musicVolume = math.max(0.0, math.min(1.0, v))
+    Audio.setMusicVolume(_musicVolume)
+end
+
+function Sound.getMusicVolume()
+    return _musicVolume
+end
+
+-- Fondu progressif vers un volume cible (0.0–1.0).
+-- Annule tout fondu en cours. onComplete() appelé à la fin (optionnel).
+function Sound.fadeMusic(target, duration, onComplete)
+    if _fadeTweenId then
+        Tween.cancel(_fadeTweenId)
+        _fadeTweenId = nil
+    end
+    target = math.max(0.0, math.min(1.0, target))
+    _fadeTweenId = Tween.new(_musicVolume, target, duration or 1.0, "linear",
+        function(v)
+            _musicVolume = v
+            Audio.setMusicVolume(v)
+        end,
+        function()
+            _musicVolume = target
+            Audio.setMusicVolume(target)
+            _fadeTweenId = nil
+            if onComplete then onComplete() end
+        end)
+end
 
 -- Préchargement explicite pour éviter la latence au premier appel
 function Sound.preload(path)       loadSound(path)  end
