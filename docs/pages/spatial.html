@@ -12,8 +12,12 @@
   <div class="page-header">
     <span class="icon">🔍</span>
     <h1>Spatial</h1>
-    <p class="subtitle">Recherches spatiales rapides — trouver les entités dans un rayon, dans un rectangle, ou les plus proches d'un point.</p>
+    <p class="subtitle">Recherches spatiales rapides — trouver les entités dans un rayon ou un rectangle, compter par tag.</p>
     <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Spatial vs Physics :</strong> <code>Spatial</code> utilise une grille interne et cherche par position dans le monde. <code>Physics</code> interroge les colliders réels. Pour des zones de dégâts précises, préférez <code>Physics.findInRadius()</code>.
   </div>
 
   <div class="section">
@@ -23,9 +27,9 @@
       <tbody>
         <tr><td>Spatial.findInRadius(x, y, rayon, tag)</td><td>Retourne toutes les entités avec ce tag dans le rayon. Tag optionnel.</td></tr>
         <tr><td>Spatial.findInRect(x, y, w, h, tag)</td><td>Retourne toutes les entités dans le rectangle.</td></tr>
-        <tr><td>Spatial.findNearest(x, y, tag)</td><td>Retourne l'entité la plus proche. Tag optionnel.</td></tr>
-        <tr><td>Spatial.findNNearest(x, y, n, tag)</td><td>Retourne les <code>n</code> entités les plus proches.</td></tr>
-        <tr><td>Spatial.count(x, y, rayon, tag)</td><td>Nombre d'entités dans le rayon (plus rapide que findInRadius).</td></tr>
+        <tr><td>Spatial.nearest(x, y, tag)</td><td>Retourne l'entité la plus proche et sa distance : <code>(entité, distance)</code>.</td></tr>
+        <tr><td>Spatial.findAt(cellX, cellY, tag)</td><td>Retourne les entités dans la cellule de grille donnée. Tag optionnel.</td></tr>
+        <tr><td>Spatial.count(tag)</td><td>Nombre total d'entités actives avec ce tag.</td></tr>
       </tbody>
     </table>
   </div>
@@ -33,7 +37,7 @@
   <div class="section">
     <h2>Exemples</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Zone d'explosion (dégâts en cercle)</div>
+      <div class="code-label">lua &nbsp;·&nbsp; Explosion en zone</div>
       <pre><code class="lua">function exploser(x, y)
     Particles.emit(x, y, { count = 40, speed = 250, spread = 360,
                             color = Color.new(255, 140, 0), gravity = 80 })
@@ -41,7 +45,7 @@
     Sound.play("data/sounds/explosion.ogg")
 
     -- Toucher tout ce qui est dans 120 pixels
-    local victimes = Spatial.findInRadius(x, y, 120, "damageable")
+    local victimes = Spatial.findInRadius(x, y, 120, "enemy")
     for _, victime in ipairs(victimes) do
         Stats.mod(victime.id, "Vie", -50)
     end
@@ -51,38 +55,31 @@ end</code></pre>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Cibler l'ennemi le plus proche</div>
       <pre><code class="lua">function attaquerLePlusProche(entity)
-    local pos    = World.getPosition(entity)
-    local cible  = Spatial.findNearest(pos.x, pos.y, "enemy")
+    local pos = entity:getPosition()
 
-    if cible then
-        local dist = Math.distance(pos.x, pos.y,
-                                    World.getPosition(cible).x,
-                                    World.getPosition(cible).y)
-        if dist < 150 then
-            Stats.mod(cible.id, "Vie", -25)
-        end
+    -- nearest retourne (entité, distance)
+    local cible, dist = Spatial.nearest(pos.x, pos.y, "enemy")
+
+    if cible and dist < 150 then
+        Stats.mod(cible.id, "Vie", -25)
     end
 end</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Vérifier la densité ennemie</div>
-      <pre><code class="lua">function OnUpdate(entity, dt)
-    local pos = World.getPosition(entity)
+      <div class="code-label">lua &nbsp;·&nbsp; Compter les ennemis sur la carte</div>
+      <pre><code class="lua">-- Vérifier si tous les ennemis sont vaincus
+function OnUpdate(entity, dt)
+    local nb_ennemis = Spatial.count("enemy")
 
-    -- Changer de stratégie selon le nombre d'ennemis proches
-    local nb_ennemis = Spatial.count(pos.x, pos.y, 300, "enemy")
-
-    if nb_ennemis >= 5 then
-        -- Trop d'ennemis : fuir
-        sm:setState("Fuite")
-    elseif nb_ennemis >= 2 then
-        -- Quelques ennemis : appeler des renforts
-        EventBus.emit("appel_renforts", { x = pos.x, y = pos.y })
-    else
-        -- Seul : attaquer normalement
-        sm:setState("Attaque")
+    if nb_ennemis == 0 then
+        EventBus.emit("salle_videe", {})
+        Timer.after(1.0, function()
+            EventBus.emit("ouvrir_porte_sortie", {})
+        end)
     end
+
+    Debug.watch("ennemis_restants", nb_ennemis)
 end</code></pre>
     </div>
   </div>
