@@ -51,7 +51,7 @@ entity:setPosition(x, y)
 -- 30% de chance de lâcher un objet rare
 if Random.chance(0.30) then
     Inventory.add(joueur.id, "gemme_rare")
-    Notify.show("Objet rare trouvé !", "success")
+    Notify.show("Objet rare trouvé !",  { color = "lime" })
 end
 
 -- Choisir une réplique au hasard

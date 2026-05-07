@@ -66,7 +66,7 @@ local texte_jouer = I18n.t("menu.jouer")   -- "Jouer" ou "Play"
 
 -- Texte avec arguments ({1}, {2}…)
 local notif = I18n.t("notif.niveau", 5)
-Notify.show(notif, "success")   -- "Niveau 5 atteint !"
+Notify.show(notif,  { color = "lime" })   -- "Niveau 5 atteint !"
 
 local objet = I18n.t("notif.objet", "Épée longue")
 Notify.show(objet)   -- "Obtenu : Épée longue"</code></pre>

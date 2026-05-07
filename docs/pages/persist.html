@@ -45,11 +45,11 @@ local meilleur     = Persist.get("meilleur_score", 0)
 
 if score_actuel > meilleur then
     Persist.set("meilleur_score", score_actuel)
-    Notify.show("Nouveau record : " .. score_actuel .. " !", "success")
+    Notify.show("Nouveau record : " .. score_actuel .. " !",  { color = "lime" })
 end
 
 -- Sauvegarder la scène actuelle pour reprendre plus tard
-Persist.set("derniere_scene",    Scene.getName())
+Persist.set("derniere_scene",    Scene.current())
 Persist.set("joueur_x",         pos.x)
 Persist.set("joueur_y",         pos.y)
 Persist.set("joueur_vie",       Stats.get(joueur.id, "Vie", 100))

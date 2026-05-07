@@ -253,7 +253,7 @@ function entrerEnPhase2(entity)
         SceneFX.flash(Color.new(255, 50, 0, 200), 0.5)
         Camera.shake(0.8, 15)
         Sound.play("data/sounds/dragon_phase2.ogg")
-        Notify.show("Le dragon est enragé !", "error", 4)
+        Notify.show("Le dragon est enragé !",  { color = "red", duration = 4 })
 
         Anim.play(entity, "rage", false)
         Scheduler.wait(1.5)

@@ -64,21 +64,21 @@
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; data/scripts/global.lua</div>
       <pre><code class="lua">-- Contrôles
-InputBind.define("bouger_gauche",  { "left",  "a" })
-InputBind.define("bouger_droite",  { "right", "d" })
-InputBind.define("bouger_haut",    { "up",    "w" })
-InputBind.define("bouger_bas",     { "down",  "s" })
-InputBind.define("attaquer",       { "space", "mouse_left" })
-InputBind.define("interagir",      { "e" })
-InputBind.define("inventaire",     { "i" })
+InputBind.register("bouger_gauche",  "Left")
+InputBind.register("bouger_droite",  "Right")
+InputBind.register("bouger_haut",    "Up")
+InputBind.register("bouger_bas",     "Down")
+InputBind.register("attaquer",       "Space")
+InputBind.register("interagir",      "E")
+InputBind.register("inventaire",     "I")
 
 -- Langue
 local langue = Persist.get("langue", "fr")
-i18n.setLanguage(langue)
+I18n.set(langue)
 
 -- Musique du menu
-Scene.onLoad(function()
-    if Scene.getName() == "menu_principal" then
+EventBus.on("scene_changed", function(data)
+    if data.name == "menu_principal" then
         Sound.playMusic("data/music/menu.ogg")
     end
 end)</code></pre>
@@ -91,7 +91,7 @@ end)</code></pre>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; data/scripts/ennemi_gobelin.lua</div>
       <pre><code class="lua">-- Variables locales au script (privées à chaque entité)
-local sm
+local fsm
 local joueur
 local hp_max = 40
 
@@ -103,17 +103,33 @@ function OnInit(entity)
     joueur = World.findByTag("player")
 
     -- Créer la machine à états
-    sm = StateMachine.new({ ... }, "Patrouille")
+    fsm = StateMachine.new("Patrouille")
+    fsm:addState("Patrouille",
+        function() Anim.play(entity, "walk", true) end,
+        function(e, dt)
+            if entity:getDistance(joueur) < 200 then
+                fsm:transition("Poursuite")
+            end
+        end
+    )
+    fsm:addState("Poursuite",
+        function() Anim.play(entity, "run", true) end,
+        function(e, dt)
+            if entity:getDistance(joueur) > 300 then
+                fsm:transition("Patrouille")
+            end
+        end
+    )
 end
 
 function OnUpdate(entity, dt)
-    sm:update(dt)
+    fsm:update(entity, dt)
 end
 
 function OnDestroy(entity)
     -- Loot et effets à la mort
-    local pos = World.getPosition(entity)
-    Loot.drop(pos.x, pos.y, { { id = "piece_or", poids = 100 } })
+    local pos = entity:getPosition()
+    Loot.dropFor(entity, "gobelin")
     Particles.emit(pos.x, pos.y, { count = 10, speed = 100, spread = 360 })
 end</code></pre>
     </div>

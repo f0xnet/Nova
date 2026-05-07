@@ -50,7 +50,7 @@ end)
 local pos_joueur = World.getPosition(joueur)
 local plus_proche = Table.find(ennemis, function(e)
     local pos = World.getPosition(e)
-    return Math.distance(pos_joueur.x, pos_joueur.y, pos.x, pos.y) < 200
+    return Vec2.distance(Vec2.new(pos_joueur.x, pos_joueur.y), Vec2.new(pos.x, pos.y)) < 200
 end)
 
 -- Vérifier si une liste contient un item
@@ -69,8 +69,8 @@ local pos_j = World.getPosition(joueur)
 Table.sort(ennemis, function(a, b)
     local pa = World.getPosition(a)
     local pb = World.getPosition(b)
-    return Math.distance(pos_j.x, pos_j.y, pa.x, pa.y)
-         < Math.distance(pos_j.x, pos_j.y, pb.x, pb.y)
+    return Vec2.distance(Vec2.new(pos_j.x, pos_j.y), Vec2.new(pa.x, pa.y))
+         < Vec2.distance(Vec2.new(pos_j.x, pos_j.y), Vec2.new(pb.x, pb.y))
 end)
 
 -- Créer une liste de positions

@@ -24,8 +24,8 @@
         <tr><td>Scene.setActive(nom)</td><td>Change de scène immédiatement (sans fondu).</td></tr>
         <tr><td>Scene.transition(nom, opts)</td><td>Change de scène avec fondu. <code>opts.fade</code> et <code>opts.duration</code>.</td></tr>
         <tr><td>Scene.reload()</td><td>Recharge la scène actuelle (utile après une mort).</td></tr>
-        <tr><td>Scene.getName()</td><td>Nom de la scène actuellement active.</td></tr>
-        <tr><td>Scene.onLoad(fonction)</td><td>Appelée une fois que la scène est prête (entités chargées).</td></tr>
+        <tr><td>Scene.current()</td><td>Nom de la scène actuellement active.</td></tr>
+        <tr><td>Scene.has(nom)</td><td>Vrai si la scène est chargée.</td></tr>
       </tbody>
     </table>
   </div>
@@ -81,9 +81,9 @@ end</code></pre>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Réagir au chargement d'une scène</div>
-      <pre><code class="lua">-- Script global (ou de scène) : agir quand la scène est chargée
-Scene.onLoad(function()
-    local nom = Scene.getName()
+      <pre><code class="lua">-- Réagir au changement de scène via EventBus
+EventBus.on("scene_changed", function(data)
+    local nom = data.name  -- nom de la nouvelle scène
     print("Scène chargée : " .. nom)
 
     -- Jouer une musique différente selon la scène
@@ -94,9 +94,9 @@ Scene.onLoad(function()
     end
 end)
 
--- L'EventBus émet aussi "scene_changed" avec le nom
+-- Connaître la scène actuelle
 EventBus.on("scene_changed", function(data)
-    print("Changement vers : " .. data.name)
+    print("Changement vers : " .. Scene.current())
 end)</code></pre>
     </div>
   </div>

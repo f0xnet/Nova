@@ -61,7 +61,7 @@ end)
 intro:wait(2.5)
 
 intro:call(function()
-    Notify.show("Attention aux pièges !", "warn")
+    Notify.show("Attention aux pièges !",  { color = "orange" })
     EventBus.emit("activer_piege_demo", {})
 end)
 
@@ -86,7 +86,7 @@ tuto:dialogue("Tutoriel", "Appuyez sur Espace pour attaquer !")
 tuto:wait(2.5)
 tuto:call(function()
     Persist.set("tuto_fait", true)
-    Notify.show("Tutoriel terminé !", "success")
+    Notify.show("Tutoriel terminé !",  { color = "lime" })
 end)
 
 -- Ne lancer que si le tutoriel n'a pas encore été fait

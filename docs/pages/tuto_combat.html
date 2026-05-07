@@ -195,7 +195,7 @@ end</code></pre>
         entity:setPosition(checkpoint.x, checkpoint.y)
         Sound.playMusic("data/music/combat.ogg")
 
-        Notify.show("Vous êtes mort. Retour au checkpoint.", "warn")
+        Notify.show("Vous êtes mort. Retour au checkpoint.",  { color = "orange" })
         SceneFX.fadeOut(1.0)
     end)
 end
@@ -205,7 +205,7 @@ function OnTriggerEnter(entity, other)
     if other.tag == "checkpoint" then
         local pos = other:getPosition()
         checkpoint = { x = pos.x, y = pos.y }
-        Notify.show("Checkpoint sauvegardé !", "success")
+        Notify.show("Checkpoint sauvegardé !",  { color = "lime" })
     end
 end</code></pre>
     </div>

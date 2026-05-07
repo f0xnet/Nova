@@ -90,13 +90,13 @@ end</code></pre>
 EventBus.on("quest_complete", function(data)
     if data.id == "delivrance_village" then
         Inventory.add(joueur.id, "piece_or", 100)
-        Notify.show("Quête terminée ! +100 pièces d'or.", "success")
+        Notify.show("Quête terminée ! +100 pièces d'or.",  { color = "lime" })
         Flag.set("village_sauve")
     end
 end)
 
 EventBus.on("quest_fail", function(data)
-    Notify.show("Échec : " .. Quest.getName(data.id), "error")
+    Notify.show("Échec : " .. Quest.getName(data.id),  { color = "red" })
 end)</code></pre>
     </div>
   </div>
