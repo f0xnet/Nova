@@ -12,36 +12,31 @@
   <div class="page-header">
     <span class="icon">🧟</span>
     <h1>Tutoriel : Ennemi avec IA</h1>
-    <p class="subtitle">Créer un ennemi complet — patrouille, détection du joueur, poursuite, attaque, mort avec loot. Tous les modules clés en un seul exemple.</p>
+    <p class="subtitle">Créer un ennemi complet — détection du joueur, poursuite, attaque, mort avec loot. Tous les modules clés en un seul exemple.</p>
   </div>
 
   <div class="callout info">
-    <strong>Ce que vous allez créer :</strong> un gobelin qui patrouille entre des points, détecte le joueur à 250 pixels, le poursuit, l'attaque à portée et lâche du butin en mourant.
+    <strong>Ce que vous allez créer :</strong> un gobelin qui détecte le joueur à 250 pixels, le poursuit, l'attaque à portée et lâche du butin en mourant.
   </div>
 
   <div class="section">
     <h2>1. Initialisation</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; ennemi_gobelin.lua — partie 1 : OnInit</div>
-      <pre><code class="lua">-- === Variables du script (privées à chaque gobelin) ===
-local sm               -- Machine à états
+      <div class="code-label">lua &nbsp;·&nbsp; ennemi_gobelin.lua — OnInit</div>
+      <pre><code class="lua">-- Variables du script (privées à chaque gobelin)
+local fsm              -- Machine à états
 local joueur           -- Référence au joueur
-local pv_max    = 40   -- Points de vie maximum
-local degats    = 12   -- Dégâts par coup
-local dist_vue  = 250  -- Distance de détection
-local dist_atk  = 70   -- Distance d'attaque
+local pv_max    = 40
+local degats    = 12
+local dist_vue  = 250
+local dist_atk  = 70
 
-local loot_table = {
-    { id = "piece_or",    poids = 70, quantite = { min = 1, max = 3 } },
-    { id = "potion_soin", poids = 20 },
-    { id = "cle_rouille", poids = 10 },
-}
+-- Définir le loot (une fois dans le script global de démarrage)
+-- Loot.define("gobelin", { ... })
 
 function OnInit(entity)
-    -- Trouver le joueur
     joueur = World.findByTag("player")
 
-    -- Initialiser les stats
     Stats.init(entity.id, {
         Vie    = pv_max,
         VieMax = pv_max,
@@ -50,134 +45,95 @@ function OnInit(entity)
     -- Réagir quand les PV tombent à 0
     EventBus.on("stat_zeroed_" .. tostring(entity.id), function(data)
         if data.stat == "Vie" then
-            sm:setState("Mort")
+            fsm:transition("Mort")
         end
     end)
 
-    -- Créer la machine à états (voir partie 2)
-    sm = creerStateMachine(entity)
-end</code></pre>
-    </div>
-  </div>
+    -- Créer la machine à états
+    fsm = StateMachine.new("Patrouille")
 
-  <div class="section">
-    <h2>2. Machine à états</h2>
-    <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; ennemi_gobelin.lua — partie 2 : états</div>
-      <pre><code class="lua">function creerStateMachine(entity)
-    return StateMachine.new({
+    fsm:addState("Patrouille",
+        -- onEnter
+        function()
+            Anim.play(entity, "walk", true)
+        end,
+        -- onUpdate
+        function(e, dt)
+            if e:getDistance(joueur) < dist_vue then
+                fsm:transition("Poursuite")
+            end
+        end,
+        -- onExit
+        function()
+            Nav.stop(entity)
+        end
+    )
 
-        -- === PATROUILLE ===
-        Patrouille = {
-            onEnter = function()
-                Anim.play(entity, "walk", true)
-                -- Récupérer les points de patrol depuis l'éditeur
-                local points = entity:getData("points_patrol")
-                if points then Nav.patrol(entity, points) end
-            end,
-            onUpdate = function(dt)
-                local dist = distanceAuJoueur(entity)
-                if dist < dist_vue then
-                    sm:setState("Poursuite")
+    fsm:addState("Poursuite",
+        function()
+            Anim.play(entity, "run", true)
+            Sound.play("data/sounds/gobelin_alerte.ogg")
+        end,
+        function(e, dt)
+            local dist  = e:getDistance(joueur)
+            local pos_j = joueur:getPosition()
+
+            if dist > dist_vue * 1.5 then
+                fsm:transition("Patrouille")
+            elseif dist < dist_atk then
+                fsm:transition("Attaque")
+            else
+                Nav.moveTo(entity, pos_j, 100)
+            end
+        end
+    )
+
+    fsm:addState("Attaque",
+        function()
+            Nav.stop(entity)
+            Anim.play(entity, "attack", false)
+
+            Anim.onFrame(entity, 4, function()
+                if entity:getDistance(joueur) < dist_atk * 1.2 then
+                    Stats.mod(joueur.id, "Vie", -degats)
+                    Camera.shake(0.15, 4)
                 end
-            end,
-            onExit = function()
-                Nav.stop(entity)
-            end,
-        },
+            end)
 
-        -- === POURSUITE ===
-        Poursuite = {
-            onEnter = function()
-                Anim.play(entity, "run", true)
-                Sound.play("data/sounds/gobelin_alerte.ogg")
-            end,
-            onUpdate = function(dt)
-                local dist = distanceAuJoueur(entity)
-                local pos_j = World.getPosition(joueur)
+            Anim.onFinish(entity, function()
+                fsm:transition("Poursuite")
+            end)
+        end
+    )
 
-                if dist > dist_vue * 1.5 then
-                    -- Le joueur est trop loin : retour en patrouille
-                    sm:setState("Patrouille")
-                elseif dist < dist_atk then
-                    -- Le joueur est à portée : attaquer
-                    sm:setState("Attaque")
-                else
-                    -- Continuer à poursuivre
-                    Nav.moveTo(entity, pos_j.x, pos_j.y)
-                end
-            end,
-        },
+    fsm:addState("Mort",
+        function()
+            Nav.stop(entity)
+            Anim.play(entity, "death", false)
+            Sound.play("data/sounds/gobelin_mort.ogg")
 
-        -- === ATTAQUE ===
-        Attaque = {
-            onEnter = function()
-                Nav.stop(entity)
-                Anim.play(entity, "attack", false)
+            local pos = entity:getPosition()
+            Loot.dropFor(entity, "gobelin")
 
-                -- Infliger des dégâts au bon frame
-                Anim.onFrame(entity, 4, function()
-                    if distanceAuJoueur(entity) < dist_atk * 1.2 then
-                        Stats.mod(joueur.id, "Vie", -degats)
-                        Camera.shake(0.15, 4)
-                    end
-                end)
+            Particles.emit(pos.x, pos.y, {
+                count = 15, speed = 80, spread = 360,
+                color = Color.new(100, 200, 80),
+            })
 
-                -- Revenir en poursuite après l'attaque
-                Anim.onFinish(entity, function()
-                    sm:setState("Poursuite")
-                end)
-            end,
-        },
-
-        -- === MORT ===
-        Mort = {
-            onEnter = function()
-                Nav.stop(entity)
-                Anim.play(entity, "death", false)
-                Sound.play("data/sounds/gobelin_mort.ogg")
-
-                -- Lâcher du butin
-                local pos = World.getPosition(entity)
-                Loot.drop(pos.x, pos.y, loot_table)
-
-                -- Particules de mort
-                Particles.emit(pos.x, pos.y, {
-                    count = 15, speed = 80, spread = 360,
-                    color = Color.new(100, 200, 80),
-                })
-
-                -- Désactiver l'entité après l'animation
-                Anim.onFinish(entity, function()
-                    EntityState.disable(entity)
-                end)
-            end,
-        },
-
-    }, "Patrouille")
-end</code></pre>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>3. Update et utilitaires</h2>
-    <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; ennemi_gobelin.lua — partie 3 : OnUpdate</div>
-      <pre><code class="lua">-- Fonction utilitaire : distance entre l'entité et le joueur
-function distanceAuJoueur(entity)
-    local pos_e = World.getPosition(entity)
-    local pos_j = World.getPosition(joueur)
-    return Math.distance(pos_e.x, pos_e.y, pos_j.x, pos_j.y)
+            Anim.onFinish(entity, function()
+                EntityState.disable(entity)
+            end)
+        end
+    )
 end
 
 function OnUpdate(entity, dt)
-    -- Ne rien faire si le gobelin est mort
-    if sm:is("Mort") then return end
+    if fsm then
+        fsm:update(entity, dt)
+    end
 
-    sm:update(dt)
-
-    -- Barre de vie en debug
     Debug.watch("gobelin_vie", Stats.get(entity.id, "Vie", 0))
+    Debug.watch("gobelin_etat", fsm and fsm:getState() or "init")
 end
 
 function OnDestroy(entity)
@@ -187,7 +143,7 @@ end</code></pre>
   </div>
 
   <div class="callout success">
-    <strong>Résultat :</strong> un gobelin avec 4 états, de l'animation synchronisée, des dégâts au bon frame, du loot à la mort, et un état persistant (ne réapparaît pas si tué).
+    <strong>Résultat :</strong> un gobelin avec 4 états, animation synchronisée, dégâts au bon frame, loot à la mort, et état persistant (ne réapparaît pas si tué).
   </div>
 
 </div>
