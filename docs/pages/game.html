@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Game — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎮</span>
+    <h1>Game</h1>
+    <p class="subtitle">Accès aux données globales du jeu — joueur, temps, timescale, pause.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Game.getPlayer()</td><td>Retourne l'entité avec le tag <code>"player"</code>, ou <code>nil</code>.</td></tr>
+        <tr><td>Game.getTime()</td><td>Temps de jeu écoulé en secondes (affecté par le timescale).</td></tr>
+        <tr><td>Game.getDeltaTime()</td><td>Dernier deltaTime de frame reçu (avant application du timescale).</td></tr>
+        <tr><td>Game.notification(text)</td><td>Émet <code>"ui_notification"</code> sur l'EventBus avec le texte fourni.</td></tr>
+        <tr><td>Game.setTimescale(scale)</td><td>Multiplie tous les <code>dt</code>. <code>0.0</code> = pause, <code>0.5</code> = ralenti, <code>1.0</code> = normal, <code>2.0</code> = accéléré. Émet <code>"timescale_changed"</code>.</td></tr>
+        <tr><td>Game.getTimescale()</td><td>Valeur courante du timescale.</td></tr>
+        <tr><td>Game.isPaused()</td><td>Vrai si le timescale est à <code>0.0</code>.</td></tr>
+        <tr><td>Game.pause()</td><td>Raccourci — appelle <code>Game.setTimescale(0.0)</code>.</td></tr>
+        <tr><td>Game.resume()</td><td>Raccourci — appelle <code>Game.setTimescale(1.0)</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>EventBus :</strong> <code>Game.setTimescale()</code> émet <code>"timescale_changed"</code> avec <code>{ timescale = valeur }</code>. Écoutez cet événement pour mettre à jour l'UI de pause ou les animations.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Accéder au joueur depuis n'importe quel script</div>
+      <pre><code class="lua">local joueur = Game.getPlayer()
+if joueur then
+    local pos = joueur:getPosition()
+    Log.info("Joueur à " .. pos.x .. ", " .. pos.y)
+else
+    Log.warn("Joueur introuvable")
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Menu pause</div>
+      <pre><code class="lua">-- Dans global.lua ou le script du menu
+InputBind.register("pause", "Escape")
+
+EventBus.on("update", function(dt)
+    if InputBind.isJustPressed("pause") then
+        if Game.isPaused() then
+            Game.resume()
+            UI.hide("menu_pause")
+        else
+            Game.pause()
+            UI.show("menu_pause")
+        end
+    end
+end)
+
+-- Bouton "Reprendre" dans l'UI
+UI.onClick("btn_reprendre", function()
+    Game.resume()
+    UI.hide("menu_pause")
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Bullet time (ralenti temporaire)</div>
+      <pre><code class="lua">function activerBulletTime(duree)
+    Game.setTimescale(0.25)
+    Sound.playMusic("data/music/slowmo.ogg")
+
+    -- Timer utilise le temps réel (non affecté par le timescale)
+    Timer.after(duree, function()
+        Game.setTimescale(1.0)
+    end)
+end
+
+-- Effet visuel en réponse au changement de timescale
+EventBus.on("timescale_changed", function(data)
+    if data.timescale < 1.0 then
+        SceneFX.flash(Color.new(100, 150, 255, 60), 0.3)
+    end
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Afficher le temps de jeu</div>
+      <pre><code class="lua">function OnUpdate(entity, dt)
+    local t      = Game.getTime()
+    local heures = math.floor(t / 3600)
+    local mins   = math.floor((t % 3600) / 60)
+    local secs   = math.floor(t % 60)
+
+    local label = string.format("%02d:%02d:%02d", heures, mins, secs)
+    UI.setText("label_temps", label)
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

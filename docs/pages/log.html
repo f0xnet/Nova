@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Log — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🪵</span>
+    <h1>Log</h1>
+    <p class="subtitle">Écrire des messages dans la console du moteur — informations, avertissements, erreurs et traces de débogage.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Sortie :</strong> tous les messages sont préfixés <code>[Lua]</code> et acheminés vers le logger natif du moteur (console et fichier <code>nova.log</code>).
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Log.info(message)</td><td>Message informatif (blanc). Utiliser pour les événements normaux.</td></tr>
+        <tr><td>Log.warn(message)</td><td>Avertissement (jaune). Situation inattendue mais non bloquante.</td></tr>
+        <tr><td>Log.error(message)</td><td>Erreur (rouge). Quelque chose s'est mal passé.</td></tr>
+        <tr><td>Log.debug(message)</td><td>Trace de débogage (gris). Filtré en production.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <strong>Types :</strong> <code>message</code> doit être une <strong>string</strong>. Convertissez avec <code>tostring()</code> avant de passer un nombre, un booléen ou une table.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Logs basiques</div>
+      <pre><code class="lua">Log.info("Scène chargée : " .. Scene.current())
+Log.warn("Entité introuvable pour le tag 'boss'")
+Log.error("Fichier de données manquant : data/items.json")
+Log.debug("OnUpdate — dt=" .. tostring(dt))</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Diagnostiquer OnInit</div>
+      <pre><code class="lua">function OnInit(entity)
+    Log.info("OnInit — entité id=" .. tostring(entity.id)
+             .. " tag=" .. tostring(entity.tag))
+
+    local joueur = World.findByTag("player")
+    if joueur == nil then
+        Log.warn("Joueur introuvable à l'init (peut-être pas encore chargé)")
+    end
+
+    Stats.init(entity.id, { Vie = 100, VieMax = 100 })
+    Log.debug("Stats initialisées")
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Journaliser les erreurs de données</div>
+      <pre><code class="lua">local ok = Data.load("items", "data/items.json")
+if not ok then
+    Log.error("Impossible de charger data/items.json — les items seront absents")
+else
+    local count = #Data.getAll("items")
+    Log.info("Items chargés : " .. tostring(count))
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Wrapper utilitaire (optionnel)</div>
+      <pre><code class="lua">-- Préfixer tous les logs d'un script avec son nom
+local TAG = "[gobelin] "
+local function logI(msg) Log.info(TAG  .. msg) end
+local function logW(msg) Log.warn(TAG  .. msg) end
+local function logE(msg) Log.error(TAG .. msg) end
+
+function OnInit(entity)
+    logI("init id=" .. tostring(entity.id))
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
