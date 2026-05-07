@@ -397,13 +397,10 @@ bool Game::onInitialize() {
         }
     }
 
-#ifdef NOVA_RUN_TESTS
-    // Suite de tests Lua — chargée en mode debug uniquement.
-    // Active via : cmake -DNOVA_RUN_TESTS=ON ...
+    // Suite de tests Lua — s'exécute au démarrage si le dossier tests/ est présent.
     if (m_scriptSystem) {
         m_scriptSystem->loadGlobalScript("data/scripts/tests/run_all.lua");
     }
-#endif
 
     LOG_INFO("Game initialized successfully");
     LOG_INFO("=== Controls ===");

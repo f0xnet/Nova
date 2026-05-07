@@ -68,13 +68,6 @@ echo ""
 
 echo "[STEP 1/3] Compiling source files..."
 
-# Activer la suite de tests Lua : NOVA_RUN_TESTS=1 ./compile_client.sh
-EXTRA_DEFINES=""
-if [ "${NOVA_RUN_TESTS:-0}" = "1" ]; then
-    EXTRA_DEFINES="-DNOVA_RUN_TESTS"
-    echo "[TEST] Suite de tests Lua activée (NOVA_RUN_TESTS=1)"
-fi
-
 CPP_FILES=$(find "$SOURCE_DIR" -name "*.cpp")
 
 OBJECT_FILES=""
@@ -92,7 +85,6 @@ for file in $CPP_FILES; do
         -I"$OBJ_DIR" \
         -include nlohmann/json.hpp \
         -DSFML_STATIC \
-        $EXTRA_DEFINES \
         -std=c++17 \
         -O2 \
         -Wall
@@ -111,7 +103,6 @@ g++ -c "$PROJECT_DIR/client/main.cpp" -o "$OBJ_DIR/main.o" \
     -I"$OBJ_DIR" \
     -include nlohmann/json.hpp \
     -DSFML_STATIC \
-    $EXTRA_DEFINES \
     -std=c++17 \
     -O2 \
     -Wall
