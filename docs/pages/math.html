@@ -12,7 +12,7 @@
   <div class="page-header">
     <span class="icon">📐</span>
     <h1>Math &amp; Vec2</h1>
-    <p class="subtitle">Fonctions mathématiques utiles pour le jeu — distances, angles, interpolation, vecteurs 2D.</p>
+    <p class="subtitle">Fonctions mathématiques et vecteurs 2D — interpolation, angles, distances, normalisation.</p>
     <div class="tags"><span class="tag global">Global automatique</span></div>
   </div>
 
@@ -23,13 +23,16 @@
       <tbody>
         <tr><td>Math.clamp(valeur, min, max)</td><td>Limite la valeur entre min et max.</td></tr>
         <tr><td>Math.lerp(a, b, t)</td><td>Interpolation linéaire entre a et b (t entre 0 et 1).</td></tr>
-        <tr><td>Math.distance(x1,y1, x2,y2)</td><td>Distance en pixels entre deux points.</td></tr>
-        <tr><td>Math.angle(x1,y1, x2,y2)</td><td>Angle en degrés de (x1,y1) vers (x2,y2). 0=droite, 90=bas.</td></tr>
-        <tr><td>Math.sign(valeur)</td><td>-1, 0 ou +1 selon le signe de la valeur.</td></tr>
-        <tr><td>Math.round(valeur)</td><td>Arrondi au nombre entier le plus proche.</td></tr>
-        <tr><td>Math.wrap(valeur, min, max)</td><td>Boucle la valeur dans l'intervalle [min, max].</td></tr>
-        <tr><td>Math.degToRad(deg)</td><td>Degrés → radians.</td></tr>
-        <tr><td>Math.radToDeg(rad)</td><td>Radians → degrés.</td></tr>
+        <tr><td>Math.angleTo(x1, y1, x2, y2)</td><td>Angle en degrés de (x1,y1) vers (x2,y2).</td></tr>
+        <tr><td>Math.sign(valeur)</td><td>-1, 0 ou +1 selon le signe.</td></tr>
+        <tr><td>Math.round(valeur, decimales)</td><td>Arrondi. <code>decimales</code> optionnel (défaut : 0).</td></tr>
+        <tr><td>Math.approach(actuel, cible, delta)</td><td>Avance de <code>delta</code> vers <code>cible</code> sans le dépasser.</td></tr>
+        <tr><td>Math.map(v, inMin, inMax, outMin, outMax)</td><td>Convertit une valeur d'un intervalle vers un autre.</td></tr>
+        <tr><td>Math.smoothstep(edge0, edge1, t)</td><td>Lissage entre edge0 et edge1.</td></tr>
+        <tr><td>Math.pingpong(t, longueur)</td><td>Oscille entre 0 et longueur.</td></tr>
+        <tr><td>Math.normalizeAngle(deg)</td><td>Ramène un angle dans [0, 360].</td></tr>
+        <tr><td>Math.deg2rad(deg)</td><td>Degrés → radians.</td></tr>
+        <tr><td>Math.rad2deg(rad)</td><td>Radians → degrés.</td></tr>
       </tbody>
     </table>
   </div>
@@ -40,13 +43,12 @@
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td>Vec2.new(x, y)</td><td>Crée un vecteur 2D.</td></tr>
-        <tr><td>Vec2.add(a, b)</td><td>Addition : a + b.</td></tr>
-        <tr><td>Vec2.sub(a, b)</td><td>Soustraction : a − b.</td></tr>
-        <tr><td>Vec2.scale(v, f)</td><td>Multiplication par un scalaire.</td></tr>
         <tr><td>Vec2.length(v)</td><td>Longueur (magnitude) du vecteur.</td></tr>
         <tr><td>Vec2.normalize(v)</td><td>Vecteur de longueur 1 dans la même direction.</td></tr>
+        <tr><td>Vec2.distance(a, b)</td><td>Distance entre deux Vec2.</td></tr>
+        <tr><td>Vec2.lerp(a, b, t)</td><td>Interpolation entre deux Vec2.</td></tr>
         <tr><td>Vec2.dot(a, b)</td><td>Produit scalaire.</td></tr>
-        <tr><td>Vec2.fromAngle(deg)</td><td>Vecteur unitaire depuis un angle en degrés.</td></tr>
+        <tr><td>Vec2.fromAngle(deg, longueur)</td><td>Vecteur depuis un angle en degrés. Longueur optionnelle (défaut : 1).</td></tr>
         <tr><td>Vec2.angle(v)</td><td>Angle en degrés du vecteur.</td></tr>
       </tbody>
     </table>
@@ -57,18 +59,17 @@
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Calculs courants</div>
       <pre><code class="lua">-- Distance entre deux entités
-local pos_joueur = World.getPosition(joueur)
-local pos_ennemi = World.getPosition(ennemi)
-local dist       = Math.distance(pos_joueur.x, pos_joueur.y,
-                                  pos_ennemi.x, pos_ennemi.y)
+local dist = Vec2.distance(joueur:getPosition(), ennemi:getPosition())
 
 if dist < 100 then
     print("Le joueur est proche !")
 end
 
 -- Orienter un projectile vers la souris
-local angle = Math.angle(pos.x, pos.y, Input.mouseX(), Input.mouseY())
-local dir   = Vec2.fromAngle(angle)
+local pos    = entity:getPosition()
+local souris = Input.getMousePosition()
+local angle  = Math.angleTo(pos.x, pos.y, souris.x, souris.y)
+local dir    = Vec2.fromAngle(angle)
 
 -- Limiter la vie entre 0 et 100
 local vie = Stats.get(entity.id, "Vie", 100)
@@ -77,35 +78,34 @@ Stats.set(entity.id, "Vie", vie)</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Mouvement fluide avec lerp</div>
-      <pre><code class="lua">-- Suivre une cible en douceur (lissage exponentiel)
-local pos_actuelle = { x = 0, y = 0 }
+      <div class="code-label">lua &nbsp;·&nbsp; Mouvement fluide vers une cible</div>
+      <pre><code class="lua">-- Approcher une valeur de vitesse progressivement (accélération)
+local vitesse_actuelle = 0
+local vitesse_max      = 200
 
 function OnUpdate(entity, dt)
-    local cible    = World.getPosition(joueur)
-    local vitesse  = 5  -- 5 = rapide, 1 = lent
+    -- Math.approach avance de (acceleration * dt) sans dépasser vitesse_max
+    vitesse_actuelle = Math.approach(vitesse_actuelle, vitesse_max, 300 * dt)
 
-    pos_actuelle.x = Math.lerp(pos_actuelle.x, cible.x, vitesse * dt)
-    pos_actuelle.y = Math.lerp(pos_actuelle.y, cible.y, vitesse * dt)
-
-    World.setPosition(entity, pos_actuelle.x, pos_actuelle.y)
+    local pos = entity:getPosition()
+    entity:setPosition(pos.x + vitesse_actuelle * dt, pos.y)
 end</code></pre>
     </div>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Direction et déplacement avec Vec2</div>
-      <pre><code class="lua">-- Calculer la direction vers une cible
-local pos_a  = World.getPosition(archer)
-local pos_b  = World.getPosition(cible)
+      <pre><code class="lua">-- Calculer la direction normalisée vers une cible
+local pos_a = archer:getPosition()
+local pos_b = cible:getPosition()
 
-local direction = Vec2.normalize(Vec2.sub(
-    Vec2.new(pos_b.x, pos_b.y),
-    Vec2.new(pos_a.x, pos_a.y)
+local direction = Vec2.normalize(Vec2.new(
+    pos_b.x - pos_a.x,
+    pos_b.y - pos_a.y
 ))
 
 -- Déplacer l'entité dans cette direction
 local VITESSE = 150
-World.setPosition(archer,
+archer:setPosition(
     pos_a.x + direction.x * VITESSE * dt,
     pos_a.y + direction.y * VITESSE * dt
 )</code></pre>

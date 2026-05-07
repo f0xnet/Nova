@@ -12,7 +12,7 @@
   <div class="page-header">
     <span class="icon">🎲</span>
     <h1>Random</h1>
-    <p class="subtitle">Génération de nombres aléatoires — entiers, flottants, choix dans une liste, seed reproductible.</p>
+    <p class="subtitle">Génération de nombres aléatoires — entiers, flottants, choix dans une liste, dés, seed reproductible.</p>
     <div class="tags"><span class="tag global">Global automatique</span></div>
   </div>
 
@@ -23,11 +23,14 @@
       <tbody>
         <tr><td>Random.int(min, max)</td><td>Entier aléatoire entre min et max (inclus).</td></tr>
         <tr><td>Random.float(min, max)</td><td>Flottant aléatoire entre min et max.</td></tr>
-        <tr><td>Random.bool(probabilite)</td><td>Vrai avec la probabilité donnée (0.0 à 1.0). Défaut : 0.5.</td></tr>
+        <tr><td>Random.chance(probabilite)</td><td>Vrai avec la probabilité donnée (0.0 à 1.0).</td></tr>
         <tr><td>Random.pick(tableau)</td><td>Retourne un élément aléatoire du tableau.</td></tr>
-        <tr><td>Random.shuffle(tableau)</td><td>Mélange le tableau sur place.</td></tr>
+        <tr><td>Random.shuffle(tableau)</td><td>Mélange le tableau. Retourne le tableau mélangé.</td></tr>
+        <tr><td>Random.weighted(items)</td><td>Tirage pondéré. Chaque item a un champ <code>weight</code>.</td></tr>
+        <tr><td>Random.dice(faces)</td><td>Lance un dé à N faces. Ex : <code>Random.dice(6)</code> = 1 à 6.</td></tr>
+        <tr><td>Random.dice(nb, faces)</td><td>Lance nb dés et retourne la somme. Ex : <code>Random.dice(2, 6)</code> = 2D6.</td></tr>
+        <tr><td>Random.gaussian(moyenne, ecart)</td><td>Valeur aléatoire selon une courbe normale. Défauts : 0, 1.</td></tr>
         <tr><td>Random.seed(valeur)</td><td>Fixe la graine pour des résultats reproductibles.</td></tr>
-        <tr><td>Random.angle()</td><td>Angle aléatoire en degrés (0 à 360).</td></tr>
       </tbody>
     </table>
   </div>
@@ -43,11 +46,11 @@ Stats.mod(ennemi.id, "Vie", -degats)
 -- Position aléatoire dans une zone
 local x = Random.float(100, 500)
 local y = Random.float(100, 400)
-World.setPosition(spawn, x, y)
+entity:setPosition(x, y)
 
--- Chance de 30% de lâcher un objet rare
-if Random.bool(0.30) then
-    Inventory.give(joueur, "gemme_rare")
+-- 30% de chance de lâcher un objet rare
+if Random.chance(0.30) then
+    Inventory.add(joueur.id, "gemme_rare")
     Notify.show("Objet rare trouvé !", "success")
 end
 
@@ -57,33 +60,30 @@ local repliques = {
     "Beau temps pour se battre...",
     "Méfie-toi du boss au nord.",
 }
-local texte = Random.pick(repliques)
-Conversation.start({{ speaker = "Garde", text = texte }})</code></pre>
+local texte = Random.pick(repliques)</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Spawn aléatoire d'ennemis</div>
-      <pre><code class="lua">local types_ennemis = { "gobelin", "squelette", "orc", "slime" }
-local points_spawn  = World.findAllByTag("spawn_point")
+      <div class="code-label">lua &nbsp;·&nbsp; Dés et tirage pondéré</div>
+      <pre><code class="lua">-- 2D6 pour les dégâts (style jeu de rôle)
+local degats = Random.dice(2, 6)  -- entre 2 et 12
+print("Dégâts : " .. degats)
 
--- Mélanger les points de spawn
-Random.shuffle(points_spawn)
-
--- Spawner 3 ennemis aléatoires
-for i = 1, 3 do
-    local point  = points_spawn[i]
-    local type_e = Random.pick(types_ennemis)
-    local pos    = World.getPosition(point)
-
-    World.spawn(type_e, pos.x, pos.y)
-end</code></pre>
+-- Tirage pondéré pour le loot
+local objets = {
+    { value = "piece_or",    weight = 60 },
+    { value = "potion_soin", weight = 25 },
+    { value = "epee_rare",   weight = 10 },
+    { value = "legendaire",  weight = 5  },
+}
+local gagne = Random.weighted(objets)
+print("Obtenu : " .. gagne.value)</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Seed reproductible (génération procédurale)</div>
+      <div class="code-label">lua &nbsp;·&nbsp; Seed reproductible</div>
       <pre><code class="lua">-- Générer le même donjon à chaque fois avec le même seed
-local seed_donjon = 42
-Random.seed(seed_donjon)
+Random.seed(42)
 
 for i = 1, 10 do
     local x = Random.int(0, 20)
