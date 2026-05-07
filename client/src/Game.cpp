@@ -333,6 +333,9 @@ bool Game::onInitialize() {
     // Initialize dialogue system with UI manager
     m_dialogueSystem->initialize(&m_uiManager);
 
+    // Police du debug overlay — indépendante des UI, chargée une fois ici
+    NovaEngine::LuaBindings::setDebugFont("data/font/SpaceMono-Regular.ttf");
+
     // Initialize post-processing pipeline
     m_postProcessPipeline = std::make_unique<NovaEngine::PostProcessPipeline>(&GRAPHICS());
     if (!m_postProcessPipeline->initialize(
