@@ -12,7 +12,7 @@
   <div class="page-header">
     <span class="icon">📦</span>
     <h1>Data</h1>
-    <p class="subtitle">Lire des fichiers JSON de configuration — tableaux d'objets, stats de base, textes de dialogue. Idéal pour séparer les données du code.</p>
+    <p class="subtitle">Charger et interroger des fichiers JSON de configuration — objets, stats, textes. Idéal pour séparer les données du code.</p>
     <div class="tags"><span class="tag global">Global automatique</span></div>
   </div>
 
@@ -21,9 +21,14 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Data.load(chemin)</td><td>Lit un fichier JSON et retourne une table Lua. Mis en cache automatiquement.</td></tr>
-        <tr><td>Data.encode(table)</td><td>Convertit une table Lua en texte JSON.</td></tr>
-        <tr><td>Data.decode(texte)</td><td>Convertit un texte JSON en table Lua.</td></tr>
+        <tr><td>Data.load(id, chemin)</td><td>Charge un fichier JSON et l'enregistre sous l'identifiant <code>id</code>. Mis en cache.</td></tr>
+        <tr><td>Data.reload(id)</td><td>Recharge le fichier depuis le disque.</td></tr>
+        <tr><td>Data.isLoaded(id)</td><td>Vrai si le dataset est chargé.</td></tr>
+        <tr><td>Data.getAll(id)</td><td>Retourne toute la table (tableau d'objets ou objet).</td></tr>
+        <tr><td>Data.get(id, cle)</td><td>Retourne un élément par sa clé. <code>cle</code> optionnel.</td></tr>
+        <tr><td>Data.set(id, cle, valeur)</td><td>Modifie une entrée en mémoire (pas sur le disque).</td></tr>
+        <tr><td>Data.query(id, fn)</td><td>Filtre les données : retourne les entrées pour lesquelles <code>fn(entry)</code> est vrai.</td></tr>
+        <tr><td>Data.unload(id)</td><td>Libère le dataset de la mémoire.</td></tr>
       </tbody>
     </table>
   </div>
@@ -41,49 +46,47 @@
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Charger et utiliser les données</div>
-      <pre><code class="lua">-- Charger le fichier JSON
-local items = Data.load("data/items.json")
+      <pre><code class="lua">-- Charger au démarrage du jeu (script global)
+Data.load("items", "data/items.json")
 
--- Trouver un item par son id
-local function trouverItem(id)
-    for _, item in ipairs(items) do
-        if item.id == id then
-            return item
-        end
-    end
-    return nil
-end
+-- Récupérer tous les items
+local tous_les_items = Data.getAll("items")
+
+-- Chercher un item spécifique avec query
+local potions = Data.query("items", function(item)
+    return item.soin ~= nil  -- seulement les objets de soin
+end)
 
 -- Utiliser les données
-local epee = trouverItem("epee_longue")
-if epee then
-    print("Dégâts de l'épée : " .. epee.degats)
-    Stats.mod(ennemi.id, "Vie", -epee.degats)
+for _, potion in ipairs(potions) do
+    print(potion.nom .. " soigne " .. potion.soin .. " PV")
 end
 
--- Afficher le prix dans l'UI
-local potion = trouverItem("potion_soin")
-print("Prix : " .. potion.prix .. " pièces")</code></pre>
+-- Récupérer directement par clé (si le JSON est un objet, pas un tableau)
+local config = Data.get("config", "difficulte")</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Sauvegarder une table dans Persist</div>
-      <pre><code class="lua">-- Les tables Lua ne se sauvegardent pas directement
--- → Convertir en JSON d'abord
+      <div class="code-label">lua &nbsp;·&nbsp; Sauvegarder une table Lua dans Persist</div>
+      <pre><code class="lua">-- Persist ne stocke que des valeurs simples (nombres, textes, booléens)
+-- Pour sauvegarder une table, passez par Resources.loadJSON et Persist
+
+-- Encoder en JSON (via la lib Lua standard ou un helper)
+-- Note : utilisez Data.set pour modifier en mémoire, puis Persist pour sauvegarder
+-- les valeurs clé par clé
 
 local progression = {
-    niveau       = 5,
-    experience   = 1240,
-    competences  = { "feu", "glace" },
+    niveau     = 5,
+    experience = 1240,
 }
 
--- Sauvegarder
-Persist.set("progression", Data.encode(progression))
+-- Sauvegarder champ par champ
+Persist.set("niveau",     progression.niveau)
+Persist.set("experience", progression.experience)
 
--- Charger
-local json         = Persist.get("progression", "{}")
-local progression  = Data.decode(json)
-print("Niveau : " .. progression.niveau)</code></pre>
+-- Recharger
+local niveau     = Persist.get("niveau", 1)
+local experience = Persist.get("experience", 0)</code></pre>
     </div>
   </div>
 

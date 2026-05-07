@@ -17,7 +17,7 @@
   </div>
 
   <div class="callout info">
-    <strong>Sequence vs Scheduler :</strong> <code>Scheduler</code> est pour la logique de jeu (IA, combats). <code>Sequence</code> est pensé pour les événements narratifs avec déclencheurs, conditions et étapes nommées.
+    <strong>Sequence vs Scheduler :</strong> <code>Scheduler</code> est pour la logique de jeu en temps réel (IA, combat). <code>Sequence</code> est pensé pour les événements narratifs avec des étapes chaînées et un callback final.
   </div>
 
   <div class="section">
@@ -25,24 +25,15 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Sequence.new(etapes)</td><td>Crée une séquence à partir d'une liste d'étapes. Retourne un objet séquence.</td></tr>
-        <tr><td>seq:start()</td><td>Lance la séquence depuis le début.</td></tr>
-        <tr><td>seq:stop()</td><td>Arrête et réinitialise la séquence.</td></tr>
-        <tr><td>seq:next()</td><td>Passe à l'étape suivante manuellement.</td></tr>
-        <tr><td>seq:isRunning()</td><td>Vrai si la séquence est en cours.</td></tr>
-        <tr><td>seq:isDone()</td><td>Vrai si toutes les étapes sont terminées.</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>Structure d'une étape</h2>
-    <table class="api-table">
-      <thead><tr><th>Champ</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>action</td><td>Fonction exécutée à cette étape.</td></tr>
-        <tr><td>duree</td><td>Attendre N secondes avant de passer à l'étape suivante.</td></tr>
-        <tr><td>attendre</td><td>Fonction qui retourne vrai quand on peut continuer (attente conditionnelle).</td></tr>
+        <tr><td>Sequence.new()</td><td>Crée une nouvelle séquence vide. Retourne un objet <code>seq</code>.</td></tr>
+        <tr><td>seq:call(fn)</td><td>Appelle une fonction immédiatement.</td></tr>
+        <tr><td>seq:wait(secondes)</td><td>Attend N secondes avant de continuer.</td></tr>
+        <tr><td>seq:tween(secondes, fn)</td><td>Exécute <code>fn(t)</code> pendant N secondes, avec t allant de 0 à 1.</td></tr>
+        <tr><td>seq:emit(event, data)</td><td>Émet un événement EventBus.</td></tr>
+        <tr><td>seq:dialogue(speaker, text)</td><td>Affiche une ligne de dialogue.</td></tr>
+        <tr><td>seq:repeat_(n, fn)</td><td>Répète une fonction N fois.</td></tr>
+        <tr><td>seq:play(onComplete)</td><td>Lance la séquence. <code>onComplete</code> est appelé à la fin.</td></tr>
+        <tr><td>seq:stop()</td><td>Arrête la séquence en cours.</td></tr>
       </tbody>
     </table>
   </div>
@@ -51,78 +42,83 @@
     <h2>Exemples</h2>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Introduction de niveau</div>
-      <pre><code class="lua">local intro = Sequence.new({
-    -- Étape 1 : fondu + texte d'ambiance
-    {
-        action = function()
-            EventBus.emit("controles_bloques", {})
-            SceneFX.fadeOut(1.0)
-            Notify.show("Donjon des Ombres — Niveau 3", "info", 3)
-        end,
-        duree = 2.0,
-    },
+      <pre><code class="lua">local intro = Sequence.new()
 
-    -- Étape 2 : déplacer la caméra vers le danger
-    {
-        action = function()
-            local piege = World.findByTag("premier_piege")
-            Camera.moveTo(piege:getPosition().x, piege:getPosition().y, 1.5, "easeInOut")
-        end,
-        duree = 2.0,
-    },
+intro:call(function()
+    EventBus.emit("controles_bloques", {})
+    SceneFX.fadeOut(1.0)
+    Notify.show("Donjon des Ombres — Niveau 3")
+end)
 
-    -- Étape 3 : montrer le piège en action
-    {
-        action = function()
-            EventBus.emit("activer_piege_demo", {})
-            Notify.show("Attention aux pièges !", "warn", 2)
-        end,
-        duree = 2.5,
-    },
+intro:wait(2.0)
 
-    -- Étape 4 : retour au joueur
-    {
-        action = function()
-            local joueur = World.findByTag("player")
-            Camera.follow(joueur)
-            EventBus.emit("controles_liberes", {})
-        end,
-    },
-})
+intro:call(function()
+    local piege = World.findByTag("premier_piege")
+    local pos   = piege:getPosition()
+    Camera.moveTo(pos.x, pos.y, 1.5, "easeInOut")
+end)
 
--- Lancer au chargement de la scène
-intro:start()</code></pre>
+intro:wait(2.5)
+
+intro:call(function()
+    Notify.show("Attention aux pièges !", "warn")
+    EventBus.emit("activer_piege_demo", {})
+end)
+
+intro:wait(2.0)
+
+intro:call(function()
+    Camera.follow(World.findByTag("player"))
+    EventBus.emit("controles_liberes", {})
+end)
+
+-- Lancer la séquence
+intro:play()</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Tutoriel guidé pas à pas</div>
-      <pre><code class="lua">local tuto = Sequence.new({
-    { action = function()
-        Notify.show("Utilisez ZQSD pour vous déplacer.", "info", 0)
-    end,
-      -- Attendre que le joueur bouge
-      attendre = function()
-          return Input.isDown("z") or Input.isDown("q")
-              or Input.isDown("s") or Input.isDown("d")
-      end },
+      <div class="code-label">lua &nbsp;·&nbsp; Tutoriel guidé</div>
+      <pre><code class="lua">local tuto = Sequence.new()
 
-    { action = function()
-        Notify.show("Appuyez sur ESPACE pour attaquer !", "info", 0)
-    end,
-      attendre = function()
-          return Input.isPressed("space")
-      end },
+tuto:dialogue("Tutoriel", "Utilisez les touches fléchées pour vous déplacer.")
+tuto:wait(3.0)
+tuto:dialogue("Tutoriel", "Appuyez sur Espace pour attaquer !")
+tuto:wait(2.5)
+tuto:call(function()
+    Persist.set("tuto_fait", true)
+    Notify.show("Tutoriel terminé !", "success")
+end)
 
-    { action = function()
-        Notify.show("Bravo ! Tutoriel terminé.", "success")
-        Persist.set("tuto_fait", true)
-    end },
-})
-
--- Ne lancer le tutoriel que si pas encore fait
+-- Ne lancer que si le tutoriel n'a pas encore été fait
 if not Persist.get("tuto_fait", false) then
-    tuto:start()
+    tuto:play()
 end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Explosions progressives avec repeat_</div>
+      <pre><code class="lua">local mort_boss = Sequence.new()
+
+mort_boss:repeat_(8, function()
+    local pos = boss:getPosition()
+    local ox  = Random.float(-80, 80)
+    local oy  = Random.float(-80, 80)
+    Particles.emit(pos.x + ox, pos.y + oy, {
+        count = 30, speed = 200, spread = 360,
+        color = Color.new(255, 120, 0),
+    })
+    Sound.play("data/sounds/explosion.ogg")
+end)
+
+mort_boss:wait(0.3)
+
+mort_boss:call(function()
+    SceneFX.fadeIn(2.0, function()
+        Scene.setActive("fin_de_niveau")
+    end)
+end)
+
+mort_boss:play()</code></pre>
     </div>
   </div>
 
