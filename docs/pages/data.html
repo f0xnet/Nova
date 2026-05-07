@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Data — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">📦</span>
+    <h1>Data</h1>
+    <p class="subtitle">Lire des fichiers JSON de configuration — tableaux d'objets, stats de base, textes de dialogue. Idéal pour séparer les données du code.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Data.load(chemin)</td><td>Lit un fichier JSON et retourne une table Lua. Mis en cache automatiquement.</td></tr>
+        <tr><td>Data.encode(table)</td><td>Convertit une table Lua en texte JSON.</td></tr>
+        <tr><td>Data.decode(texte)</td><td>Convertit un texte JSON en table Lua.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">json &nbsp;·&nbsp; data/items.json</div>
+      <pre><code class="lua">[
+    { "id": "potion_soin",  "nom": "Potion de soin",  "soin": 30,  "prix": 15 },
+    { "id": "epee_longue",  "nom": "Épée longue",     "degats": 25, "prix": 80 },
+    { "id": "bouclier_fer", "nom": "Bouclier de fer", "defense": 10, "prix": 60 }
+]</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Charger et utiliser les données</div>
+      <pre><code class="lua">-- Charger le fichier JSON
+local items = Data.load("data/items.json")
+
+-- Trouver un item par son id
+local function trouverItem(id)
+    for _, item in ipairs(items) do
+        if item.id == id then
+            return item
+        end
+    end
+    return nil
+end
+
+-- Utiliser les données
+local epee = trouverItem("epee_longue")
+if epee then
+    print("Dégâts de l'épée : " .. epee.degats)
+    Stats.mod(ennemi.id, "Vie", -epee.degats)
+end
+
+-- Afficher le prix dans l'UI
+local potion = trouverItem("potion_soin")
+print("Prix : " .. potion.prix .. " pièces")</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Sauvegarder une table dans Persist</div>
+      <pre><code class="lua">-- Les tables Lua ne se sauvegardent pas directement
+-- → Convertir en JSON d'abord
+
+local progression = {
+    niveau       = 5,
+    experience   = 1240,
+    competences  = { "feu", "glace" },
+}
+
+-- Sauvegarder
+Persist.set("progression", Data.encode(progression))
+
+-- Charger
+local json         = Persist.get("progression", "{}")
+local progression  = Data.decode(json)
+print("Niveau : " .. progression.niveau)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
