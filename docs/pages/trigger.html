@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Trigger — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎯</span>
+    <h1>Trigger</h1>
+    <p class="subtitle">Zones invisibles qui déclenchent des actions quand une entité entre, sort, ou reste dedans.</p>
+    <div class="tags"><span class="tag global">Global automatique</span><span class="tag event">Émet des événements</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Trigger.create(id, rect, opts)</td><td>Crée une zone. <code>rect = {x, y, w, h}</code> en pixels.</td></tr>
+        <tr><td>Trigger.remove(id)</td><td>Supprime la zone.</td></tr>
+        <tr><td>Trigger.enable(id) / disable(id)</td><td>Active ou désactive la zone sans la supprimer.</td></tr>
+        <tr><td>Trigger.clear()</td><td>Supprime toutes les zones.</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Option (opts)</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>onEnter = function(entityId)</td><td>Appelée quand une entité entre dans la zone.</td></tr>
+        <tr><td>onExit = function(entityId)</td><td>Appelée quand une entité sort de la zone.</td></tr>
+        <tr><td>onStay = function(entityId, dt)</td><td>Appelée chaque frame tant qu'une entité est dans la zone.</td></tr>
+        <tr><td>tags = {"player"}</td><td>Ne déclencher que pour les entités avec ce tag.</td></tr>
+        <tr><td>once = true</td><td>Se désactive automatiquement après le premier déclenchement.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Zone de lave</div>
+      <pre><code class="lua">-- Zone qui brûle le joueur tant qu'il est dedans
+Trigger.create("lave_01", { x = 400, y = 500, w = 200, h = 60 }, {
+    tags    = { "player" },
+    onEnter = function(eid)
+        Sound.play("data/sounds/feu.ogg")
+        SceneFX.flash(Color.new(255, 80, 0, 120), 0.3)
+    end,
+    onStay  = function(eid, dt)
+        Stats.mod(eid, "Vie", -25 * dt)  -- 25 dégâts par seconde
+        Notify.floatingText(Registry:getEntity(eid), "🔥", { color = "orange" })
+    end,
+    onExit  = function(eid)
+        Sound.stop("data/sounds/feu.ogg")
+    end,
+})</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Déclencheur de boss (une seule fois)</div>
+      <pre><code class="lua">-- Le boss apparaît quand le joueur entre dans la salle
+Trigger.create("entree_boss", { x = 800, y = 100, w = 64, h = 200 }, {
+    tags    = { "player" },
+    once    = true,   -- une seule fois !
+    onEnter = function()
+        -- Fermer la porte derrière le joueur
+        EventBus.emit("porte_boss_fermee", {})
+        -- Lancer la cinématique du boss
+        Scheduler.start(function()
+            Sound.fadeMusic(0, 0.5, function()
+                Sound.playMusic("data/music/boss.ogg")
+                Sound.fadeMusic(1, 1.0)
+            end)
+            Scheduler.wait(0.5)
+            EventBus.emit("boss_combat_commence", {})
+        end)
+    end,
+})</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Zone de sauvegarde</div>
+      <pre><code class="lua">-- Sauvegarder la progression quand le joueur touche un cristal
+Trigger.create("cristal_save", { x = 512, y = 256, w = 32, h = 32 }, {
+    tags    = { "player" },
+    once    = true,
+    onEnter = function()
+        Persist.set("derniere_position", World.getPosition(World.findByTag("player")))
+        Persist.set("dernier_checkpoint", "salle_cristal")
+        Notify.show("✓ Progression sauvegardée", { color = "cyan", duration = 3 })
+        Sound.play("data/sounds/save.ogg")
+    end,
+})</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Événements émis</h2>
+    <div class="events">
+      <h3>EventBus</h3>
+      <div class="ev"><span class="ev-name">trigger_enter</span><span class="ev-data">{ id, entityId }</span></div>
+      <div class="ev"><span class="ev-name">trigger_exit</span><span class="ev-data">{ id, entityId }</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
