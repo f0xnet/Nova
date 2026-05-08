@@ -206,15 +206,6 @@ if %ERRORLEVEL% EQU 1 (
 )
 echo.
 
-:: -------------------------------------------------------
-:: Vérification incrémentielle — UN SEUL appel PowerShell
-:: tools\nova_inc_check.ps1 décide pour TOUS les fichiers et crée
-:: un marker file "<basename>.compile" pour chaque .cpp à recompiler.
-:: La boucle ci-dessous teste juste l'existence du marker.
-:: -------------------------------------------------------
-set "MARKER_DIR=%TEMP%\nova_inc"
-set "FILE_LIST=%TEMP%\nova_files.txt"
-
 :: Source files list
 set "SOURCE_FILES=main.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Game.cpp"
@@ -233,64 +224,32 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp src\Renderi
 set "SOURCE_FILES=%SOURCE_FILES% src\Systems\LightingSystem.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Scripting\LuaBindings.cpp"
 
-:: Génère la liste des sources dans un fichier (un .cpp par ligne)
-(for %%f in (%SOURCE_FILES%) do @echo %%f) > "%FILE_LIST%"
-
-:: Un seul appel PowerShell : crée des markers pour les fichiers à recompiler
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\tools\nova_inc_check.ps1" -SourceDir "%SOURCE_DIR%" -ObjDir "%OBJ_DIR%" -ListFile "%FILE_LIST%" -MarkerDir "%MARKER_DIR%"
-
-set "FORCE_ALL=0"
-if %ERRORLEVEL% NEQ 0 (
-    echo    [WARN] Incremental check failed -- forcing full rebuild
-    set "FORCE_ALL=1"
-)
-
 set "COMPILED=0"
-set "SKIPPED=0"
 
 for %%f in (%SOURCE_FILES%) do (
     set "SOURCE_PATH=%SOURCE_DIR%\%%f"
     for %%n in ("%%f") do set "BASE_NAME=%%~nxn"
     set "OBJ_FILE=!BASE_NAME:.cpp=.o!"
     set "OBJ_PATH=%OBJ_DIR%\!OBJ_FILE!"
-    set "DEP_FILE=%OBJ_DIR%\!BASE_NAME:.cpp=.d!"
-    set "MARKER=!MARKER_DIR!\!BASE_NAME:.cpp=!.compile"
 
-    set "NEEDS_COMPILE=0"
-    if "!FORCE_ALL!"=="1" set "NEEDS_COMPILE=1"
-    if exist "!MARKER!" set "NEEDS_COMPILE=1"
+    echo    [COMPILE] %%f
+    g++ -o "!OBJ_PATH!" -O0 -DNDEBUG ^
+        -I "%SDK_DIR%" -I "%OBJ_DIR%" ^
+        -include nlohmann/json.hpp ^
+        -include sol/sol.hpp ^
+        -c "!SOURCE_PATH!" ^
+        -Wall -DSFML_STATIC -std=c++17 -Wa,-mbig-obj
 
-    if "!NEEDS_COMPILE!"=="1" (
-        echo    [COMPILE] %%f
-        g++ -o "!OBJ_PATH!" -O0 -DNDEBUG ^
-            -I "%SDK_DIR%" -I "%OBJ_DIR%" ^
-            -include nlohmann/json.hpp ^
-            -include sol/sol.hpp ^
-            -MMD -MF "!DEP_FILE!" ^
-            -c "!SOURCE_PATH!" ^
-            -Wall -DSFML_STATIC -std=c++17 -Wa,-mbig-obj
-
-        if !ERRORLEVEL! NEQ 0 (
-            echo    [ERROR] Compilation failed for %%f
-            goto :build_failed
-        )
-        set /a COMPILED+=1
-    ) else (
-        echo    [UP-TO-DATE] %%f
-        set /a SKIPPED+=1
+    if !ERRORLEVEL! NEQ 0 (
+        echo    [ERROR] Compilation failed for %%f
+        goto :build_failed
     )
+    set /a COMPILED+=1
 )
 
 
 echo.
-echo    Compiled: !COMPILED! file(s) -- Skipped: !SKIPPED! file(s) ^(up-to-date^)
-
-:: Aucun fichier recompilé et exécutable déjà présent → pas besoin de relinker
-if "!COMPILED!"=="0" if exist "%BIN_DIR%\Nova.exe" (
-    echo.
-    echo    Nothing to do -- executable is up-to-date.
-    goto :build_success_no_manifest
-)
+echo    Compiled: !COMPILED! file(s)
 
 :: ============================================
 :: STEP 4: LINKING
