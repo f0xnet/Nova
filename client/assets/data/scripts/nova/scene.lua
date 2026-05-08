@@ -8,14 +8,18 @@
 --   Scene.setActive(name)                -- active une scène chargée
 --   Scene.transition(name, opts)         -- change de scène avec effet de fondu
 --   Scene.current()                      -- nom de la scène courante
+--   Scene.scope()                        -- alias de current() — pour tagging de timers
+--   Scene.listen(event, handler)         -- EventBus.on scoped à la scène courante
 --   Scene.unload(name)                   -- décharge une scène de la mémoire
 --   Scene.has(name)                      -- vrai si la scène est chargée
 --   Scene.count()                        -- nombre de scènes chargées
 --   Scene.reload()                       -- re-active la scène courante
+--   Scene.findPath(x1, y1, x2, y2)       -- pathfinding via le WaypointGraph actif
 --
 -- opts pour transition :
---   fade      bool    -- fondu au noir via PostFX (défaut: true)
---   duration  number  -- durée de chaque demi-fondu en secondes (défaut: 0.5)
+--   fade           bool     -- fondu au noir via SceneFX (défaut: true)
+--   duration       number   -- durée de chaque demi-fondu en secondes (défaut: 0.5)
+--   onBeforeChange function -- appelé pendant le noir, avant setActive (ex: removeUI)
 --
 -- EventBus events émis :
 --   "scene_changing"  { from, to }

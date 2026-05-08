@@ -16,6 +16,9 @@
 --   À la destruction d'une entité (entity_destroyed), Cooldown.resetAll() est appelé
 --   automatiquement — aucune entrée ne subsiste pour des entités détruites.
 --
+-- EventBus events émis :
+--   "cooldown_ready"  { entityId, action }  — quand un cooldown expire naturellement
+--
 -- Exemple :
 --   function update(entity, dt)
 --       -- Attaque toutes les 1.5 secondes
