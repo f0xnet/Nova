@@ -245,6 +245,7 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Events\EventDispatcher.cpp src\Events\Event
 set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\PostProcessManager.cpp src\Rendering\PostProcessPipeline.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp src\Rendering\Effects\SSAOEffect.cpp src\Rendering\Effects\BloomEffect.cpp src\Rendering\Effects\ColorGradingEffect.cpp src\Rendering\Effects\DynamicLightingEffect.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Systems\LightingSystem.cpp"
+set "SOURCE_FILES=%SOURCE_FILES% src\Scripting\LuaBindings.cpp"
 
 set "COMPILED=0"
 set "SKIPPED=0"
