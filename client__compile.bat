@@ -147,10 +147,7 @@ if not exist "%OBJ_DIR%\nlohmann" mkdir "%OBJ_DIR%\nlohmann"
 if not exist "%OBJ_DIR%\sol" mkdir "%OBJ_DIR%\sol"
 
 :: Copy assets
-xcopy /E /I /Y "%SOURCE_DIR%\assets\" "%BIN_DIR%\data\" >nul 2>&1
-if exist "%SOURCE_DIR%\assets\data\" (
-    xcopy /E /I /Y "%SOURCE_DIR%\assets\data\" "%BIN_DIR%\data\" >nul 2>&1
-)
+
 
 :: Compile resources
 echo    Compiling resources...
