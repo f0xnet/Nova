@@ -13,6 +13,16 @@ local SEP_DELAY  = 0.08
 local HOLD_END   = 1.8
 local FADE_FINAL = 1.2
 
+-- Overlay CRT — ajuster selon le goût
+local CRT_SCAN_STEP    = 6     -- px entre chaque paire de scanlines
+local CRT_SCAN_HEIGHT  = 2     -- hauteur (px) de chaque ligne sombre
+local CRT_SCAN_ALPHA   = 30    -- opacité des scanlines (0–255)
+local CRT_VIG_PASSES   = 4     -- passes de vignettage par côté
+local CRT_VIG_ALPHA    = 45    -- opacité max du vignettage
+local CRT_VIG_W        = 0.18  -- largeur relative des bandes latérales
+local CRT_VIG_H        = 0.14  -- hauteur relative des bandes haut/bas
+local CRT_CORNER_ALPHA = 75    -- assombrissement supplémentaire aux coins
+
 function init()
     Sound.playMusic("data/music/intro.ogg", false)
     UI.load("data/ui/json/intro.json")
@@ -118,4 +128,37 @@ function init()
     end)
 end
 
-function update(dt) end
+function update(dt)
+    local ws = Viewport.getWindowSize()
+    local W, H = ws.x, ws.y
+
+    -- Scanlines horizontales
+    local y = 0
+    while y < H do
+        Debug.fillRect(0, y, W, CRT_SCAN_HEIGHT, Color.new(0, 0, 0, CRT_SCAN_ALPHA), 0)
+        y = y + CRT_SCAN_STEP
+    end
+
+    -- Vignettage latéral et vertical (passes progressives)
+    local vw = W * CRT_VIG_W
+    local vh = H * CRT_VIG_H
+    for i = 1, CRT_VIG_PASSES do
+        local a  = math.floor(CRT_VIG_ALPHA * i / CRT_VIG_PASSES)
+        local fw = vw * i / CRT_VIG_PASSES
+        local fh = vh * i / CRT_VIG_PASSES
+        local c  = Color.new(0, 0, 0, a)
+        Debug.fillRect(0,      0,      fw, H,  c, 0)  -- gauche
+        Debug.fillRect(W - fw, 0,      fw, H,  c, 0)  -- droite
+        Debug.fillRect(0,      0,      W,  fh, c, 0)  -- haut
+        Debug.fillRect(0,      H - fh, W,  fh, c, 0)  -- bas
+    end
+
+    -- Coins sombres — suggère la courbure bombée
+    local cx = W * 0.12
+    local cy = H * 0.10
+    local cc = Color.new(0, 0, 0, CRT_CORNER_ALPHA)
+    Debug.fillRect(0,      0,      cx, cy, cc, 0)
+    Debug.fillRect(W - cx, 0,      cx, cy, cc, 0)
+    Debug.fillRect(0,      H - cy, cx, cy, cc, 0)
+    Debug.fillRect(W - cx, H - cy, cx, cy, cc, 0)
+end
