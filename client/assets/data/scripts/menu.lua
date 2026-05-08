@@ -21,7 +21,13 @@ function init()
     UI.onAction("new_game", function()
         Sound.fadeMusic(0, 0.8)
         Scene.load("data/scenes/test.scene", "test")
-        Scene.transition("test", { fade = true, duration = 0.8 })
+        Scene.transition("test", {
+            fade     = true,
+            duration = 0.8,
+            onBeforeChange = function()
+                UI.removeUI("main_menu_ui")
+            end
+        })
     end)
 
     -- ── Continuer ────────────────────────────────────────────────────────────

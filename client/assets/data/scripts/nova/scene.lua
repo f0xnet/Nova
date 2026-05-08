@@ -49,15 +49,19 @@ function Scene_module.setActive(name)
     local prev = _currentName
     _currentName = name
     EventBus.emit("scene_changing", { from = prev, to = name })
+    Timer.cancelAll()   -- annule les timers de la scène sortante
     _sm:setActive(name)
     EventBus.emit("scene_changed", { name = name })
 end
 
 -- Transition avec fondu au noir via SceneFX (plein écran, UI incluse)
+-- opts.onBeforeChange : callback appelé pendant le noir, avant setActive
+--   → usage typique : UI.removeUI("mon_ui") pour nettoyer l'UI sortante
 function Scene_module.transition(name, opts)
     opts = opts or {}
-    local fade     = opts.fade ~= false   -- true par défaut
-    local duration = opts.duration or 0.5
+    local fade           = opts.fade ~= false
+    local duration       = opts.duration or 0.5
+    local onBeforeChange = opts.onBeforeChange
 
     if not _sm:hasScene(name) then
         Log.warn("[Scene.transition] scène '" .. name .. "' non chargée, appel load() d'abord")
@@ -66,9 +70,11 @@ function Scene_module.transition(name, opts)
 
     if fade then
         SceneFX.transition(function()
+            if onBeforeChange then onBeforeChange() end
             Scene_module.setActive(name)
         end, duration)
     else
+        if onBeforeChange then onBeforeChange() end
         Scene_module.setActive(name)
     end
 end

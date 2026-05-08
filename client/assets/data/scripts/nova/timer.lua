@@ -28,6 +28,10 @@ function Timer.cancel(id)
     timers[id] = nil
 end
 
+function Timer.cancelAll()
+    timers = {}
+end
+
 function Timer.update(dt)
     for id, t in pairs(timers) do
         t.remaining = t.remaining - dt
