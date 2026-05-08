@@ -75,11 +75,17 @@ end</code></pre>
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>Scene.setActive(nom)</td><td>Change de scène immédiatement (sans fondu).</td></tr>
-        <tr><td>Scene.transition(nom, opts)</td><td>Change de scène avec fondu. <code>opts.fade</code> et <code>opts.duration</code>.</td></tr>
-        <tr><td>Scene.reload()</td><td>Recharge la scène actuelle (utile après une mort).</td></tr>
+        <tr><td>Scene.load(path, nom)</td><td>Charge une scène depuis un fichier <code>.scene</code> et la met en mémoire sous le nom donné.</td></tr>
+        <tr><td>Scene.setActive(nom)</td><td>Active une scène chargée immédiatement (sans fondu). Déclenche le nettoyage de la scène sortante.</td></tr>
+        <tr><td>Scene.transition(nom, opts)</td><td>Change de scène avec fondu. Options : <code>opts.fade</code> (bool, défaut true), <code>opts.duration</code> (secondes, défaut 0.5), <code>opts.onBeforeChange</code> (fn appelée pendant le noir).</td></tr>
         <tr><td>Scene.current()</td><td>Nom de la scène actuellement active.</td></tr>
-        <tr><td>Scene.has(nom)</td><td>Vrai si la scène est chargée.</td></tr>
+        <tr><td>Scene.scope()</td><td>Alias de <code>current()</code> — pour tagger manuellement des timers/coroutines : <code>Timer.after(1, fn, Scene.scope())</code>.</td></tr>
+        <tr><td>Scene.listen(event, handler)</td><td>Équivalent de <code>EventBus.on()</code> mais le handler est automatiquement désinscrit au changement de scène. <strong>Préférer à <code>EventBus.on()</code> dans les scripts de scène.</strong></td></tr>
+        <tr><td>Scene.reload()</td><td>Re-active la scène courante (utile après une mort ou pour forcer un rechargement).</td></tr>
+        <tr><td>Scene.has(nom)</td><td>Vrai si la scène est chargée en mémoire.</td></tr>
+        <tr><td>Scene.unload(nom)</td><td>Décharge une scène de la mémoire.</td></tr>
+        <tr><td>Scene.count()</td><td>Nombre de scènes actuellement chargées.</td></tr>
+        <tr><td>Scene.findPath(x1, y1, x2, y2)</td><td>Pathfinding via le WaypointGraph de la scène active. Retourne une table de <code>{x, y}</code>.</td></tr>
       </tbody>
     </table>
   </div>
@@ -96,12 +102,17 @@ function entrerDansLeDonjon()
     })
 end
 
--- Ou via SceneFX pour plus de contrôle
+-- onBeforeChange : callback exécuté pendant le noir, avant le changement
+-- Idéal pour nettoyer l'UI ou arrêter la musique proprement
 function allerVersLaVille()
-    SceneFX.transition(function()
-        -- Code exécuté quand l'écran est noir
-        Scene.setActive("ville_principale")
-    end, 0.5)
+    Scene.transition("ville_principale", {
+        fade     = true,
+        duration = 0.5,
+        onBeforeChange = function()
+            UI.removeUI("hud_donjon")
+            Sound.stopMusic()
+        end,
+    })
 end
 
 -- Déclencher depuis un trigger
@@ -135,23 +146,34 @@ end</code></pre>
     </div>
     <br>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Réagir au chargement d'une scène</div>
-      <pre><code class="lua">-- Réagir au changement de scène via EventBus
-EventBus.on("scene_changed", function(data)
-    local nom = data.name  -- nom de la nouvelle scène
-    print("Scène chargée : " .. nom)
+      <div class="code-label">lua &nbsp;·&nbsp; Scene.listen — handlers à portée de scène</div>
+      <pre><code class="lua">-- Dans un script de scène : utiliser Scene.listen() plutôt que EventBus.on()
+-- Le handler est automatiquement retiré au prochain changement de scène.
 
-    -- Jouer une musique différente selon la scène
-    if nom == "donjon_niveau1" then
+-- ❌ Risque de fuite entre scènes
+EventBus.on("ennemi_tué", function(data) compterKill(data) end)
+
+-- ✅ Nettoyage automatique
+Scene.listen("ennemi_tué", function(data) compterKill(data) end)
+
+-- Jouer une musique différente selon la scène (dans un script global)
+Scene.listen("scene_changed", function(data)
+    if data.name == "donjon_niveau1" then
         Sound.playMusic("data/music/donjon.ogg")
-    elseif nom == "ville_principale" then
+    elseif data.name == "ville_principale" then
         Sound.playMusic("data/music/ville.ogg")
     end
-end)
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Pathfinding via WaypointGraph</div>
+      <pre><code class="lua">-- Calcule un chemin entre deux positions (utilise le graphe de la scène active)
+local chemin = Scene.findPath(npc:getPosition().x, npc:getPosition().y, 600, 300)
 
--- Connaître la scène actuelle
-EventBus.on("scene_changed", function(data)
-    print("Changement vers : " .. Scene.current())
+-- Fait suivre le chemin au NPC
+Nav.moveAlongPath(npc, chemin, 80, function()
+    Log.info("NPC arrivé à destination")
 end)</code></pre>
     </div>
   </div>

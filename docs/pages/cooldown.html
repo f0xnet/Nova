@@ -33,8 +33,30 @@
     </table>
   </div>
 
+  <div class="callout success">
+    <strong>Nettoyage automatique :</strong> à la destruction d'une entité (<code>entity_destroyed</code>), tous ses cooldowns sont annulés automatiquement via <code>Cooldown.resetAll(entityId)</code>.
+  </div>
+
   <div class="callout info">
     <strong>entityId :</strong> passez toujours <code>entity.id</code> comme premier argument. Chaque entité a ses cooldowns indépendants.
+  </div>
+
+  <div class="section">
+    <h2>Événements émis</h2>
+    <div class="events">
+      <h3>EventBus</h3>
+      <div class="ev"><span class="ev-name">cooldown_ready</span><span class="ev-data">{ entityId, action } — quand un cooldown expire naturellement (non annulé)</span></div>
+    </div>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Réagir à la fin d'un cooldown</div>
+      <pre><code class="lua">-- Notifier le joueur quand son ultime est de nouveau disponible
+EventBus.on("cooldown_ready", function(data)
+    if data.entityId == joueur.id and data.action == "ultime" then
+        Notify.show("Ultime disponible !", { color = "gold" })
+        Sound.play("data/sounds/ready.ogg")
+    end
+end)</code></pre>
+    </div>
   </div>
 
   <div class="section">

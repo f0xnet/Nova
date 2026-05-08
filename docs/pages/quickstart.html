@@ -204,6 +204,9 @@ end</code></pre>
     <div class="callout info">
       <strong>Timer.after</strong> est non-bloquant : il programme une action future sans interrompre la frame courante. Pour enchaîner <em>plusieurs</em> actions avec des pauses, utilisez <code>Scheduler</code> (niveau suivant).
     </div>
+    <div class="callout success">
+      <strong>Auto-scope :</strong> <code>Timer.after</code> et <code>Timer.every</code> sans scope explicite sont automatiquement liés à <code>Scene.current()</code>. Si la scène change avant que le timer se déclenche, il est annulé automatiquement — aucune fuite possible.
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════ NIVEAU 6 -->
@@ -226,6 +229,9 @@ function entrerEnRage()
 end</code></pre>
     </div>
     <br>
+    <div class="callout success">
+      <strong>Auto-scope :</strong> <code>Scheduler.start(fn)</code> sans scope est automatiquement lié à <code>Scene.current()</code>. La coroutine est annulée si la scène change avant qu'elle se termine.
+    </div>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Scheduler — séquence linéaire avec pauses</div>
       <pre><code class="lua">-- Cinématique d'entrée : le code s'écrit de haut en bas,
@@ -386,7 +392,8 @@ function init(entity)
     entity:disable()   -- désactivé jusqu'à la cinématique
 
     -- La cinématique démarre quand le joueur entre dans la salle.
-    EventBus.on("boss_arena_entree", function()
+    -- EventBus.once : auto-retiré après le premier déclenchement (boss one-shot)
+    EventBus.once("boss_arena_entree", function()
         cinematiqueEntree()
     end)
 end

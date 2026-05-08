@@ -20,14 +20,20 @@
     <strong>Pourquoi Timer plutôt que <code>wait()</code> ?</strong> Le jeu continue de tourner pendant le délai. Un <code>Timer.after(2, fn)</code> attend 2 secondes puis appelle <code>fn</code>, sans figer le jeu.
   </div>
 
+  <div class="callout success">
+    <strong>Nettoyage automatique :</strong> chaque timer est lié à une scène. Si aucun <code>scope</code> n'est fourni, <code>Scene.current()</code> est utilisé automatiquement. Au changement de scène, tous les timers de la scène sortante sont annulés — impossible de créer un timer qui fuit entre scènes.
+  </div>
+
   <div class="section">
     <h2>API</h2>
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
       <tbody>
-        <tr><td>Timer.after(secondes, fonction)</td><td>Appelle <code>fonction()</code> une seule fois après le délai.</td><td class="ret">id</td></tr>
-        <tr><td>Timer.every(intervalle, fonction)</td><td>Appelle <code>fonction()</code> en boucle toutes les N secondes.</td><td class="ret">id</td></tr>
+        <tr><td>Timer.after(secondes, fonction, scope)</td><td>Appelle <code>fonction()</code> une seule fois après le délai. <code>scope</code> optionnel — défaut : <code>Scene.current()</code>.</td><td class="ret">id</td></tr>
+        <tr><td>Timer.every(intervalle, fonction, scope)</td><td>Appelle <code>fonction()</code> en boucle toutes les N secondes. <code>scope</code> optionnel — défaut : <code>Scene.current()</code>.</td><td class="ret">id</td></tr>
         <tr><td>Timer.cancel(id)</td><td>Annule un timer avant qu'il ne se déclenche.</td><td>—</td></tr>
+        <tr><td>Timer.cancelScope(scope)</td><td>Annule tous les timers d'un scope donné (ex : nom de scène, ou <code>tostring(entity.id)</code>).</td><td>—</td></tr>
+        <tr><td>Timer.cancelAll()</td><td>Annule tous les timers actifs (reset global — rarement nécessaire).</td><td>—</td></tr>
       </tbody>
     </table>
   </div>
@@ -66,6 +72,13 @@ function ouvrirPorte(porte)
     Timer.after(5.0, function()
         Anim.play(porte, "close", false)
     end)
+end
+
+-- Scope explicite sur une entité (timer lié au cycle de vie de l'entité)
+function init(entity)
+    Timer.every(3.0, function()
+        Stats.mod(entity.id, "Vie", 5)   -- régénération périodique
+    end, tostring(entity.id))
 end</code></pre>
     </div>
   </div>

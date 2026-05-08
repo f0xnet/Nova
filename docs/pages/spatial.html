@@ -30,6 +30,7 @@
         <tr><td>Spatial.nearest(x, y, tag)</td><td>Retourne l'entité la plus proche et sa distance : <code>(entité, distance)</code>.</td></tr>
         <tr><td>Spatial.findAt(cellX, cellY, tag)</td><td>Retourne les entités dans la cellule de grille donnée. Tag optionnel.</td></tr>
         <tr><td>Spatial.count(tag)</td><td>Nombre total d'entités actives avec ce tag. Tag optionnel (nil = toutes).</td></tr>
+        <tr><td>Spatial.CELL_SIZE</td><td>Taille de cellule de la grille en pixels (défaut : 64). Modifier avant le premier frame pour ajuster la résolution. Valeur plus grande = moins de cellules mais requêtes plus grossières.</td></tr>
       </tbody>
     </table>
   </div>

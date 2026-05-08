@@ -20,6 +20,10 @@
     <strong>Sequence vs Scheduler :</strong> <code>Scheduler</code> est pour la logique de jeu en temps réel (IA, combat). <code>Sequence</code> est pensé pour les événements narratifs avec des étapes chaînées et un callback final.
   </div>
 
+  <div class="callout success">
+    <strong>Nettoyage automatique :</strong> au changement de scène (<code>scene_changed</code>), toutes les séquences actives sont arrêtées automatiquement. Les callbacks en attente ne se déclenchent pas dans la nouvelle scène.
+  </div>
+
   <div class="section">
     <h2>API</h2>
     <table class="api-table">
