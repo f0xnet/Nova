@@ -14,6 +14,7 @@
 #include <vector>
 #include <unordered_map>
 #include <set>
+#include <unordered_set>
 #include <utility>
 #include <filesystem>
 #include <chrono>
@@ -132,6 +133,11 @@ public:
             sol::lib::package
         );
 
+        // Sandbox : retire les fonctions permettant d'exécuter des commandes système
+        m_lua["io"]["popen"]     = sol::lua_nil;
+        m_lua["os"]["execute"]   = sol::lua_nil;
+        m_lua["os"]["exit"]      = sol::lua_nil;
+
         std::filesystem::create_directories("data/saves");
 
         configurePackagePath();
@@ -142,6 +148,7 @@ public:
         initScriptRegistry();
         initNamedHandlersWirer();
         loadNovaModules();
+        cacheRuntimeUpdates();
         REGISTER_COMPONENT(ScriptComponent);
 
         LOG_INFO("[ScriptSystem] Lua {}.{}.{} — stdlib complète chargée",
@@ -156,10 +163,11 @@ public:
     }
 
     void update(float deltaTime, EntityRegistry& registry) override {
+        m_registry = &registry;
         m_lua["Registry"] = &registry;
 
         // Réinitialise les états "just pressed/released" avant la détection
-        callTableMethod("InputEx", "_clear", 0.0f);
+        if (m_inputExClearFn.valid()) m_inputExClearFn(0.0f);
 
         updateActivatorBridge(registry);
         updateCollisionBridge(registry);
@@ -229,7 +237,7 @@ public:
 
     // Appelé par Game.cpp::onRender() pour dessiner les primitives debug en overlay
     void renderDebug() {
-        callTableMethod("Debug", "_flush", 0.0f);
+        if (m_debugFlushFn.valid()) m_debugFlushFn(0.0f);
     }
 
     void loadGlobalScript(const std::string& path, float updateInterval = 0.0f) {
@@ -247,11 +255,17 @@ public:
 
     sol::table createTable() { return m_lua.create_table(); }
 
+    // Réinitialise un ScriptComponent (C++ API).
+    // Ne nettoie PAS les handlers EventBus ni les timers scopés.
+    // Depuis Lua, préférer ScriptRegistry.reload(entity.id) qui fait le nettoyage complet.
     void reloadScript(ScriptComponent* script) {
         if (!script) return;
         script->loaded        = false;
         script->errored       = false;
         script->m_updateAccum = 0.0f;
+        script->env           = sol::environment();
+        script->fnInit        = sol::protected_function();
+        script->fnUpdate      = sol::protected_function();
     }
 
 private:
@@ -266,8 +280,15 @@ private:
         bool  isSceneScript  = false;
     };
 
-    sol::state    m_lua;
-    SceneManager* m_sceneManager = nullptr;
+    sol::state        m_lua;
+    SceneManager*     m_sceneManager  = nullptr;
+    EntityRegistry*   m_registry      = nullptr;   // mis à jour à chaque update()
+
+    // Références mises en cache après loadNovaModules() — évite les lookups chaque frame
+    std::vector<sol::protected_function>    m_runtimeFns;
+    sol::protected_function                 m_inputExClearFn;
+    sol::protected_function                 m_debugFlushFn;
+
     std::vector<GlobalScript>               m_globalScripts;
     std::vector<GlobalScript>               m_sceneScripts;
     Scene*                                  m_lastActiveScene = nullptr;
@@ -355,260 +376,94 @@ private:
             fn("script_message_" + std::to_string(id), data);
         };
 
+        // Hot-reload d'un script d'entité par son entityId.
+        // Nettoie les handlers, annule les timers scopés, remet le script à l'état initial.
+        // Utilisable depuis Lua : ScriptRegistry.reload(entity.id)
+        reg["reload"] = [this](sol::this_state ts, u64 entityId) -> bool {
+            if (!m_registry) return false;
+            sol::state_view lua(ts);
+
+            // Trouver le ScriptComponent
+            ScriptComponent* script = nullptr;
+            for (auto* e : m_registry->getEntitiesWith({ScriptComponent::staticTypeID()})) {
+                if (e->getID() == entityId) { script = e->getComponent<ScriptComponent>(); break; }
+            }
+            if (!script) return false;
+
+            // Nettoyer les handlers trackés
+            sol::protected_function cleanFn = lua["__cleanEntityHandlers"];
+            if (cleanFn.valid()) cleanFn(entityId);
+
+            // Annuler les timers/coroutines scopés à cette entité
+            std::string scope = std::to_string(entityId);
+            sol::table timer = lua["Timer"];
+            if (timer.valid()) { sol::protected_function f = timer["cancelScope"]; if (f.valid()) f(scope); }
+            sol::table sched = lua["Scheduler"];
+            if (sched.valid()) { sol::protected_function f = sched["cancelScope"]; if (f.valid()) f(scope); }
+
+            // Retirer de ScriptRegistry
+            sol::table envs = lua["ScriptRegistry"]["_envs"];
+            envs[entityId]  = sol::lua_nil;
+
+            // Remettre le ScriptComponent à l'état initial — rechargé au prochain update
+            script->loaded        = false;
+            script->errored       = false;
+            script->m_updateAccum = 0.0f;
+            script->env           = sol::environment();
+            script->fnInit        = sol::protected_function();
+            script->fnUpdate      = sol::protected_function();
+
+            LOG_INFO("[ScriptSystem] Hot-reload : '{}'", script->scriptPath);
+            return true;
+        };
+
+        // Hot-reload de tous les scripts en erreur.
+        // Retourne le nombre de scripts rechargés.
+        reg["reloadAll"] = [this](sol::this_state ts) -> int {
+            if (!m_registry) return 0;
+            sol::state_view lua(ts);
+            sol::protected_function cleanFn = lua["__cleanEntityHandlers"];
+            sol::table timer = lua["Timer"];
+            sol::table sched = lua["Scheduler"];
+
+            int count = 0;
+            for (auto* e : m_registry->getEntitiesWith({ScriptComponent::staticTypeID()})) {
+                auto* script = e->getComponent<ScriptComponent>();
+                if (!script || !script->errored) continue;
+                u64 id = e->getID();
+
+                if (cleanFn.valid()) cleanFn(id);
+                std::string scope = std::to_string(id);
+                if (timer.valid()) { sol::protected_function f = timer["cancelScope"]; if (f.valid()) f(scope); }
+                if (sched.valid()) { sol::protected_function f = sched["cancelScope"]; if (f.valid()) f(scope); }
+
+                sol::table envs = lua["ScriptRegistry"]["_envs"];
+                envs[id] = sol::lua_nil;
+
+                script->loaded        = false;
+                script->errored       = false;
+                script->m_updateAccum = 0.0f;
+                script->env           = sol::environment();
+                script->fnInit        = sol::protected_function();
+                script->fnUpdate      = sol::protected_function();
+                ++count;
+            }
+            if (count > 0)
+                LOG_INFO("[ScriptSystem] Hot-reload : {} script(s) rechargés.", count);
+            return count;
+        };
+
         m_lua["ScriptRegistry"] = reg;
     }
 
     // -------------------------------------------------------------------------
-    // Named handlers wirer — __wireNamedHandlers(env, entityId)
-    //
-    // Branche automatiquement les fonctions "magiques" d'un script
-    // sans que le scripter ait à écrire EventBus.on() manuellement.
-    // Inspiré de l'auto-wiring des Events Papyrus (OnActivate, OnHit...).
+    // Named handlers wirer — chargé depuis data/scripts/nova/_wire_handlers.lua
+    // Définit __wireNamedHandlers(env, entityId, isSceneScript) et
+    // __cleanEntityHandlers(entityId) comme globaux Lua.
     // -------------------------------------------------------------------------
     void initNamedHandlersWirer() {
-        auto r = m_lua.safe_script(R"(
--- Handler references keyed by entityId — allows external forced cleanup if needed
-local _entityHandlers = {}
-
-function __wireNamedHandlers(env, entityId, isSceneScript)
-    local function safe(fn, ...)
-        local ok, err = pcall(fn, ...)
-        if not ok then Log.error("[AutoWire] " .. tostring(err)) end
-    end
-
-    -- Wraps EventBus.on and records the reference for later unsubscription.
-    -- For entity scripts, env.EventBus.on is also patched (see below) so that
-    -- any EventBus.on() call inside init(entity) is tracked in the same table.
-    local handlers = {}
-    local function reg(event, fn)
-        EventBus.on(event, fn)
-        handlers[#handlers + 1] = { event, fn }
-    end
-
-    -- OnActivate(activatorId, actionID) / OnDeactivate(...)
-    if type(env.OnActivate) == "function" then
-        reg("activator_on", function(data)
-            if data.entityId == entityId then
-                safe(env.OnActivate, data.entityId, data.actionID)
-            end
-        end)
-    end
-    if type(env.OnDeactivate) == "function" then
-        reg("activator_off", function(data)
-            if data.entityId == entityId then
-                safe(env.OnDeactivate, data.entityId, data.actionID)
-            end
-        end)
-    end
-
-    -- OnKeyDown(key) / OnKeyUp(key)
-    if type(env.OnKeyDown) == "function" then
-        reg("key_down", function(data) safe(env.OnKeyDown, data.key) end)
-    end
-    if type(env.OnKeyUp) == "function" then
-        reg("key_up",   function(data) safe(env.OnKeyUp,   data.key) end)
-    end
-
-    -- OnMouseDown(button, x, y) / OnMouseUp(button, x, y)
-    if type(env.OnMouseDown) == "function" then
-        reg("mouse_down", function(data)
-            safe(env.OnMouseDown, data.button, data.x, data.y)
-        end)
-    end
-    if type(env.OnMouseUp) == "function" then
-        reg("mouse_up", function(data)
-            safe(env.OnMouseUp, data.button, data.x, data.y)
-        end)
-    end
-
-    -- OnAnimationEvent(animationID, frame)
-    if type(env.OnAnimationEvent) == "function" then
-        reg("animation_frame", function(data)
-            if data.entityId == entityId then
-                safe(env.OnAnimationEvent, data.animationID, data.frame)
-            end
-        end)
-    end
-
-    -- OnAnimationChanged(newAnimID, previousID)
-    if type(env.OnAnimationChanged) == "function" then
-        reg("animation_changed", function(data)
-            if data.entityId == entityId then
-                safe(env.OnAnimationChanged, data.animationID, data.previousID)
-            end
-        end)
-    end
-
-    -- OnMessage(msg, payload) — via entity:sendMessage() ou ScriptRegistry.sendMessage()
-    if type(env.OnMessage) == "function" then
-        reg("script_message_" .. entityId, function(data)
-            safe(env.OnMessage, data.msg, data.payload)
-        end)
-    end
-
-    -- OnQuestComplete(questId)
-    if type(env.OnQuestComplete) == "function" then
-        reg("quest_completed", function(data)
-            safe(env.OnQuestComplete, data.questId)
-        end)
-    end
-
-    -- OnQuestAdvanced(questId, stageIndex)
-    if type(env.OnQuestAdvanced) == "function" then
-        reg("quest_advanced", function(data)
-            safe(env.OnQuestAdvanced, data.questId, data.stageIndex)
-        end)
-    end
-
-    -- OnStatZeroed(entityId, stat)
-    if type(env.OnStatZeroed) == "function" then
-        reg("stat_zeroed", function(data)
-            if entityId == 0 or data.entityId == entityId then
-                safe(env.OnStatZeroed, data.entityId, data.stat)
-            end
-        end)
-    end
-
-    -- OnItemAdded(item, count) / OnItemRemoved(item, count)
-    if type(env.OnItemAdded) == "function" then
-        reg("item_added", function(data)
-            if entityId == 0 or data.entityId == entityId then
-                safe(env.OnItemAdded, data.item, data.count)
-            end
-        end)
-    end
-    if type(env.OnItemRemoved) == "function" then
-        reg("item_removed", function(data)
-            if entityId == 0 or data.entityId == entityId then
-                safe(env.OnItemRemoved, data.item, data.count)
-            end
-        end)
-    end
-
-    -- OnEffectApplied(effectId, entityId) / OnEffectExpired(effectId, entityId)
-    if type(env.OnEffectApplied) == "function" then
-        reg("effect_applied", function(data)
-            if entityId == 0 or data.entityId == entityId then
-                safe(env.OnEffectApplied, data.effectId, data.entityId)
-            end
-        end)
-    end
-    if type(env.OnEffectExpired) == "function" then
-        reg("effect_expired", function(data)
-            if entityId == 0 or data.entityId == entityId then
-                safe(env.OnEffectExpired, data.effectId, data.entityId)
-            end
-        end)
-    end
-
-    -- OnFlagSet(name) / OnFlagUnset(name)
-    if type(env.OnFlagSet) == "function" then
-        reg("flag_set",   function(data) safe(env.OnFlagSet,   data.name) end)
-    end
-    if type(env.OnFlagUnset) == "function" then
-        reg("flag_unset", function(data) safe(env.OnFlagUnset, data.name) end)
-    end
-
-    -- OnTriggerEnter(triggerId, entityId) / OnTriggerExit(triggerId, entityId)
-    if type(env.OnTriggerEnter) == "function" then
-        reg("trigger_enter", function(data)
-            if entityId == 0 or data.entityId == entityId then
-                safe(env.OnTriggerEnter, data.id, data.entityId)
-            end
-        end)
-    end
-    if type(env.OnTriggerExit) == "function" then
-        reg("trigger_exit", function(data)
-            if entityId == 0 or data.entityId == entityId then
-                safe(env.OnTriggerExit, data.id, data.entityId)
-            end
-        end)
-    end
-
-    -- OnSceneChanged(name)
-    if type(env.OnSceneChanged) == "function" then
-        reg("scene_changed", function(data) safe(env.OnSceneChanged, data.name) end)
-    end
-
-    -- OnConversationNode(nodeId, speaker, text)
-    if type(env.OnConversationNode) == "function" then
-        reg("conversation_node", function(data)
-            safe(env.OnConversationNode, data.nodeId, data.speaker, data.text)
-        end)
-    end
-
-    -- OnConversationEnd(conversationId)
-    if type(env.OnConversationEnd) == "function" then
-        reg("conversation_end", function(data)
-            safe(env.OnConversationEnd, data.id)
-        end)
-    end
-
-    -- OnUIAction(action, value, componentId)
-    if type(env.OnUIAction) == "function" then
-        reg("ui_action", function(data)
-            safe(env.OnUIAction, data.action, data.value, data.id)
-        end)
-    end
-
-    -- OnCollisionEnter(otherEntityId) / OnCollisionExit(otherEntityId)
-    if type(env.OnCollisionEnter) == "function" then
-        reg("collision_enter_" .. tostring(entityId), function(data)
-            safe(env.OnCollisionEnter, data.entityId)
-        end)
-    end
-    if type(env.OnCollisionExit) == "function" then
-        reg("collision_exit_" .. tostring(entityId), function(data)
-            safe(env.OnCollisionExit, data.entityId)
-        end)
-    end
-
-    -- ── Entity scripts (entityId > 0) and scene scripts (isSceneScript) ──────
-    -- Inject a scoped EventBus into the env so that any EventBus.on() call
-    -- inside init() is tracked in the same `handlers` table and cleaned up
-    -- automatically (entity_destroyed for entities, scene_changing for scenes).
-    if entityId ~= 0 or isSceneScript then
-        env.EventBus = setmetatable({
-            on = function(event, handler)
-                EventBus.on(event, handler)
-                handlers[#handlers + 1] = { event, handler }
-            end,
-        }, { __index = EventBus })
-    end
-
-    if entityId ~= 0 then
-
-        -- Always set up entity_destroyed cleanup (even if no named handlers yet,
-        -- init() may call EventBus.on() which adds to `handlers` via env.EventBus).
-        _entityHandlers[entityId] = handlers
-        local cleanupFn
-        cleanupFn = function(data)
-            if data.entityId ~= entityId then return end
-            for _, h in ipairs(handlers) do EventBus.off(h[1], h[2]) end
-            EventBus.off("entity_destroyed", cleanupFn)
-            _entityHandlers[entityId] = nil
-            local sr = ScriptRegistry
-            if sr and sr._envs then sr._envs[entityId] = nil end
-            if Stats    then Stats.clear(entityId)         end
-            if Effect   then Effect.clear(entityId)        end
-            if Cooldown then Cooldown.resetAll(entityId)   end
-            if Anim     then Anim.clearCallbacks(entityId) end
-        end
-        EventBus.on("entity_destroyed", cleanupFn)
-
-    -- ── Scene scripts (entityId == 0, isSceneScript == true) ──────────────
-    -- Named handlers AND any EventBus.on() calls in init() are cleaned on
-    -- scene_changing. Global scripts (isSceneScript=false) are never cleaned.
-    elseif isSceneScript then
-        local cleanupFn
-        cleanupFn = function()
-            for _, h in ipairs(handlers) do EventBus.off(h[1], h[2]) end
-            EventBus.off("scene_changing", cleanupFn)
-        end
-        EventBus.on("scene_changing", cleanupFn)
-    end
-end
-        )", sol::script_pass_on_error);
+        auto r = m_lua.safe_script_file("data/scripts/nova/_wire_handlers.lua",
+                                        sol::script_pass_on_error);
         if (!r.valid()) {
             sol::error err = r;
             LOG_ERROR("[ScriptSystem] __wireNamedHandlers init : {}", err.what());
@@ -686,35 +541,48 @@ end
     // -------------------------------------------------------------------------
     // Runtime nova
     // -------------------------------------------------------------------------
-    void updateNovaRuntime(float dt) {
-        callTableMethod("Timer",        "update",  dt);
-        callTableMethod("Scheduler",    "update",  dt);
-        callTableMethod("Tween",        "update",  dt);
-        callTableMethod("Game",         "_update", dt);
-        callTableMethod("Camera",       "_update", dt);
-        callTableMethod("World",        "_update", dt);
-        callTableMethod("Effect",       "update",  dt);
-        callTableMethod("Cooldown",     "update",  dt);
-        callTableMethod("Sequence",     "_update", dt);
-        callTableMethod("Anim",         "_update", dt);
-        callTableMethod("Trigger",      "_update", dt);
-        callTableMethod("Nav",          "_update", dt);
-        callTableMethod("Spatial",      "_update", dt);
-        callTableMethod("SceneFX",      "_update", dt);
-        callTableMethod("Particles",    "_update", dt);
-        callTableMethod("Projectile",   "_update", dt);
-        callTableMethod("Debug",        "_update", dt);
+    // Met en cache les références aux méthodes update des modules nova.
+    // Appelé une fois après loadNovaModules() — évite les lookups Lua chaque frame.
+    // -------------------------------------------------------------------------
+    void cacheRuntimeUpdates() {
+        static constexpr std::pair<const char*, const char*> s_list[] = {
+            { "Timer",      "update"  }, { "Scheduler",  "update"  },
+            { "Tween",      "update"  }, { "Game",       "_update" },
+            { "Camera",     "_update" }, { "World",      "_update" },
+            { "Effect",     "update"  }, { "Cooldown",   "update"  },
+            { "Sequence",   "_update" }, { "Anim",       "_update" },
+            { "Trigger",    "_update" }, { "Nav",        "_update" },
+            { "Spatial",    "_update" }, { "SceneFX",    "_update" },
+            { "Particles",  "_update" }, { "Projectile", "_update" },
+            { "Debug",      "_update" },
+        };
+        m_runtimeFns.clear();
+        for (auto& [tbl, mtd] : s_list) {
+            sol::object t = m_lua[tbl];
+            if (!t.valid() || t.get_type() != sol::type::table) continue;
+            sol::protected_function fn = m_lua[tbl][mtd];
+            if (fn.valid()) m_runtimeFns.push_back(std::move(fn));
+        }
+        // Cache séparé pour InputEx._clear (appelé avant les bridges) et Debug._flush (render)
+        sol::object iex = m_lua["InputEx"];
+        if (iex.valid() && iex.get_type() == sol::type::table) {
+            sol::protected_function f = m_lua["InputEx"]["_clear"];
+            if (f.valid()) m_inputExClearFn = std::move(f);
+        }
+        sol::object dbg = m_lua["Debug"];
+        if (dbg.valid() && dbg.get_type() == sol::type::table) {
+            sol::protected_function f = m_lua["Debug"]["_flush"];
+            if (f.valid()) m_debugFlushFn = std::move(f);
+        }
     }
 
-    void callTableMethod(const char* table, const char* method, float dt) {
-        sol::object t = m_lua[table];
-        if (!t.valid() || t.get_type() != sol::type::table) return;
-        sol::protected_function fn = m_lua[table][method];
-        if (!fn.valid()) return;
-        auto r = fn(dt);
-        if (!r.valid()) {
-            sol::error err = r;
-            LOG_WARN("[ScriptSystem] {}.{}(dt) error: {}", table, method, err.what());
+    void updateNovaRuntime(float dt) {
+        for (auto& fn : m_runtimeFns) {
+            auto r = fn(dt);
+            if (!r.valid()) {
+                sol::error err = r;
+                LOG_WARN("[ScriptSystem] nova update: {}", err.what());
+            }
         }
     }
 
@@ -758,20 +626,67 @@ end
 
     void updateCollisionBridge(EntityRegistry& registry) {
         auto entities = registry.getEntitiesWith({"TransformComponent", "ColliderComponent"});
-        std::set<std::pair<u64,u64>> current;
+
+        // ── Broadphase spatial hash ──────────────────────────────────────────
+        // Chaque entité est insérée dans toutes les cellules que son AABB recouvre.
+        // Seules les paires partageant une cellule sont ensuite testées en narrowphase.
+        // Complexity: O(n * k) où k = nb cellules/entité (typiquement 1-4 pour 256px).
+        struct Cell { int x, y; bool operator==(const Cell& o) const noexcept { return x==o.x && y==o.y; } };
+        struct CellHash {
+            size_t operator()(const Cell& c) const noexcept {
+                return std::hash<int>{}(c.x) * 2654435761u ^ std::hash<int>{}(c.y) * 2246822519u;
+            }
+        };
+        struct IdxPairHash {
+            size_t operator()(const std::pair<size_t,size_t>& p) const noexcept {
+                return std::hash<size_t>{}(p.first) ^ (std::hash<size_t>{}(p.second) * 2654435761u);
+            }
+        };
+        constexpr float CELL = 256.0f;
+
+        std::unordered_map<Cell, std::vector<size_t>, CellHash> grid;
+        grid.reserve(entities.size() * 2);
 
         for (size_t i = 0; i < entities.size(); ++i) {
-            for (size_t j = i + 1; j < entities.size(); ++j) {
-                auto* ta = entities[i]->getComponent<TransformComponent>();
-                auto* ca = entities[i]->getComponent<ColliderComponent>();
-                auto* tb = entities[j]->getComponent<TransformComponent>();
-                auto* cb = entities[j]->getComponent<ColliderComponent>();
-                if (!ca->enabled || !cb->enabled) continue;
-                if (!s_collidersOverlap(ta, ca, tb, cb)) continue;
+            auto* c = entities[i]->getComponent<ColliderComponent>();
+            if (!c->enabled) continue;
+            auto* t = entities[i]->getComponent<TransformComponent>();
+            float minX, minY, maxX, maxY;
+            if (c->type == ColliderComponent::ColliderType::Box) {
+                minX = t->position.x + c->offset.x;       minY = t->position.y + c->offset.y;
+                maxX = minX + c->size.x;                   maxY = minY + c->size.y;
+            } else {
+                float cx = t->position.x + c->offset.x,   cy = t->position.y + c->offset.y;
+                minX = cx - c->radius; minY = cy - c->radius;
+                maxX = cx + c->radius; maxY = cy + c->radius;
+            }
+            for (int gx = (int)std::floor(minX/CELL); gx <= (int)std::floor(maxX/CELL); ++gx)
+                for (int gy = (int)std::floor(minY/CELL); gy <= (int)std::floor(maxY/CELL); ++gy)
+                    grid[{gx,gy}].push_back(i);
+        }
 
-                u64 a = entities[i]->getID(), b = entities[j]->getID();
-                if (a > b) std::swap(a, b);
-                current.insert({a, b});
+        // ── Narrowphase ──────────────────────────────────────────────────────
+        std::unordered_set<std::pair<size_t,size_t>, IdxPairHash> checked;
+        std::set<std::pair<u64,u64>> current;
+
+        for (auto& [cell, indices] : grid) {
+            for (size_t k = 0; k < indices.size(); ++k) {
+                for (size_t l = k + 1; l < indices.size(); ++l) {
+                    size_t i = indices[k], j = indices[l];
+                    auto key = (i < j) ? std::make_pair(i,j) : std::make_pair(j,i);
+                    if (!checked.insert(key).second) continue;
+
+                    auto* ta = entities[i]->getComponent<TransformComponent>();
+                    auto* ca = entities[i]->getComponent<ColliderComponent>();
+                    auto* tb = entities[j]->getComponent<TransformComponent>();
+                    auto* cb = entities[j]->getComponent<ColliderComponent>();
+                    if (!ca->enabled || !cb->enabled) continue;
+                    if (!s_collidersOverlap(ta, ca, tb, cb)) continue;
+
+                    u64 a = entities[i]->getID(), b = entities[j]->getID();
+                    if (a > b) std::swap(a, b);
+                    current.insert({a, b});
+                }
             }
         }
 

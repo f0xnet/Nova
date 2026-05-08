@@ -217,6 +217,9 @@ end</code></pre>
     <div class="callout info">
       <strong>Erreurs script propagées via EventBus</strong> — Toute erreur (chargement, init, update) émet <code>"script_error"</code> : <code>{ entityId, path, error, phase }</code>. Abonnez-vous pour afficher une console de debug en jeu : <code>EventBus.on("script_error", function(d) Log.error(d.path .. " [" .. d.phase .. "] " .. d.error) end)</code>.
     </div>
+    <div class="callout success">
+      <strong>Hot-reload</strong> — Un script en erreur peut être rechargé à chaud sans redémarrer le jeu. <code>ScriptRegistry.reload(entity.id)</code> nettoie tous ses handlers, annule ses timers scopés et relance le chargement au prochain frame. <code>ScriptRegistry.reloadAll()</code> recharge tous les scripts en erreur d'un coup. Voir <a href="scriptregistry.html">ScriptRegistry</a>.
+    </div>
   </div>
 
 </div>
