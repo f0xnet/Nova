@@ -1,5 +1,5 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal EnableExtensions EnableDelayedExpansion
 cls
 
 :: ============================================
@@ -17,7 +17,7 @@ echo.
 :: ============================================
 
 set "PROJECT_DIR=C:\Nova"
-set "SOURCE_DIR=C:\Nova\client"
+set "SOURCE_DIR=%PROJECT_DIR%\client"
 set "BIN_DIR=%SOURCE_DIR%\bin\Release"
 set "OBJ_DIR=%SOURCE_DIR%\obj\Release"
 set "SDK_DIR=%PROJECT_DIR%\sdk\include"
@@ -27,7 +27,16 @@ set "TOOLS_DIR=%PROJECT_DIR%\tools"
 set "RH_DIR=%TOOLS_DIR%\ResourceHacker"
 set "RH_EXE=%RH_DIR%\ResourceHacker.exe"
 
-cd "%SOURCE_DIR%"
+if not exist "%SOURCE_DIR%" (
+    echo [ERROR] SOURCE_DIR introuvable : %SOURCE_DIR%
+    goto :build_failed
+)
+
+cd /d "%SOURCE_DIR%"
+if errorlevel 1 (
+    echo [ERROR] Impossible d'acceder a %SOURCE_DIR%
+    goto :build_failed
+)
 
 :: ============================================
 :: STEP 1: CREATE DPI-AWARE MANIFEST
@@ -86,7 +95,7 @@ echo.
 echo [STEP 2/5] Setting up ResourceHacker...
 echo.
 
-if exist "!RH_EXE!" (
+if exist "%RH_EXE%" (
     echo    [OK] ResourceHacker already installed
     goto :compile
 )
@@ -115,7 +124,7 @@ if not exist "%RH_DIR%\rh.zip" (
 echo    Extracting...
 powershell -Command "Expand-Archive -Path '%RH_DIR%\rh.zip' -DestinationPath '%RH_DIR%' -Force" 2>nul
 
-if exist "!RH_EXE!" (
+if exist "%RH_EXE%" (
     echo    [OK] ResourceHacker installed successfully
     del "%RH_DIR%\rh.zip" 2>nul
 ) else (
@@ -132,7 +141,6 @@ echo.
 echo [STEP 3/5] Compiling source files...
 echo.
 
-:: Create directories
 if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"
 if not exist "%OBJ_DIR%" mkdir "%OBJ_DIR%"
 if not exist "%OBJ_DIR%\nlohmann" mkdir "%OBJ_DIR%\nlohmann"
@@ -152,23 +160,29 @@ if not exist "%SOURCE_DIR%\icon\appicon.res" (
     echo    [WARNING] Icon resource compilation failed
 )
 
-:: Lua 5.4 — compile si la lib est absente
+:: Lua 5.4
 if not exist "%LIB_DIR%\lua54.lib" (
     echo    Compiling Lua 5.4.7...
     if not exist "%OBJ_DIR%\lua" mkdir "%OBJ_DIR%\lua"
+
     gcc -O2 -c ^
-        "%LUA_SRC%\lapi.c"    "%LUA_SRC%\lauxlib.c" "%LUA_SRC%\lbaselib.c" ^
-        "%LUA_SRC%\lcode.c"   "%LUA_SRC%\lcorolib.c" "%LUA_SRC%\lctype.c" ^
-        "%LUA_SRC%\ldblib.c"  "%LUA_SRC%\ldebug.c"  "%LUA_SRC%\ldo.c" ^
-        "%LUA_SRC%\ldump.c"   "%LUA_SRC%\lfunc.c"   "%LUA_SRC%\lgc.c" ^
-        "%LUA_SRC%\linit.c"   "%LUA_SRC%\liolib.c"  "%LUA_SRC%\llex.c" ^
-        "%LUA_SRC%\lmathlib.c" "%LUA_SRC%\lmem.c"   "%LUA_SRC%\loadlib.c" ^
+        "%LUA_SRC%\lapi.c" "%LUA_SRC%\lauxlib.c" "%LUA_SRC%\lbaselib.c" ^
+        "%LUA_SRC%\lcode.c" "%LUA_SRC%\lcorolib.c" "%LUA_SRC%\lctype.c" ^
+        "%LUA_SRC%\ldblib.c" "%LUA_SRC%\ldebug.c" "%LUA_SRC%\ldo.c" ^
+        "%LUA_SRC%\ldump.c" "%LUA_SRC%\lfunc.c" "%LUA_SRC%\lgc.c" ^
+        "%LUA_SRC%\linit.c" "%LUA_SRC%\liolib.c" "%LUA_SRC%\llex.c" ^
+        "%LUA_SRC%\lmathlib.c" "%LUA_SRC%\lmem.c" "%LUA_SRC%\loadlib.c" ^
         "%LUA_SRC%\lobject.c" "%LUA_SRC%\lopcodes.c" "%LUA_SRC%\loslib.c" ^
-        "%LUA_SRC%\lparser.c" "%LUA_SRC%\lstate.c"  "%LUA_SRC%\lstring.c" ^
-        "%LUA_SRC%\lstrlib.c" "%LUA_SRC%\ltable.c"  "%LUA_SRC%\ltablib.c" ^
-        "%LUA_SRC%\ltm.c"     "%LUA_SRC%\lundump.c" "%LUA_SRC%\lutf8lib.c" ^
-        "%LUA_SRC%\lvm.c"     "%LUA_SRC%\lzio.c"
-    if !ERRORLEVEL! NEQ 0 ( echo    [ERROR] Lua compilation failed & goto :build_failed )
+        "%LUA_SRC%\lparser.c" "%LUA_SRC%\lstate.c" "%LUA_SRC%\lstring.c" ^
+        "%LUA_SRC%\lstrlib.c" "%LUA_SRC%\ltable.c" "%LUA_SRC%\ltablib.c" ^
+        "%LUA_SRC%\ltm.c" "%LUA_SRC%\lundump.c" "%LUA_SRC%\lutf8lib.c" ^
+        "%LUA_SRC%\lvm.c" "%LUA_SRC%\lzio.c"
+
+    if errorlevel 1 (
+        echo    [ERROR] Lua compilation failed
+        goto :build_failed
+    )
+
     move *.o "%OBJ_DIR%\lua\" >nul
     ar rcs "%LIB_DIR%\lua54.lib" "%OBJ_DIR%\lua\*.o"
     echo    [OK] lua54.lib ready
@@ -177,36 +191,42 @@ if not exist "%LIB_DIR%\lua54.lib" (
 )
 echo.
 
-:: PCH — nlohmann/json.hpp
+:: PCH json
 set "JSON_PCH_SRC=%SDK_DIR%\nlohmann\json.hpp"
 set "JSON_PCH_OUT=%OBJ_DIR%\nlohmann\json.hpp.gch"
-powershell -NoProfile -Command "exit [int](-not (Test-Path '%JSON_PCH_OUT%') -or (Get-Item '%JSON_PCH_SRC%').LastWriteTime -gt (Get-Item '%JSON_PCH_OUT%').LastWriteTime)"
-if %ERRORLEVEL% EQU 1 (
+powershell -NoProfile -Command "exit [int](-not (Test-Path '%JSON_PCH_OUT%') -or (Get-Item '%JSON_PCH_SRC%').LastWriteTimeUtc -gt (Get-Item '%JSON_PCH_OUT%').LastWriteTimeUtc)"
+if errorlevel 1 (
     echo    Compiling precompiled header ^(json.hpp^)...
     g++ -x c++-header "%JSON_PCH_SRC%" -o "%JSON_PCH_OUT%" ^
         -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
-    if !ERRORLEVEL! NEQ 0 ( echo    [ERROR] json.hpp PCH failed & goto :build_failed )
+    if errorlevel 1 (
+        echo    [ERROR] json.hpp PCH failed
+        goto :build_failed
+    )
     echo    [OK] json.hpp PCH ready.
 ) else (
     echo    [OK] json.hpp PCH up-to-date, skipping.
 )
 
-:: PCH — sol/sol.hpp  ^(sol2 — header-only, très lourd en templates^)
+:: PCH sol
 set "SOL_PCH_SRC=%SDK_DIR%\sol\sol.hpp"
 set "SOL_PCH_OUT=%OBJ_DIR%\sol\sol.hpp.gch"
-powershell -NoProfile -Command "exit [int](-not (Test-Path '%SOL_PCH_OUT%') -or (Get-Item '%SOL_PCH_SRC%').LastWriteTime -gt (Get-Item '%SOL_PCH_OUT%').LastWriteTime)"
-if %ERRORLEVEL% EQU 1 (
+powershell -NoProfile -Command "exit [int](-not (Test-Path '%SOL_PCH_OUT%') -or (Get-Item '%SOL_PCH_SRC%').LastWriteTimeUtc -gt (Get-Item '%SOL_PCH_OUT%').LastWriteTimeUtc)"
+if errorlevel 1 (
     echo    Compiling precompiled header ^(sol/sol.hpp^)...
     g++ -x c++-header "%SOL_PCH_SRC%" -o "%SOL_PCH_OUT%" ^
         -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
-    if !ERRORLEVEL! NEQ 0 ( echo    [ERROR] sol/sol.hpp PCH failed & goto :build_failed )
+    if errorlevel 1 (
+        echo    [ERROR] sol/sol.hpp PCH failed
+        goto :build_failed
+    )
     echo    [OK] sol/sol.hpp PCH ready.
 ) else (
     echo    [OK] sol/sol.hpp PCH up-to-date, skipping.
 )
 echo.
 
-:: Source files list
+:: Source files
 set "SOURCE_FILES=main.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Game.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Dialogue\DialogueSystem.cpp src\Player\PlayerController.cpp"
@@ -225,31 +245,22 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Systems\LightingSystem.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Scripting\LuaBindings.cpp"
 
 set "COMPILED=0"
+set "SKIPPED=0"
+set "OBJ_LIST="
 
 for %%f in (%SOURCE_FILES%) do (
-    set "SOURCE_PATH=%SOURCE_DIR%\%%f"
-    for %%n in ("%%f") do set "BASE_NAME=%%~nxn"
-    set "OBJ_FILE=!BASE_NAME:.cpp=.o!"
-    set "OBJ_PATH=%OBJ_DIR%\!OBJ_FILE!"
-
-    echo    [COMPILE] %%f
-    g++ -o "!OBJ_PATH!" -O0 -DNDEBUG ^
-        -I "%SDK_DIR%" -I "%OBJ_DIR%" ^
-        -include nlohmann/json.hpp ^
-        -include sol/sol.hpp ^
-        -c "!SOURCE_PATH!" ^
-        -Wall -DSFML_STATIC -std=c++17 -Wa,-mbig-obj
-
-    if !ERRORLEVEL! NEQ 0 (
-        echo    [ERROR] Compilation failed for %%f
-        goto :build_failed
-    )
-    set /a COMPILED+=1
+    call :compile_one "%%f"
+    if errorlevel 1 goto :build_failed
 )
 
-
 echo.
-echo    Compiled: !COMPILED! file(s)
+echo    Compiled: %COMPILED% file(s) -- Skipped: %SKIPPED% file(s) ^(up-to-date^)
+
+if "%COMPILED%"=="0" if exist "%BIN_DIR%\Nova.exe" (
+    echo.
+    echo    Nothing to do -- executable is up-to-date.
+    goto :build_success_no_manifest
+)
 
 :: ============================================
 :: STEP 4: LINKING
@@ -259,7 +270,7 @@ echo.
 echo [STEP 4/5] Linking executable...
 echo.
 
-g++ -o "%BIN_DIR%\Nova.exe" "%OBJ_DIR%\*.o" ^
+g++ -o "%BIN_DIR%\Nova.exe" %OBJ_LIST% ^
     -O0 -DNDEBUG ^
     -I "%SDK_DIR%" ^
     -L "%PROJECT_DIR%\sdk\libs" ^
@@ -271,7 +282,7 @@ g++ -o "%BIN_DIR%\Nova.exe" "%OBJ_DIR%\*.o" ^
     -std=c++17 -static-libgcc -static-libstdc++ -static ^
     "%SOURCE_DIR%\icon\appicon.res"
 
-if %ERRORLEVEL% NEQ 0 (
+if errorlevel 1 (
     echo    [ERROR] Linking failed
     goto :build_failed
 )
@@ -297,7 +308,7 @@ if not defined RH_EXE (
     goto :build_success_no_manifest
 )
 
-if not exist "!RH_EXE!" (
+if not exist "%RH_EXE%" (
     echo    [WARNING] ResourceHacker not found
     echo    [WARNING] Manifest not embedded - app may be blurry on HiDPI displays
     goto :build_success_no_manifest
@@ -308,11 +319,10 @@ if not exist "%SOURCE_DIR%\app.manifest" (
     goto :build_success_no_manifest
 )
 
-"!RH_EXE!" -open "%BIN_DIR%\Nova.exe" -save "%BIN_DIR%\Nova.exe" -action addoverwrite -res "%SOURCE_DIR%\app.manifest" -mask MANIFEST,1,0 >nul 2>&1
+"%RH_EXE%" -open "%BIN_DIR%\Nova.exe" -save "%BIN_DIR%\Nova.exe" -action addoverwrite -res "%SOURCE_DIR%\app.manifest" -mask MANIFEST,1,0 >nul 2>&1
+set "RH_ERROR=%ERRORLEVEL%"
 
-set RH_ERROR=!ERRORLEVEL!
-
-if !RH_ERROR! EQU 0 (
+if "%RH_ERROR%"=="0" (
     echo    [SUCCESS] DPI-aware manifest embedded!
     echo.
     echo    Your application will now display correctly on:
@@ -321,9 +331,74 @@ if !RH_ERROR! EQU 0 (
     echo    - Multi-monitor setups with different DPI
     goto :build_success
 ) else (
-    echo    [WARNING] Manifest embedding failed (error: !RH_ERROR!)
+    echo    [WARNING] Manifest embedding failed (error: %RH_ERROR%)
     goto :build_success_no_manifest
 )
+
+:: ============================================
+:: COMPILE ONE FILE
+:: ============================================
+
+:compile_one
+set "REL_SRC=%~1"
+set "SOURCE_PATH=%SOURCE_DIR%\%~1"
+
+set "REL_OBJ=%~1"
+set "REL_OBJ=%REL_OBJ:.cpp=.o%"
+set "OBJ_PATH=%OBJ_DIR%\%REL_OBJ%"
+set "DEP_PATH=%OBJ_PATH:.o=.d%"
+
+for %%D in ("%OBJ_PATH%") do (
+    if not exist "%%~dpD" mkdir "%%~dpD"
+)
+
+set "NEEDS_COMPILE=0"
+
+if not exist "%SOURCE_PATH%" (
+    echo    [ERROR] Source file not found: %SOURCE_PATH%
+    exit /b 1
+)
+
+if not exist "%OBJ_PATH%" (
+    set "NEEDS_COMPILE=1"
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+        "$ErrorActionPreference='Stop';" ^
+        "$src = Get-Item '%SOURCE_PATH%';" ^
+        "$obj = Get-Item '%OBJ_PATH%';" ^
+        "exit [int]($src.LastWriteTimeUtc -gt $obj.LastWriteTimeUtc)"
+
+    if errorlevel 1 (
+        set "NEEDS_COMPILE=1"
+    ) else (
+        set "NEEDS_COMPILE=0"
+    )
+)
+
+if "%NEEDS_COMPILE%"=="1" (
+    echo    [COMPILE] %~1
+
+    g++ -o "%OBJ_PATH%" -O0 -DNDEBUG ^
+        -I "%SDK_DIR%" -I "%OBJ_DIR%" ^
+        -include nlohmann/json.hpp ^
+        -include sol/sol.hpp ^
+        -MMD -MF "%DEP_PATH%" ^
+        -c "%SOURCE_PATH%" ^
+        -Wall -DSFML_STATIC -std=c++17 -Wa,-mbig-obj
+
+    if errorlevel 1 (
+        echo    [ERROR] Compilation failed for %~1
+        exit /b 1
+    )
+
+    set /a COMPILED+=1
+) else (
+    echo    [UP-TO-DATE] %~1
+    set /a SKIPPED+=1
+)
+
+set "OBJ_LIST=%OBJ_LIST% "%OBJ_PATH%""
+exit /b 0
 
 :: ============================================
 :: BUILD SUCCESS
@@ -341,9 +416,9 @@ echo.
 
 choice /C YN /M "Run the game now"
 if errorlevel 1 if not errorlevel 2 (
-    cd "%BIN_DIR%"
-    start Nova.exe
-    cd "%SOURCE_DIR%"
+    cd /d "%BIN_DIR%"
+    start "" Nova.exe
+    cd /d "%SOURCE_DIR%"
 )
 
 exit /b 0
@@ -363,9 +438,9 @@ echo.
 
 choice /C YN /M "Run the game now"
 if errorlevel 1 if not errorlevel 2 (
-    cd "%BIN_DIR%"
-    start Nova.exe
-    cd "%SOURCE_DIR%"
+    cd /d "%BIN_DIR%"
+    start "" Nova.exe
+    cd /d "%SOURCE_DIR%"
 )
 
 exit /b 0
