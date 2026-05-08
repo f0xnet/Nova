@@ -168,7 +168,7 @@ if not exist "%LIB_DIR%\lua54.lib" (
         "%LUA_SRC%\lstrlib.c" "%LUA_SRC%\ltable.c"  "%LUA_SRC%\ltablib.c" ^
         "%LUA_SRC%\ltm.c"     "%LUA_SRC%\lundump.c" "%LUA_SRC%\lutf8lib.c" ^
         "%LUA_SRC%\lvm.c"     "%LUA_SRC%\lzio.c"
-    if %ERRORLEVEL% NEQ 0 ( echo    [ERROR] Lua compilation failed & goto :build_failed )
+    if !ERRORLEVEL! NEQ 0 ( echo    [ERROR] Lua compilation failed & goto :build_failed )
     move *.o "%OBJ_DIR%\lua\" >nul
     ar rcs "%LIB_DIR%\lua54.lib" "%OBJ_DIR%\lua\*.o"
     echo    [OK] lua54.lib ready
@@ -185,7 +185,7 @@ if %ERRORLEVEL% EQU 1 (
     echo    Compiling precompiled header ^(json.hpp^)...
     g++ -x c++-header "%JSON_PCH_SRC%" -o "%JSON_PCH_OUT%" ^
         -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
-    if %ERRORLEVEL% NEQ 0 ( echo    [ERROR] json.hpp PCH failed & goto :build_failed )
+    if !ERRORLEVEL! NEQ 0 ( echo    [ERROR] json.hpp PCH failed & goto :build_failed )
     echo    [OK] json.hpp PCH ready.
 ) else (
     echo    [OK] json.hpp PCH up-to-date, skipping.
@@ -199,7 +199,7 @@ if %ERRORLEVEL% EQU 1 (
     echo    Compiling precompiled header ^(sol/sol.hpp^)...
     g++ -x c++-header "%SOL_PCH_SRC%" -o "%SOL_PCH_OUT%" ^
         -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
-    if %ERRORLEVEL% NEQ 0 ( echo    [ERROR] sol/sol.hpp PCH failed & goto :build_failed )
+    if !ERRORLEVEL! NEQ 0 ( echo    [ERROR] sol/sol.hpp PCH failed & goto :build_failed )
     echo    [OK] sol/sol.hpp PCH ready.
 ) else (
     echo    [OK] sol/sol.hpp PCH up-to-date, skipping.
