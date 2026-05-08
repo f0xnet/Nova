@@ -29,9 +29,15 @@ New-Item -ItemType Directory -Path $MarkerDir -Force | Out-Null
 
 $files = Get-Content -LiteralPath $ListFile
 
+$totalCount  = 0
+$needCount   = 0
+$missingObj  = 0
+$newerSrc    = 0
+
 foreach ($rel in $files) {
     $rel = $rel.Trim()
     if (-not $rel) { continue }
+    $totalCount++
 
     $srcPath  = Join-Path $SourceDir $rel
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($rel)
@@ -40,18 +46,25 @@ foreach ($rel in $files) {
     $needs = $false
     if (-not (Test-Path -LiteralPath $objPath)) {
         $needs = $true
+        $missingObj++
     } elseif (Test-Path -LiteralPath $srcPath) {
         $srcTime = (Get-Item -LiteralPath $srcPath).LastWriteTime
         $objTime = (Get-Item -LiteralPath $objPath).LastWriteTime
         if ($srcTime -gt $objTime) {
             $needs = $true
+            $newerSrc++
         }
     }
 
     if ($needs) {
+        $needCount++
         $marker = Join-Path $MarkerDir "$baseName.compile"
-        Set-Content -LiteralPath $marker -Value '' -NoNewline
+        # New-Item est plus fiable que Set-Content pour un fichier vide
+        New-Item -ItemType File -Path $marker -Force | Out-Null
     }
 }
+
+Write-Host "    [INC] $needCount/$totalCount file(s) need recompilation ($missingObj missing .o, $newerSrc newer .cpp)"
+Write-Host "    [INC] markers in: $MarkerDir"
 
 exit 0
