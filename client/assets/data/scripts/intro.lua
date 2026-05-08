@@ -43,25 +43,27 @@ function init()
 
     local cursor = 0  -- temps cumulé (quand la prochaine action peut commencer)
 
+    local scope = Scene.scope()
+
     -- Affiche un élément caractère par caractère, comme une frappe au clavier
     local function typewrite(id, text)
         local start = cursor
         Timer.after(start, function()
             UI.setVisible(id, true)
             UI.setText(id, "")
-        end)
+        end, scope)
         for i = 1, #text do
             local partial = text:sub(1, i)
             Timer.after(start + i * CHAR_DELAY, function()
                 UI.setText(id, partial)
-            end)
+            end, scope)
         end
         cursor = start + #text * CHAR_DELAY + LINE_DELAY
     end
 
     -- Affiche un séparateur instantanément, puis marque une petite pause
     local function sep(id)
-        Timer.after(cursor, function() UI.setVisible(id, true) end)
+        Timer.after(cursor, function() UI.setVisible(id, true) end, scope)
         cursor = cursor + SEP_DELAY
     end
 
@@ -97,7 +99,7 @@ function init()
     Timer.after(t_correct, function()
         UI.setVisible("ln_i5a", false)
         UI.setVisible("ln_i5b", true)
-    end)
+    end, scope)
     cursor = t_correct + LINE_DELAY
 
     typewrite("ln_i6",  "> AJUSTEMENT AUTOMATIQUE — TENTATIVE 1/1 .. [OK]")
@@ -125,7 +127,7 @@ function init()
             Scene.load("data/scenes/menu.scene", "menu")
             Scene.setActive("menu")
         end)
-    end)
+    end, scope)
 end
 
 function update(dt)

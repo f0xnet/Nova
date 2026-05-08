@@ -42,21 +42,26 @@ local Scene_module = {}
 local _currentName = (_sm and _sm:getActiveName()) or ""
 
 -- ── Abonnements EventBus à portée de scène ────────────────────────────────
--- Toute souscription faite via Scene.listen() est automatiquement supprimée
--- au prochain Scene.setActive(). Utiliser EventBus.on() directement pour
--- des handlers persistants (modules système).
-local _sceneListeners = {}
+-- Scene.listen() enregistre un handler tagué avec le nom de scène courant.
+-- À chaque setActive(), seuls les handlers de la scène sortante sont retirés.
+-- Les scènes simultanées gardent leurs propres handlers intacts.
+local _sceneListeners = {}  -- { event, fn, scope }
 
 function Scene_module.listen(event, handler)
     EventBus.on(event, handler)
-    _sceneListeners[#_sceneListeners + 1] = { event = event, fn = handler }
+    _sceneListeners[#_sceneListeners + 1] = { event = event, fn = handler, scope = _currentName }
 end
 
-local function _clearSceneListeners()
+local function _clearListenersForScope(scope)
+    local remaining = {}
     for _, l in ipairs(_sceneListeners) do
-        EventBus.off(l.event, l.fn)
+        if l.scope == scope then
+            EventBus.off(l.event, l.fn)
+        else
+            remaining[#remaining + 1] = l
+        end
     end
-    _sceneListeners = {}
+    _sceneListeners = remaining
 end
 
 function Scene_module.load(path, name)
@@ -67,9 +72,13 @@ function Scene_module.setActive(name)
     local prev = _currentName
     _currentName = name
     EventBus.emit("scene_changing", { from = prev, to = name })
-    Timer.cancelAll()         -- timers de la scène sortante
-    Scheduler.clear()         -- coroutines en cours
-    _clearSceneListeners()    -- handlers EventBus à portée de scène
+    -- Nettoyage ciblé : seuls les ressources de la scène SORTANTE sont libérées.
+    -- Les autres scènes actives simultanément ne sont pas affectées.
+    if prev ~= "" then
+        Timer.cancelScope(prev)
+        Scheduler.cancelScope(prev)
+        _clearListenersForScope(prev)
+    end
     _sm:setActive(name)
     EventBus.emit("scene_changed", { name = name })
 end
@@ -100,6 +109,13 @@ function Scene_module.transition(name, opts)
 end
 
 function Scene_module.current()
+    return _currentName
+end
+
+-- Retourne le scope de la scène active (= son nom).
+-- Utilisé par les scripts qui veulent tagger leurs timers/coroutines
+-- manuellement : Timer.after(1.0, fn, Scene.scope())
+function Scene_module.scope()
     return _currentName
 end
 
