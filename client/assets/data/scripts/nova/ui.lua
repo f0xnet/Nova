@@ -81,22 +81,23 @@ end
 -- ── Callbacks actions / clics ──────────────────────────────────────────────
 
 -- fn() quand le composant <id> déclenche une action (clic bouton, etc.)
+-- Utilise Scene.listen : nettoyé automatiquement au prochain changement de scène.
 function UI_module.onClick(componentId, fn)
-    EventBus.on("ui_click_" .. componentId, function(data)
+    Scene.listen("ui_click_" .. componentId, function(data)
         fn(data.value, data.action)
     end)
 end
 
 -- fn(value, componentId) pour une action nommée spécifique
 function UI_module.onAction(action, fn)
-    EventBus.on("ui_action_" .. action, function(data)
+    Scene.listen("ui_action_" .. action, function(data)
         fn(data.value, data.id)
     end)
 end
 
--- EventBus générique préfixé "ui_"
+-- EventBus générique préfixé "ui_" — portée de scène
 function UI_module.on(event, fn)
-    EventBus.on("ui_" .. event, fn)
+    Scene.listen("ui_" .. event, fn)
 end
 
 function UI_module.off(event, fn)

@@ -41,6 +41,24 @@ local Scene_module = {}
 -- Initialise avec le nom de la scène déjà active (chargée par Game.cpp)
 local _currentName = (_sm and _sm:getActiveName()) or ""
 
+-- ── Abonnements EventBus à portée de scène ────────────────────────────────
+-- Toute souscription faite via Scene.listen() est automatiquement supprimée
+-- au prochain Scene.setActive(). Utiliser EventBus.on() directement pour
+-- des handlers persistants (modules système).
+local _sceneListeners = {}
+
+function Scene_module.listen(event, handler)
+    EventBus.on(event, handler)
+    _sceneListeners[#_sceneListeners + 1] = { event = event, fn = handler }
+end
+
+local function _clearSceneListeners()
+    for _, l in ipairs(_sceneListeners) do
+        EventBus.off(l.event, l.fn)
+    end
+    _sceneListeners = {}
+end
+
 function Scene_module.load(path, name)
     return _sm:load(path, name)
 end
@@ -49,7 +67,9 @@ function Scene_module.setActive(name)
     local prev = _currentName
     _currentName = name
     EventBus.emit("scene_changing", { from = prev, to = name })
-    Timer.cancelAll()   -- annule les timers de la scène sortante
+    Timer.cancelAll()         -- timers de la scène sortante
+    Scheduler.clear()         -- coroutines en cours
+    _clearSceneListeners()    -- handlers EventBus à portée de scène
     _sm:setActive(name)
     EventBus.emit("scene_changed", { name = name })
 end
