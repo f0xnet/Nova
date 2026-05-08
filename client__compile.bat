@@ -245,15 +245,15 @@ for %%f in (%SOURCE_FILES%) do (
     set "OBJ_PATH=%OBJ_DIR%\!OBJ_FILE!"
     set "DEP_FILE=%OBJ_DIR%\!BASE_NAME:.cpp=.d!"
 
-    :: Vérification incrémentielle : .o absent → compile
-    ::                                .cpp plus récent que .o → compile
-    ::                                sinon → skip
+    :: Vérification incrémentielle
+    :: Exit 1 de PowerShell = .cpp plus récent que .o → recompiler
+    :: Exit 0 = à jour → skip
     set "NEEDS_COMPILE=0"
     if not exist "!OBJ_PATH!" (
         set "NEEDS_COMPILE=1"
     ) else (
-        cscript //nologo "%PROJECT_DIR%\tools\ts_check.vbs" "!SOURCE_PATH!" "!OBJ_PATH!" > nul 2>&1
-        if !ERRORLEVEL! NEQ 0 set "NEEDS_COMPILE=1"
+        powershell -NoProfile -ExecutionPolicy Bypass -Command "exit [int]((Get-Item '!SOURCE_PATH!').LastWriteTime -gt (Get-Item '!OBJ_PATH!').LastWriteTime)"
+        if !ERRORLEVEL! EQU 1 set "NEEDS_COMPILE=1"
     )
 
     if "!NEEDS_COMPILE!"=="1" (
