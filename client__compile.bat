@@ -245,14 +245,16 @@ for %%f in (%SOURCE_FILES%) do (
     set "OBJ_PATH=%OBJ_DIR%\!OBJ_FILE!"
     set "DEP_FILE=%OBJ_DIR%\!BASE_NAME:.cpp=.d!"
 
-    :: Vérification des dépendances
+    :: Vérification incrémentielle : .o absent → compile
+    ::                                .cpp plus récent que .o → compile
+    ::                                sinon → skip
     set "NEEDS_COMPILE=0"
     if not exist "!OBJ_PATH!" (
         set "NEEDS_COMPILE=1"
     ) else (
+        set "NOVA_SRC=!SOURCE_PATH!"
         set "NOVA_OBJ=!OBJ_PATH!"
-        set "NOVA_DEP=!DEP_FILE!"
-        powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_DEP_CHECK!" > nul 2>&1
+        powershell -NoProfile -Command "if((Get-Item $env:NOVA_SRC).LastWriteTime -gt (Get-Item $env:NOVA_OBJ).LastWriteTime){exit 1}else{exit 0}" > nul 2>&1
         if !ERRORLEVEL! NEQ 0 set "NEEDS_COMPILE=1"
     )
 
