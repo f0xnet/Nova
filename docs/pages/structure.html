@@ -21,17 +21,19 @@
       <div class="code-label">Structure de fichiers</div>
       <pre><code class="lua">MonJeu/
 ├── scenes/
-│   ├── menu_principal.scene
-│   ├── monde1.scene
-│   └── donjon_niveau1.scene
+│   ├── menu_principal.json
+│   ├── monde1.json
+│   └── donjon_niveau1.json
 │
 ├── data/
 │   ├── scripts/
-│   │   ├── joueur.lua          -- Script attaché au joueur
-│   │   ├── ennemi_gobelin.lua  -- Script attaché au gobelin
-│   │   ├── boss_dragon.lua     -- Script du boss
-│   │   ├── coffre.lua          -- Script des coffres
-│   │   └── global.lua          -- Script chargé au démarrage du jeu
+│   │   ├── joueur.lua              -- Script attaché au joueur
+│   │   ├── ennemi_gobelin.lua      -- Script attaché au gobelin
+│   │   ├── boss_dragon.lua         -- Script du boss
+│   │   ├── coffre.lua              -- Script des coffres
+│   │   ├── global.lua              -- Script chargé au démarrage du jeu
+│   │   ├── monde1_scene.lua        -- Script de scène (champ "script" dans monde1.json)
+│   │   └── donjon_n1_scene.lua     -- Script de scène du donjon
 │   │
 │   ├── items.json              -- Définition des objets
 │   ├── quests/
@@ -56,6 +58,19 @@
 │       ├── menu.ogg
 │       └── combat.ogg</code></pre>
     </div>
+  </div>
+
+  <div class="section">
+    <h2>Types de scripts</h2>
+    <table class="api-table">
+      <thead><tr><th>Type</th><th>Signature</th><th>Durée de vie</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Script d'entité</strong></td><td><code>init(entity)</code> + <code>update(entity, dt)</code></td><td>Tant que l'entité existe.</td></tr>
+        <tr><td><strong>Script global</strong></td><td><code>init()</code> + <code>update(dt)</code></td><td>Toute la durée du jeu (chargé via l'application).</td></tr>
+        <tr><td><strong>Script de scène</strong></td><td><code>init()</code> + <code>update(dt)</code></td><td>Uniquement quand la scène est active. Déchargé à chaque changement.</td></tr>
+      </tbody>
+    </table>
+    <p>Le script de scène est déclaré dans le champ <code>"script"</code> du JSON de la scène. Tous les named handlers sont disponibles (<code>OnTriggerEnter</code>, <code>OnKeyDown</code>, etc.).</p>
   </div>
 
   <div class="section">
@@ -85,6 +100,28 @@ EventBus.on("scene_changed", function(data)
         Sound.playMusic("data/music/menu.ogg")
     end
 end)</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Script de scène</h2>
+    <p>Déclaré dans le JSON de la scène (<code>"script": "data/scripts/monde1_scene.lua"</code>), il est chargé automatiquement quand la scène devient active et déchargé au changement suivant.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/scripts/monde1_scene.lua</div>
+      <pre><code class="lua">function init()
+    Sound.playMusic("data/music/monde1.ogg")
+    Log.info("[monde1] scène active")
+end
+
+function update(dt)
+    -- Logique propre à cette scène
+end
+
+function OnTriggerEnter(triggerId, entityId)
+    if triggerId == "sortie_donjon" then
+        Scene.transition("donjon_niveau1", { fade = true, duration = 0.5 })
+    end
+end</code></pre>
     </div>
   </div>
 

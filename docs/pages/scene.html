@@ -17,6 +17,60 @@
   </div>
 
   <div class="section">
+    <h2>Format JSON d'une scène</h2>
+    <table class="api-table">
+      <thead><tr><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>string</td><td>Nom unique de la scène.</td></tr>
+        <tr><td>type</td><td>string</td><td><code>"interior"</code> ou <code>"exterior"</code>.</td></tr>
+        <tr><td>backgroundColor</td><td>[r, g, b, a]</td><td>Couleur de fond (0–255).</td></tr>
+        <tr><td>script</td><td>string</td><td><strong>Optionnel.</strong> Chemin vers un script Lua chargé automatiquement quand la scène devient active. Déchargé à chaque changement de scène.</td></tr>
+        <tr><td>entities</td><td>array</td><td>Liste des entités de la scène.</td></tr>
+        <tr><td>pathfinding</td><td>object</td><td>Graphe de waypoints (optionnel).</td></tr>
+      </tbody>
+    </table>
+    <div class="code-wrap">
+      <div class="code-label">json &nbsp;·&nbsp; ma_scene.json</div>
+      <pre><code class="lua">{
+  "name": "Donjon Niveau 1",
+  "type": "interior",
+  "backgroundColor": [0, 0, 0, 255],
+  "script": "data/scripts/donjon_n1_scene.lua",
+  "entities": [ ... ]
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Script de scène</h2>
+    <p>
+      Quand une scène avec un champ <code>script</code> devient active, le moteur charge ce script comme un <strong>script global</strong> :
+      <code>init()</code> est appelé une fois (sans paramètre), puis <code>update(dt)</code> à chaque frame.
+      Le script est automatiquement déchargé lors du prochain changement de scène.
+    </p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/scripts/donjon_n1_scene.lua</div>
+      <pre><code class="lua">-- Script de scène : s'exécute tant que "Donjon Niveau 1" est active
+function init()
+    Sound.playMusic("data/music/donjon.ogg")
+    EventBus.emit("portes_fermer", {})
+    Log.info("[donjon_n1] scène active")
+end
+
+function update(dt)
+    -- Logique propre à la scène (spawns, ambiance…)
+end
+
+-- Named handlers disponibles (OnKeyDown, OnTriggerEnter, etc.)
+function OnTriggerEnter(triggerId, entityId)
+    if triggerId == "exit_zone" then
+        Scene.transition("monde_exterieur")
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
     <h2>API</h2>
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
