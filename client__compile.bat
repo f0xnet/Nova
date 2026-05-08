@@ -224,7 +224,8 @@ echo if ^(-not ^(Test-Path $obj^)^)                          { exit 1 }
 echo if ^(-not ^(Test-Path $dep^)^)                          { exit 1 }
 echo $t   = ^(Get-Item $obj^).LastWriteTime
 echo $raw = ^(Get-Content $dep -Raw^) -replace '\\\r?\n', ' '
-echo $deps = ^($raw -split ':', 2^)[1] -split '\s+' ^| Where-Object { $_ }
+echo $deps = ^($raw -replace '^^.*?\.o[^^:]*:\s*', ''`^) -split '\s+' ^| Where-Object { $_ -and $_ -ne '\' }
+echo if ^(-not $deps^) { exit 1 }
 echo if ^($deps ^| Where-Object { ^(Test-Path $_^) -and ^(Get-Item $_^).LastWriteTime -gt $t }^) { exit 1 }
 echo exit 0
 ) > "!PS_DEP_CHECK!"
