@@ -252,9 +252,7 @@ for %%f in (%SOURCE_FILES%) do (
     if not exist "!OBJ_PATH!" (
         set "NEEDS_COMPILE=1"
     ) else (
-        set "NOVA_SRC=!SOURCE_PATH!"
-        set "NOVA_OBJ=!OBJ_PATH!"
-        powershell -NoProfile -Command "if((Get-Item $env:NOVA_SRC).LastWriteTime -gt (Get-Item $env:NOVA_OBJ).LastWriteTime){exit 1}else{exit 0}" > nul 2>&1
+        cscript //nologo "%PROJECT_DIR%\tools\ts_check.vbs" "!SOURCE_PATH!" "!OBJ_PATH!" > nul 2>&1
         if !ERRORLEVEL! NEQ 0 set "NEEDS_COMPILE=1"
     )
 
