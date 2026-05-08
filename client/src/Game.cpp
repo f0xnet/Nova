@@ -76,23 +76,20 @@ bool Game::onInitialize() {
         return false;
     }
 
-    // Load game scene
-    if (!m_sceneManager.loadScene("data/scenes/test.scene", "test")) {
-        LOG_ERROR("Failed to load test scene");
+    // Load intro scene — first screen shown at startup
+    if (!m_sceneManager.loadScene("data/scenes/intro.scene", "intro")) {
+        LOG_ERROR("Failed to load intro scene");
         return false;
     }
-    m_sceneManager.setActiveScene("test");
-    LOG_INFO("Test scene loaded and activated");
+    m_sceneManager.setActiveScene("intro");
+    LOG_INFO("Intro scene loaded and activated");
 
-    // Player is defined in the scene JSON (test.json) with type "player"
-    // Find the entity with tag "player"
-    NovaEngine::Scene* scene = m_sceneManager.getActiveScene();
-    if (scene) {
+    // ScriptSystem is global — not bound to any scene so it keeps running
+    // across scene transitions (intro → menu → gameplay).
+    {
         using namespace NovaEngine;
 
-        // Add scripting system to the scene — passe le SceneManager pour
-        // que les scripts puissent changer de scène via Scene.setActive(...)
-        m_scriptSystem = scene->addSystem<ScriptSystem>(&m_sceneManager);
+        m_scriptSystem = std::make_unique<ScriptSystem>(&m_sceneManager);
 
         // Expose DialogueSystem to Lua :
         //   Dialogue.start(entityId)  — démarre un dialogue avec un NPC
@@ -274,32 +271,6 @@ bool Game::onInitialize() {
             lua["UI"] = ui;
         }
 
-        auto entities = scene->getEntityRegistry().getAllEntities();
-        bool playerFound = false;
-        Entity* playerEntity = nullptr;
-        for (auto* entity : entities) {
-            auto* tag = entity->getComponent<TagComponent>();
-            if (tag && tag->tag == "player") {
-                m_playerController->setPlayerID(entity->getID());
-                playerEntity = entity;
-                LOG_INFO("Player found and set to entity ID: {}", entity->getID());
-                playerFound = true;
-                break;
-            }
-        }
-        if (!playerFound) {
-            LOG_ERROR("No player entity found in scene! Make sure scene JSON has an entity with type=\"player\"");
-        }
-
-        // Attach the movement script to the player entity
-        if (playerEntity) {
-            auto sc = std::make_unique<ScriptComponent>();
-            sc->scriptPath = "data/scripts/player.lua";
-            playerEntity->addComponent(std::move(sc));
-            scene->getEntityRegistry().invalidateQueryCache();
-            LOG_INFO("Player script attached: data/scripts/player.lua");
-        }
-
         // Script global de jeu — gère les raccourcis clavier et la logique globale
         m_scriptSystem->loadGlobalScript("data/scripts/main.lua");
     }
@@ -423,38 +394,61 @@ void Game::onUpdate(float deltaTime) {
     using namespace NovaEngine;
 
     Scene* scene = m_sceneManager.getActiveScene();
-    if (scene) {
-        // Expose dialogue state so Lua scripts can block movement during dialogues
+
+    // When the active scene changes, find and set up the player entity (if any)
+    if (scene != m_lastActiveScene) {
+        m_lastActiveScene = scene;
+        if (scene) {
+            Entity* playerEntity = nullptr;
+            for (auto* entity : scene->getEntityRegistry().getAllEntities()) {
+                auto* tag = entity->getComponent<TagComponent>();
+                if (tag && tag->tag == "player") {
+                    m_playerController->setPlayerID(entity->getID());
+                    playerEntity = entity;
+                    break;
+                }
+            }
+            if (playerEntity) {
+                if (!playerEntity->getComponent<ScriptComponent>()) {
+                    auto sc = std::make_unique<ScriptComponent>();
+                    sc->scriptPath = "data/scripts/player.lua";
+                    playerEntity->addComponent(std::move(sc));
+                    scene->getEntityRegistry().invalidateQueryCache();
+                }
+                LOG_INFO("Player set up in scene '{}'", scene->getName());
+            }
+        }
+    }
+
+    if (scene && m_playerController->getPlayerID() != 0) {
         if (m_scriptSystem) {
             m_scriptSystem->getLua()["dialogueActive"] = m_dialogueSystem->isActive();
         }
 
-        // Update NPC detection (stays in C++)
         m_playerController->updateNPCDetection(scene);
 
-        // Update camera to follow player
         Vec2f playerPos = m_playerController->getPlayerPosition(scene);
         VIEWPORT().setViewCenter(playerPos);
 
-        // Update dynamic lighting system with ECS lights
         if (m_dynamicLightingEffect && m_lightingSystem) {
-            // Update camera for world → screen coordinate conversion
             const auto& viewportData = VIEWPORT().getView();
             m_dynamicLightingEffect->setCamera(viewportData.center, viewportData.size);
-
-            // Collect and update all lights from entities
             m_lightingSystem->update(deltaTime, scene->getEntityRegistry());
         }
 
-        // Show/hide NPC indicator
         Entity* nearestNPC = m_playerController->getNearestNPC();
         m_dialogueSystem->showNPCIndicator(nearestNPC != nullptr && !m_dialogueSystem->isActive());
     }
 
     m_lastDeltaTime = deltaTime;
 
-    // Update ECS scene
+    // Update entity systems (animation, physics, audio, etc.)
     m_sceneManager.update(deltaTime);
+
+    // Update scripting globally — runs every frame regardless of which scene is active
+    if (m_scriptSystem && scene) {
+        m_scriptSystem->update(deltaTime, scene->getEntityRegistry());
+    }
 
     // Update UI
     m_uiManager.update(deltaTime);

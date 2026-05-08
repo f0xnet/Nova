@@ -40,8 +40,9 @@ private:
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
     NovaEngine::DynamicLightingEffect* m_dynamicLightingEffect;
 
-    // Scripting (owned by the active scene's system list)
-    NovaEngine::ScriptSystem* m_scriptSystem = nullptr;
+    // Scripting — global system, not tied to any specific scene
+    std::unique_ptr<NovaEngine::ScriptSystem> m_scriptSystem;
+    NovaEngine::Scene* m_lastActiveScene = nullptr;
 
     NovaEngine::FontHandle m_font;
     float m_lastDeltaTime = 0.016f;
