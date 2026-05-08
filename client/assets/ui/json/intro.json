@@ -1,0 +1,42 @@
+{
+    "name": "intro",
+    "UIID": "intro_ui",
+    "language": "fr",
+    "description": "Intro — affichage du logo du jeu",
+    "layers": 2,
+    "buttons": [],
+    "images": [
+        {
+            "ID": "intro_logo",
+            "groupID": "intro",
+            "description": "Logo du jeu — remplacer par le vrai logo",
+            "image": "data/ui/ui_assets/logo.png",
+            "x": 1320,
+            "y": 880,
+            "width": 1200,
+            "height": 300,
+            "effect": "default",
+            "layer": 1,
+            "isActive": true
+        }
+    ],
+    "text": [
+        {
+            "ID": "intro_studio",
+            "groupID": "intro",
+            "description": "Nom du studio sous le logo",
+            "content": "Un jeu de Studio Name",
+            "x": 1570,
+            "y": 1230,
+            "width": 700,
+            "height": 60,
+            "font": "data/font/SpaceMono-Regular.ttf",
+            "fontSize": 32,
+            "color": "140,140,140",
+            "effect": "default",
+            "layer": 1,
+            "isActive": true
+        }
+    ],
+    "userInput": []
+}
