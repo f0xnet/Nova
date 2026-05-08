@@ -208,27 +208,14 @@ echo.
 
 :: -------------------------------------------------------
 :: Script PowerShell pour le check de dépendances
-:: Lit le fichier .d généré lors de la dernière compilation
-:: et vérifie si l'un des headers est plus récent que le .o.
+:: Fichier commité dans tools/ — pas de génération dynamique.
 :: Passe les chemins via variables d'environnement pour
 :: éviter les problèmes d'échappement de guillemets.
 ::
 :: Exit 1 = recompilation nécessaire
 :: Exit 0 = à jour
 :: -------------------------------------------------------
-set "PS_DEP_CHECK=%TEMP%\nova_dep_check.ps1"
-(
-echo $obj = $env:NOVA_OBJ
-echo $dep = $env:NOVA_DEP
-echo if ^(-not ^(Test-Path $obj^)^)                          { exit 1 }
-echo if ^(-not ^(Test-Path $dep^)^)                          { exit 1 }
-echo $t   = ^(Get-Item $obj^).LastWriteTime
-echo $raw = ^(Get-Content $dep -Raw^) -replace '\\\r?\n', ' '
-echo $deps = ^($raw -replace '^^.*?\.o[^^:]*:\s*', ''`^) -split '\s+' ^| Where-Object { $_ -and $_ -ne '\' }
-echo if ^(-not $deps^) { exit 1 }
-echo if ^($deps ^| Where-Object { ^(Test-Path $_^) -and ^(Get-Item $_^).LastWriteTime -gt $t }^) { exit 1 }
-echo exit 0
-) > "!PS_DEP_CHECK!"
+set "PS_DEP_CHECK=%PROJECT_DIR%\tools\nova_dep_check.ps1"
 
 :: Source files list
 set "SOURCE_FILES=main.cpp"
@@ -278,7 +265,6 @@ for %%f in (%SOURCE_FILES%) do (
 
         if !ERRORLEVEL! NEQ 0 (
             echo    [ERROR] Compilation failed for %%f
-            del "!PS_DEP_CHECK!" > nul 2>&1
             goto :build_failed
         )
         set /a COMPILED+=1
@@ -288,7 +274,6 @@ for %%f in (%SOURCE_FILES%) do (
     )
 )
 
-del "!PS_DEP_CHECK!" > nul 2>&1
 
 echo.
 echo    Compiled: !COMPILED! file(s) -- Skipped: !SKIPPED! file(s) ^(up-to-date^)
