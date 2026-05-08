@@ -1,0 +1,510 @@
+#include "NovaEngine/Scripting/LuaBindings.hpp"
+#include "NovaEngine/Backend/BackendManager.hpp"
+#include "NovaEngine/Core/Logger.hpp"
+#include "NovaEngine/ECS/Entity.hpp"
+#include "NovaEngine/ECS/Components.hpp"
+#include "NovaEngine/ECS/ComponentFactory.hpp"
+#include "NovaEngine/ECS/EntityRegistry.hpp"
+#include "NovaEngine/ECS/SceneManager.hpp"
+#include <sol/sol.hpp>
+#include <fstream>
+#include <cmath>
+
+namespace NovaEngine {
+
+const std::unordered_map<std::string, KeyCode>& LuaBindings::getKeyMap() {
+    static const std::unordered_map<std::string, KeyCode> s_map = {
+        {"A", KeyCode::A}, {"B", KeyCode::B}, {"C", KeyCode::C}, {"D", KeyCode::D},
+        {"E", KeyCode::E}, {"F", KeyCode::F}, {"G", KeyCode::G}, {"H", KeyCode::H},
+        {"I", KeyCode::I}, {"J", KeyCode::J}, {"K", KeyCode::K}, {"L", KeyCode::L},
+        {"M", KeyCode::M}, {"N", KeyCode::N}, {"O", KeyCode::O}, {"P", KeyCode::P},
+        {"Q", KeyCode::Q}, {"R", KeyCode::R}, {"S", KeyCode::S}, {"T", KeyCode::T},
+        {"U", KeyCode::U}, {"V", KeyCode::V}, {"W", KeyCode::W}, {"X", KeyCode::X},
+        {"Y", KeyCode::Y}, {"Z", KeyCode::Z},
+        {"0", KeyCode::Num0}, {"1", KeyCode::Num1}, {"2", KeyCode::Num2},
+        {"3", KeyCode::Num3}, {"4", KeyCode::Num4}, {"5", KeyCode::Num5},
+        {"6", KeyCode::Num6}, {"7", KeyCode::Num7}, {"8", KeyCode::Num8},
+        {"9", KeyCode::Num9},
+        {"Escape",   KeyCode::Escape},   {"Space",     KeyCode::Space},
+        {"Enter",    KeyCode::Enter},    {"Backspace", KeyCode::Backspace},
+        {"Tab",      KeyCode::Tab},
+        {"Left",     KeyCode::Left},     {"Right",     KeyCode::Right},
+        {"Up",       KeyCode::Up},       {"Down",      KeyCode::Down},
+        {"LShift",   KeyCode::LShift},   {"RShift",    KeyCode::RShift},
+        {"LControl", KeyCode::LControl}, {"RControl",  KeyCode::RControl},
+        {"LAlt",     KeyCode::LAlt},     {"RAlt",      KeyCode::RAlt},
+    };
+    return s_map;
+}
+
+FontHandle& LuaBindings::s_debugFont() {
+    static FontHandle h = INVALID_HANDLE;
+    return h;
+}
+
+void LuaBindings::registerAll(sol::state& lua) {
+    registerMath(lua);
+    registerComponents(lua);
+    registerEntity(lua);
+    registerEntityRegistry(lua);
+    registerResources(lua);
+    registerInput(lua);
+    registerViewport(lua);
+    registerLog(lua);
+    registerDebugDraw(lua);
+}
+
+void LuaBindings::registerSceneManager(sol::state& lua, SceneManager& sm) {
+    lua.new_usertype<SceneManager>("SceneManager",
+        "load",          [](SceneManager& s, const std::string& path, const std::string& name) {
+            return s.loadScene(path, name);
+        },
+        "unload",        [](SceneManager& s, const std::string& name) {
+            s.unloadScene(name);
+        },
+        "setActive",     [](SceneManager& s, const std::string& name) {
+            s.setActiveScene(name);
+        },
+        "hasScene",      [](SceneManager& s, const std::string& name) {
+            return s.hasScene(name);
+        },
+        "sceneCount",    [](SceneManager& s) { return s.getSceneCount(); },
+        "getActiveName", [](SceneManager& s) { return s.getActiveSceneName(); },
+        "findPath",      [](sol::this_state ts, SceneManager& s,
+                            f32 x1, f32 y1, f32 x2, f32 y2) -> sol::table {
+            sol::state_view lua(ts);
+            auto result = lua.create_table();
+            auto* scene = s.getActiveScene();
+            if (!scene) return result;
+            auto path = scene->findPath(Vec2f{x1, y1}, Vec2f{x2, y2});
+            for (size_t i = 0; i < path.size(); ++i) {
+                auto pt = lua.create_table();
+                pt["x"] = path[i].x;
+                pt["y"] = path[i].y;
+                result[static_cast<int>(i + 1)] = pt;
+            }
+            return result;
+        }
+    );
+    lua["Scene"] = &sm;
+}
+
+void LuaBindings::registerMath(sol::state& lua) {
+    lua.new_usertype<Vec2f>("Vec2f",
+        sol::constructors<Vec2f(), Vec2f(f32, f32)>(),
+        "x", &Vec2f::x,
+        "y", &Vec2f::y,
+        sol::meta_function::addition,
+            [](const Vec2f& a, const Vec2f& b) { return a + b; },
+        sol::meta_function::subtraction,
+            [](const Vec2f& a, const Vec2f& b) { return a - b; },
+        sol::meta_function::multiplication,
+            sol::overload(
+                [](const Vec2f& v, f32 s) { return v * s; },
+                [](f32 s, const Vec2f& v) { return v * s; }),
+        sol::meta_function::to_string,
+            [](const Vec2f& v) {
+                return "Vec2f(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+            }
+    );
+
+    lua.new_usertype<Color>("Color",
+        sol::constructors<Color(), Color(u8, u8, u8), Color(u8, u8, u8, u8)>(),
+        "r", &Color::r,
+        "g", &Color::g,
+        "b", &Color::b,
+        "a", &Color::a
+    );
+    auto colorType = lua["Color"];
+    colorType["Black"]       = Color::Black;
+    colorType["White"]       = Color::White;
+    colorType["Red"]         = Color::Red;
+    colorType["Green"]       = Color::Green;
+    colorType["Blue"]        = Color::Blue;
+    colorType["Yellow"]      = Color::Yellow;
+    colorType["Transparent"] = Color::Transparent;
+}
+
+void LuaBindings::registerComponents(sol::state& lua) {
+    lua.new_usertype<TransformComponent>("TransformComponent",
+        "position", &TransformComponent::position,
+        "rotation", &TransformComponent::rotation,
+        "scale",    &TransformComponent::scale,
+        "origin",   &TransformComponent::origin
+    );
+
+    lua.new_usertype<SpriteComponent>("SpriteComponent",
+        "textureID",     &SpriteComponent::textureID,
+        "textureHandle", &SpriteComponent::textureHandle,
+        "zOrder",        &SpriteComponent::zOrder,
+        "visible",       &SpriteComponent::visible,
+        "tint",          &SpriteComponent::tint,
+        "size",          &SpriteComponent::size
+    );
+
+    lua.new_usertype<TagComponent>("TagComponent",
+        "tag", &TagComponent::tag
+    );
+
+    lua.new_usertype<AudioComponent>("AudioComponent",
+        "soundHandle", &AudioComponent::soundHandle,
+        "playOnStart", &AudioComponent::playOnStart,
+        "loop",        &AudioComponent::loop,
+        "volume",      &AudioComponent::volume,
+        "pitch",       &AudioComponent::pitch,
+        "playing",     &AudioComponent::playing
+    );
+
+    lua.new_usertype<ColliderComponent>("ColliderComponent",
+        "isTrigger", &ColliderComponent::isTrigger,
+        "enabled",   &ColliderComponent::enabled,
+        "size",      &ColliderComponent::size,
+        "radius",    &ColliderComponent::radius,
+        "offset",    &ColliderComponent::offset
+    );
+
+    lua.new_usertype<LightComponent>("LightComponent",
+        "radius",    &LightComponent::radius,
+        "intensity", &LightComponent::intensity,
+        "enabled",   &LightComponent::enabled,
+        "color",     &LightComponent::color
+    );
+
+    lua.new_usertype<AnimationComponent>("AnimationComponent",
+        "animationID",   &AnimationComponent::animationID,
+        "frameDuration", &AnimationComponent::frameDuration,
+        "currentFrame",  &AnimationComponent::currentFrame,
+        "loop",          &AnimationComponent::loop,
+        "playing",       &AnimationComponent::playing
+    );
+
+    lua.new_usertype<ShaderComponent>("ShaderComponent",
+        "enabled", &ShaderComponent::enabled,
+        "shader",  &ShaderComponent::shader
+    );
+}
+
+void LuaBindings::registerEntity(sol::state& lua) {
+    lua.new_usertype<Entity>("Entity",
+        "id",           sol::property(&Entity::getID),
+
+        "tag",          sol::property([](Entity& e) -> std::string {
+            auto* t = e.getComponent<TagComponent>();
+            return t ? t->tag : "";
+        }),
+
+        "modStat",  [](sol::this_state ts, Entity& e,
+                       const std::string& stat, double delta) -> double {
+            sol::state_view lua(ts);
+            sol::protected_function fn = lua["Stats"]["mod"];
+            if (!fn.valid()) return 0.0;
+            auto r = fn(e.getID(), stat, delta);
+            return (r.valid() && r.get_type(0) == sol::type::number)
+                ? r.get<double>(0) : 0.0;
+        },
+        "getStat",  [](sol::this_state ts, Entity& e,
+                       const std::string& stat, sol::object def) -> sol::object {
+            sol::state_view lua(ts);
+            sol::protected_function fn = lua["Stats"]["get"];
+            if (!fn.valid()) return def;
+            auto r = fn(e.getID(), stat, def);
+            return r.valid() ? r.get<sol::object>(0) : def;
+        },
+        "setStat",  [](sol::this_state ts, Entity& e,
+                       const std::string& stat, double value) {
+            sol::state_view lua(ts);
+            sol::protected_function fn = lua["Stats"]["set"];
+            if (fn.valid()) fn(e.getID(), stat, value);
+        },
+        "hasStat",  [](sol::this_state ts, Entity& e,
+                       const std::string& stat) -> bool {
+            sol::state_view lua(ts);
+            sol::protected_function fn = lua["Stats"]["has"];
+            if (!fn.valid()) return false;
+            auto r = fn(e.getID(), stat);
+            return r.valid() && r.get<bool>(0);
+        },
+
+        "enable",       [](Entity& e) {
+            auto* s = e.getComponent<SpriteComponent>();
+            if (s) s->visible = true;
+            auto* c = e.getComponent<ColliderComponent>();
+            if (c) c->enabled = true;
+        },
+        "disable",      [](Entity& e) {
+            auto* s = e.getComponent<SpriteComponent>();
+            if (s) s->visible = false;
+            auto* c = e.getComponent<ColliderComponent>();
+            if (c) c->enabled = false;
+        },
+        "isEnabled",    [](Entity& e) -> bool {
+            auto* s = e.getComponent<SpriteComponent>();
+            return s ? s->visible : true;
+        },
+
+        "getPosition",  [](Entity& e) -> Vec2f {
+            auto* t = e.getComponent<TransformComponent>();
+            return t ? t->position : Vec2f{0.0f, 0.0f};
+        },
+        "setPosition",  [](Entity& e, f32 x, f32 y) {
+            auto* t = e.getComponent<TransformComponent>();
+            if (t) { t->position.x = x; t->position.y = y; }
+        },
+
+        "getDistance",  [](Entity& e, Entity& other) -> f32 {
+            auto* t1 = e.getComponent<TransformComponent>();
+            auto* t2 = other.getComponent<TransformComponent>();
+            if (!t1 || !t2) return 0.0f;
+            f32 dx = t1->position.x - t2->position.x;
+            f32 dy = t1->position.y - t2->position.y;
+            return std::sqrt(dx * dx + dy * dy);
+        },
+        "isNearby",     [](Entity& e, Entity& other, f32 radius) -> bool {
+            auto* t1 = e.getComponent<TransformComponent>();
+            auto* t2 = other.getComponent<TransformComponent>();
+            if (!t1 || !t2) return false;
+            f32 dx = t1->position.x - t2->position.x;
+            f32 dy = t1->position.y - t2->position.y;
+            return (dx * dx + dy * dy) <= (radius * radius);
+        },
+
+        "sendMessage",  [](sol::this_state ts, Entity& e,
+                           const std::string& msg, sol::object payload) {
+            sol::state_view lua(ts);
+            sol::object bus = lua["EventBus"];
+            if (!bus.valid() || bus.get_type() != sol::type::table) return;
+            sol::protected_function fn = lua["EventBus"]["emit"];
+            if (!fn.valid()) return;
+            auto data       = lua.create_table();
+            data["msg"]     = msg;
+            data["payload"] = payload;
+            fn("script_message_" + std::to_string(e.getID()), data);
+        },
+
+        "getTransform", [](Entity& e) { return e.getComponent<TransformComponent>(); },
+        "getSprite",    [](Entity& e) { return e.getComponent<SpriteComponent>();    },
+        "getTag",       [](Entity& e) { return e.getComponent<TagComponent>();       },
+        "getAudio",     [](Entity& e) { return e.getComponent<AudioComponent>();     },
+        "getCollider",  [](Entity& e) { return e.getComponent<ColliderComponent>();  },
+        "getLight",     [](Entity& e) { return e.getComponent<LightComponent>();     },
+        "getAnimation", [](Entity& e) { return e.getComponent<AnimationComponent>(); },
+        "getShader",    [](Entity& e) { return e.getComponent<ShaderComponent>();    },
+
+        "hasComponent",    [](Entity& e, const std::string& typeID) {
+            return e.hasComponent(typeID);
+        },
+        "addComponent",    [](sol::this_state ts, Entity& e, const std::string& typeID) -> Component* {
+            auto comp = ComponentFactory::get().create(typeID);
+            if (!comp) {
+                LOG_WARN("[Lua] addComponent: type inconnu '{}'", typeID);
+                return nullptr;
+            }
+            auto* result = e.addComponent(std::move(comp));
+            sol::state_view lua(ts);
+            sol::object regObj = lua["Registry"];
+            if (regObj.valid() && regObj.get_type() == sol::type::userdata)
+                regObj.as<EntityRegistry*>()->invalidateQueryCache();
+            return result;
+        },
+        "removeComponent", [](sol::this_state ts, Entity& e, const std::string& typeID) {
+            e.removeComponent(typeID);
+            sol::state_view lua(ts);
+            sol::object regObj = lua["Registry"];
+            if (regObj.valid() && regObj.get_type() == sol::type::userdata)
+                regObj.as<EntityRegistry*>()->invalidateQueryCache();
+        }
+    );
+}
+
+void LuaBindings::registerEntityRegistry(sol::state& lua) {
+    lua.new_usertype<EntityRegistry>("EntityRegistry",
+        "createEntity",   [](EntityRegistry& r) { return r.createEntity(); },
+        "destroyEntity",  [](EntityRegistry& r, u64 id) {
+            r.destroyEntity(id);
+            r.invalidateQueryCache();
+        },
+        "getEntity",      [](EntityRegistry& r, u64 id) { return r.getEntity(id); },
+        "getAllEntities",  [](EntityRegistry& r) { return r.getAllEntities(); },
+        "entityCount",    [](EntityRegistry& r) { return (int)r.getEntityCount(); }
+    );
+}
+
+void LuaBindings::registerResources(sol::state& lua) {
+    sol::table res = lua.create_table();
+    res["loadTexture"]   = [](const std::string& p) -> TextureHandle { return RESOURCES().loadTexture(p); };
+    res["loadFont"]      = [](const std::string& p) -> FontHandle    { return RESOURCES().loadFont(p);    };
+    res["loadSound"]     = [](const std::string& p) -> SoundHandle   { return RESOURCES().loadSound(p);   };
+    res["loadMusic"]     = [](const std::string& p) -> MusicHandle   { return RESOURCES().loadMusic(p);   };
+    res["unloadTexture"] = [](TextureHandle h) { RESOURCES().unloadTexture(h); };
+    res["unloadSound"]   = [](SoundHandle h)   { RESOURCES().unloadSound(h);   };
+    res["unloadMusic"]   = [](MusicHandle h)   { RESOURCES().unloadMusic(h);   };
+    res["loadJSON"] = [](sol::this_state ts, const std::string& path) -> sol::object {
+        sol::state_view lua(ts);
+        try {
+            std::ifstream file(path);
+            if (!file.is_open()) {
+                LOG_WARN("[Lua] Resources.loadJSON: fichier introuvable '{}'", path);
+                return sol::lua_nil;
+            }
+            nlohmann::json j;
+            file >> j;
+            return LuaBindings::jsonToLua(j, lua);
+        } catch (const std::exception& e) {
+            LOG_ERROR("[Lua] Resources.loadJSON '{}': {}", path, e.what());
+            return sol::lua_nil;
+        }
+    };
+    lua["Resources"] = res;
+
+    sol::table audio = lua.create_table();
+    audio["playSound"]       = [](SoundHandle h, float vol, float pitch, bool loop) {
+        AUDIO().playSound(h, vol, pitch, loop);
+    };
+    audio["stopSound"]       = [](SoundHandle h) { AUDIO().stopSound(h);    };
+    audio["stopAll"]         = []()              { AUDIO().stopAllSounds(); };
+    audio["playMusic"]       = [](MusicHandle h, bool loop) { AUDIO().playMusic(h, loop); };
+    audio["stopMusic"]       = []() { AUDIO().stopMusic();   };
+    audio["pauseMusic"]      = []() { AUDIO().pauseMusic();  };
+    audio["resumeMusic"]     = []() { AUDIO().resumeMusic(); };
+    audio["setVolume"]       = [](float v) { AUDIO().setSoundVolume(v); };
+    audio["setMusicVolume"]  = [](float v) { AUDIO().setMusicVolume(v); };
+    lua["Audio"] = audio;
+}
+
+void LuaBindings::registerInput(sol::state& lua) {
+    sol::table input = lua.create_table();
+
+    input["isKeyPressed"] = [](const std::string& keyName) -> bool {
+        const auto& map = getKeyMap();
+        auto it = map.find(keyName);
+        return (it != map.end()) && INPUT().isKeyPressed(it->second);
+    };
+
+    input["isMouseButtonPressed"] = [](const std::string& btn) -> bool {
+        if (btn == "left")   return INPUT().isMouseButtonPressed(MouseButton::Left);
+        if (btn == "right")  return INPUT().isMouseButtonPressed(MouseButton::Right);
+        if (btn == "middle") return INPUT().isMouseButtonPressed(MouseButton::Middle);
+        return false;
+    };
+
+    input["getMousePosition"] = []() -> Vec2f {
+        auto pos = INPUT().getMousePosition();
+        return Vec2f(static_cast<f32>(pos.x), static_cast<f32>(pos.y));
+    };
+
+    lua["Input"] = input;
+}
+
+void LuaBindings::registerViewport(sol::state& lua) {
+    sol::table vp = lua.create_table();
+    vp["getCenter"]   = []() -> Vec2f { return VIEWPORT().getViewCenter(); };
+    vp["setCenter"]   = [](f32 x, f32 y) { VIEWPORT().setViewCenter(Vec2f{x, y}); };
+    vp["getSize"]     = []() -> Vec2f { return VIEWPORT().getViewSize(); };
+    vp["setSize"]     = [](f32 w, f32 h) { VIEWPORT().setViewSize(Vec2f{w, h}); };
+    vp["getRotation"] = []() -> f32 {
+        return VIEWPORT().getView().rotation;
+    };
+    vp["setRotation"] = [](f32 r) {
+        auto v = VIEWPORT().getView();
+        v.rotation = r;
+        VIEWPORT().setView(v);
+    };
+    vp["getWindowSize"] = []() -> Vec2f {
+        return Vec2f(static_cast<f32>(WINDOW().getWidth()),
+                     static_cast<f32>(WINDOW().getHeight()));
+    };
+    lua["Viewport"] = vp;
+}
+
+void LuaBindings::registerLog(sol::state& lua) {
+    sol::table log = lua.create_table();
+    log["info"]  = [](const std::string& msg) { LOG_INFO("[Lua] {}", msg);  };
+    log["warn"]  = [](const std::string& msg) { LOG_WARN("[Lua] {}", msg);  };
+    log["error"] = [](const std::string& msg) { LOG_ERROR("[Lua] {}", msg); };
+    log["debug"] = [](const std::string& msg) { LOG_DEBUG("[Lua] {}", msg); };
+    lua["Log"]   = log;
+    lua["print"] = [](const std::string& msg) { LOG_INFO("[Lua] {}", msg);  };
+}
+
+void LuaBindings::registerDebugDraw(sol::state& lua) {
+    sol::table dbg = lua.create_table();
+
+    dbg["rect"] = [](f32 x, f32 y, f32 w, f32 h,
+                     sol::object colorObj, bool filled) {
+        Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color{0, 255, 0, 200};
+        RectData r;
+        r.position = {x, y};
+        r.size     = {w, h};
+        if (filled) {
+            r.fillColor    = c;
+            r.outlineColor = Color::Transparent;
+            r.outlineThickness = 0.f;
+        } else {
+            r.fillColor    = Color::Transparent;
+            r.outlineColor = c;
+            r.outlineThickness = 1.f;
+        }
+        GRAPHICS().drawRect(r);
+    };
+
+    dbg["line"] = [](f32 x1, f32 y1, f32 x2, f32 y2,
+                     sol::object colorObj, f32 thickness) {
+        Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color{255, 255, 0, 200};
+        if (thickness <= 0.f) thickness = 1.f;
+        f32 dx  = x2 - x1;
+        f32 dy  = y2 - y1;
+        f32 len = std::sqrt(dx * dx + dy * dy);
+        if (len < 0.001f) return;
+        f32 angle = std::atan2(dy, dx) * (180.f / 3.14159265f);
+        RectData r;
+        r.position         = {x1, y1};
+        r.size             = {len, thickness};
+        r.fillColor        = c;
+        r.outlineColor     = Color::Transparent;
+        r.outlineThickness = 0.f;
+        r.rotation         = angle;
+        r.origin           = {0.f, thickness * 0.5f};
+        GRAPHICS().drawRect(r);
+    };
+
+    dbg["text"] = [](f32 x, f32 y, const std::string& text,
+                     sol::object colorObj) {
+        if (s_debugFont() == INVALID_HANDLE)
+            s_debugFont() = FONTS().loadFont("data/font/SpaceMono-Regular.ttf");
+        if (s_debugFont() == INVALID_HANDLE) return;
+        Color c = colorObj.is<Color>() ? colorObj.as<Color>() : Color::White;
+        TextData td;
+        td.text          = text;
+        td.position      = {x, y};
+        td.fillColor     = c;
+        td.characterSize = 28;
+        td.font          = s_debugFont();
+        GRAPHICS().drawText(td);
+    };
+
+    lua["DebugDraw"] = dbg;
+}
+
+sol::object LuaBindings::jsonToLua(const nlohmann::json& j, sol::state_view& lua) {
+    if (j.is_null())             return sol::lua_nil;
+    if (j.is_boolean())          return sol::make_object(lua, j.get<bool>());
+    if (j.is_number_integer())   return sol::make_object(lua, j.get<int64_t>());
+    if (j.is_number_unsigned())  return sol::make_object(lua, j.get<uint64_t>());
+    if (j.is_number_float())     return sol::make_object(lua, j.get<double>());
+    if (j.is_string())           return sol::make_object(lua, j.get<std::string>());
+    if (j.is_array()) {
+        auto t = lua.create_table();
+        for (size_t i = 0; i < j.size(); ++i)
+            t[static_cast<int>(i + 1)] = jsonToLua(j[i], lua);
+        return t;
+    }
+    if (j.is_object()) {
+        auto t = lua.create_table();
+        for (auto& [key, val] : j.items())
+            t[key] = jsonToLua(val, lua);
+        return t;
+    }
+    return sol::lua_nil;
+}
+
+} // namespace NovaEngine
