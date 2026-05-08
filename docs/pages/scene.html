@@ -150,14 +150,15 @@ end</code></pre>
       <pre><code class="lua">-- Dans un script de scène : utiliser Scene.listen() plutôt que EventBus.on()
 -- Le handler est automatiquement retiré au prochain changement de scène.
 
--- ❌ Risque de fuite entre scènes
+-- ❌ Risque de fuite — le handler survit au changement de scène
 EventBus.on("ennemi_tué", function(data) compterKill(data) end)
 
--- ✅ Nettoyage automatique
+-- ✅ Nettoyage automatique — retiré quand la scène change
 Scene.listen("ennemi_tué", function(data) compterKill(data) end)
 
--- Jouer une musique différente selon la scène (dans un script global)
-Scene.listen("scene_changed", function(data)
+-- Pour un script GLOBAL (persistent à travers toutes les scènes) :
+-- utiliser EventBus.on, pas Scene.listen
+EventBus.on("scene_changed", function(data)
     if data.name == "donjon_niveau1" then
         Sound.playMusic("data/music/donjon.ogg")
     elseif data.name == "ville_principale" then
