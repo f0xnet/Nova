@@ -16,6 +16,7 @@ LUA_SRC="$PROJECT_DIR/deps/lua-5.4.7/src"
 mkdir -p "$BIN_DIR"
 mkdir -p "$OBJ_DIR"
 mkdir -p "$OBJ_DIR/nlohmann"
+mkdir -p "$OBJ_DIR/sol"
 
 # ------------------------------------
 # Lua 5.4 — compile si liblua54.a absent ou sources plus récentes
@@ -62,7 +63,26 @@ if [ ! -f "$PCH_OUT" ] || [ "$PCH_SRC" -nt "$PCH_OUT" ]; then
     if [ $? -ne 0 ]; then echo "ERROR: PCH compilation failed"; exit 1; fi
     echo "[PCH] Done."
 else
-    echo "[PCH] Precompiled header up-to-date, skipping."
+    echo "[PCH] json.hpp precompiled header up-to-date, skipping."
+fi
+
+# ------------------------------------
+# PCH — sol/sol.hpp (sol2 — header-only, très lourd en templates)
+# ------------------------------------
+SOL_PCH_SRC="$SDK_DIR/sol/sol.hpp"
+SOL_PCH_OUT="$OBJ_DIR/sol/sol.hpp.gch"
+
+if [ ! -f "$SOL_PCH_OUT" ] || [ "$SOL_PCH_SRC" -nt "$SOL_PCH_OUT" ]; then
+    echo "[PCH] Compiling precompiled header (sol/sol.hpp)..."
+    g++ -x c++-header "$SOL_PCH_SRC" -o "$SOL_PCH_OUT" \
+        -I"$SDK_DIR" \
+        -DSFML_STATIC \
+        -std=c++17 \
+        -O2
+    if [ $? -ne 0 ]; then echo "ERROR: sol PCH compilation failed"; exit 1; fi
+    echo "[PCH] Done."
+else
+    echo "[PCH] sol/sol.hpp precompiled header up-to-date, skipping."
 fi
 echo ""
 
@@ -84,6 +104,7 @@ for file in $CPP_FILES; do
         -I"$SDK_DIR" \
         -I"$OBJ_DIR" \
         -include nlohmann/json.hpp \
+        -include sol/sol.hpp \
         -DSFML_STATIC \
         -std=c++17 \
         -O2 \
@@ -102,6 +123,7 @@ g++ -c "$PROJECT_DIR/client/main.cpp" -o "$OBJ_DIR/main.o" \
     -I"$SDK_DIR" \
     -I"$OBJ_DIR" \
     -include nlohmann/json.hpp \
+    -include sol/sol.hpp \
     -DSFML_STATIC \
     -std=c++17 \
     -O2 \
