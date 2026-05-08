@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Math &amp; Vec2 — Nova Script</title>
+<title>Math, Vec2 &amp; Color — Nova Script</title>
 <link rel="stylesheet" href="../css/style.css">
 <script src="../js/highlight.js"></script>
 </head>
@@ -11,8 +11,8 @@
 
   <div class="page-header">
     <span class="icon">📐</span>
-    <h1>Math &amp; Vec2</h1>
-    <p class="subtitle">Fonctions mathématiques et vecteurs 2D — interpolation, angles, distances, normalisation.</p>
+    <h1>Math, Vec2 &amp; Color</h1>
+    <p class="subtitle">Fonctions mathématiques, vecteurs 2D et type couleur RGBA.</p>
     <div class="tags"><span class="tag global">Global automatique</span></div>
   </div>
 
@@ -54,6 +54,26 @@
         <tr><td>Vec2.dot(a, b)</td><td>Produit scalaire.</td></tr>
         <tr><td>Vec2.fromAngle(rad, longueur)</td><td>Vecteur depuis un angle en <strong>radians</strong>. Longueur optionnelle (défaut : 1). Utilisez <code>Math.deg2rad()</code> si vous partez de degrés.</td></tr>
         <tr><td>Vec2.angle(v)</td><td>Angle en <strong>radians</strong> du vecteur.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Color — Couleurs RGBA</h2>
+    <table class="api-table">
+      <thead><tr><th>Constructeur / Propriété</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Color.new(r, g, b)</td><td>Crée une couleur opaque. Composantes 0–255.</td></tr>
+        <tr><td>Color.new(r, g, b, a)</td><td>Crée une couleur avec alpha (0 = transparent, 255 = opaque).</td></tr>
+        <tr><td>c.r / c.g / c.b / c.a</td><td>Accès direct aux composantes (lecture / écriture).</td></tr>
+        <tr><td colspan="2" style="font-weight:600;color:#aaa;font-size:0.85em;padding-top:10px">Constantes prédéfinies</td></tr>
+        <tr><td>Color.Black</td><td><code>(0, 0, 0, 255)</code></td></tr>
+        <tr><td>Color.White</td><td><code>(255, 255, 255, 255)</code></td></tr>
+        <tr><td>Color.Red</td><td><code>(255, 0, 0, 255)</code></td></tr>
+        <tr><td>Color.Green</td><td><code>(0, 255, 0, 255)</code></td></tr>
+        <tr><td>Color.Blue</td><td><code>(0, 0, 255, 255)</code></td></tr>
+        <tr><td>Color.Yellow</td><td><code>(255, 255, 0, 255)</code></td></tr>
+        <tr><td>Color.Transparent</td><td><code>(0, 0, 0, 0)</code></td></tr>
       </tbody>
     </table>
   </div>
