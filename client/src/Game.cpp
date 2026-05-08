@@ -73,7 +73,7 @@ bool Game::onInitialize() {
     }
 
     // Load game scene
-    if (!m_sceneManager.loadScene("data/scenes/test.json", "test")) {
+    if (!m_sceneManager.loadScene("data/scenes/test.scene", "test")) {
         LOG_ERROR("Failed to load test scene");
         return false;
     }

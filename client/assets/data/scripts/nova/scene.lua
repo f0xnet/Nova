@@ -23,7 +23,7 @@
 --
 -- Exemple :
 --   -- Chargement + transition avec fondu
---   Scene.load("data/scenes/dungeon_01.json", "dungeon_01")
+--   Scene.load("data/scenes/dungeon_01.scene", "dungeon_01")
 --   Scene.transition("dungeon_01", { fade = true, duration = 0.6 })
 --
 --   -- Réagir au changement
