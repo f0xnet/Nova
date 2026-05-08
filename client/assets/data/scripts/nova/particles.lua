@@ -11,6 +11,10 @@
 --   Particles.count()                  -- nombre de particules actives
 --   Particles._update(dt)              -- appelé par ScriptSystem chaque frame
 --
+-- Cycle de vie :
+--   Au changement de scène (scene_changed), Particles.clear() est appelé automatiquement
+--   — les particules d'une scène ne se rendent pas par-dessus la suivante.
+--
 -- opts (tous optionnels) :
 --   count    int     -- particules par burst (défaut 12)
 --   rate     number  -- secondes entre spawns pour emitter (défaut 0.04)
@@ -150,5 +154,11 @@ function Particles._update(dt)
     end
     _pool = surviving
 end
+
+-- Nettoyage automatique au changement de scène : vide les particules et
+-- émetteurs actifs pour éviter qu'ils se rendent par-dessus la nouvelle scène.
+EventBus.on("scene_changed", function()
+    Particles.clear()
+end)
 
 return Particles

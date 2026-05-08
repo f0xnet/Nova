@@ -1,0 +1,44 @@
+{
+  "animations": [
+    {
+      "id": "player_walk_down",
+      "frames": [
+        [0, 0, 32, 32],
+        [32, 0, 32, 32],
+        [64, 0, 32, 32],
+        [96, 0, 32, 32]
+      ],
+      "frameDuration": 0.1,
+      "loop": true
+    },
+    {
+      "id": "player_walk_up",
+      "frames": [
+        [0, 32, 32, 32],
+        [32, 32, 32, 32],
+        [64, 32, 32, 32],
+        [96, 32, 32, 32]
+      ],
+      "frameDuration": 0.1,
+      "loop": true
+    },
+    {
+      "id": "torch_flicker",
+      "frames": [
+        [0, 128, 16, 16],
+        [16, 128, 16, 16],
+        [32, 128, 16, 16]
+      ],
+      "frameDuration": 0.15,
+      "loop": true
+    },
+    {
+      "id": "idle",
+      "frames": [
+        [0, 0, 32, 32]
+      ],
+      "frameDuration": 1.0,
+      "loop": true
+    }
+  ]
+}

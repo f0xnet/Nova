@@ -4,13 +4,20 @@
 -- Disponible sans require : Stats est un global auto-chargé.
 --
 -- API :
---   Stats.get(entityId, stat, default)  -- lit une valeur (default si absente)
---   Stats.set(entityId, stat, value)    -- définit une valeur
---   Stats.mod(entityId, stat, delta)    -- modifie par delta, retourne la nouvelle valeur
---   Stats.has(entityId, stat)           -- vrai si la stat existe
---   Stats.remove(entityId, stat)        -- supprime une stat
---   Stats.getAll(entityId)              -- retourne toutes les stats de l'entité
---   Stats.clear(entityId)               -- supprime toutes les stats de l'entité
+--   Stats.get(entityId, stat, default)       -- lit une valeur (default si absente)
+--   Stats.set(entityId, stat, value)         -- définit une valeur
+--   Stats.mod(entityId, stat, delta)         -- modifie par delta, retourne la nouvelle valeur
+--   Stats.modClamped(entityId, stat, d, min, max) -- modifie avec borne
+--   Stats.has(entityId, stat)                -- vrai si la stat existe
+--   Stats.remove(entityId, stat)             -- supprime une stat
+--   Stats.getAll(entityId)                   -- retourne toutes les stats de l'entité
+--   Stats.clear(entityId)                    -- supprime toutes les stats de l'entité
+--   Stats.init(entityId, defaults)           -- initialise sans écraser les valeurs existantes
+--
+-- Cycle de vie :
+--   Les données persistent tant que l'entité est vivante.
+--   À la destruction (entity_destroyed), Stats.clear() est appelé automatiquement
+--   pour toute entité, qu'elle ait un ScriptComponent ou non.
 --
 -- EventBus events émis :
 --   "stat_changed"  { entityId, stat, value, previous }
@@ -119,5 +126,10 @@ function Stats.init(entityId, defaults)
         end
     end
 end
+
+-- Nettoyage automatique à la destruction d'une entité
+EventBus.on("entity_destroyed", function(data)
+    Stats.clear(data.entityId)
+end)
 
 return Stats

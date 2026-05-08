@@ -7,7 +7,7 @@
 --   Effect.apply(entityId, effectId, config)  -- applique un effet
 --   Effect.remove(entityId, effectId)         -- retire un effet spécifique
 --   Effect.has(entityId, effectId)            -- vrai si l'effet est actif
---   Effect.clear(entityId)                    -- retire tous les effets de l'entité
+--   Effect.clear(entityId)                    -- retire tous les effets (appelle onExpire)
 --   Effect.getRemaining(entityId, effectId)   -- secondes restantes (ou nil)
 --   Effect.update(dt)                         -- appelé automatiquement par ScriptSystem
 --
@@ -16,7 +16,11 @@
 --   stackable (bool)      -- plusieurs instances simultanées ? (défaut: false)
 --   onApply   (function)  -- appelé une fois à l'application
 --   onTick    (function(entityId, dt)) -- appelé chaque frame
---   onExpire  (function)  -- appelé à l'expiration
+--   onExpire  (function)  -- appelé à l'expiration ou quand Effect.clear() est forcé
+--
+-- Cycle de vie :
+--   À la destruction d'une entité (entity_destroyed), Effect.clear() est appelé
+--   automatiquement : tous les effets actifs reçoivent leur onExpire avant suppression.
 --
 -- EventBus events émis :
 --   "effect_applied"  { entityId, effectId }
@@ -167,5 +171,10 @@ function Effect.update(dt)
         end
     end
 end
+
+-- Nettoyage automatique à la destruction d'une entité (appelle onExpire sur chaque effet)
+EventBus.on("entity_destroyed", function(data)
+    Effect.clear(data.entityId)
+end)
 
 return Effect

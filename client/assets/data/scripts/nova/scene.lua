@@ -8,14 +8,18 @@
 --   Scene.setActive(name)                -- active une scène chargée
 --   Scene.transition(name, opts)         -- change de scène avec effet de fondu
 --   Scene.current()                      -- nom de la scène courante
+--   Scene.scope()                        -- alias de current() — pour tagging de timers
+--   Scene.listen(event, handler)         -- EventBus.on scoped à la scène courante
 --   Scene.unload(name)                   -- décharge une scène de la mémoire
 --   Scene.has(name)                      -- vrai si la scène est chargée
 --   Scene.count()                        -- nombre de scènes chargées
 --   Scene.reload()                       -- re-active la scène courante
+--   Scene.findPath(x1, y1, x2, y2)       -- pathfinding via le WaypointGraph actif
 --
 -- opts pour transition :
---   fade      bool    -- fondu au noir via PostFX (défaut: true)
---   duration  number  -- durée de chaque demi-fondu en secondes (défaut: 0.5)
+--   fade           bool     -- fondu au noir via SceneFX (défaut: true)
+--   duration       number   -- durée de chaque demi-fondu en secondes (défaut: 0.5)
+--   onBeforeChange function -- appelé pendant le noir, avant setActive (ex: removeUI)
 --
 -- EventBus events émis :
 --   "scene_changing"  { from, to }
@@ -41,6 +45,29 @@ local Scene_module = {}
 -- Initialise avec le nom de la scène déjà active (chargée par Game.cpp)
 local _currentName = (_sm and _sm:getActiveName()) or ""
 
+-- ── Abonnements EventBus à portée de scène ────────────────────────────────
+-- Scene.listen() enregistre un handler tagué avec le nom de scène courant.
+-- À chaque setActive(), seuls les handlers de la scène sortante sont retirés.
+-- Les scènes simultanées gardent leurs propres handlers intacts.
+local _sceneListeners = {}  -- { event, fn, scope }
+
+function Scene_module.listen(event, handler)
+    EventBus.on(event, handler)
+    _sceneListeners[#_sceneListeners + 1] = { event = event, fn = handler, scope = _currentName }
+end
+
+local function _clearListenersForScope(scope)
+    local remaining = {}
+    for _, l in ipairs(_sceneListeners) do
+        if l.scope == scope then
+            EventBus.off(l.event, l.fn)
+        else
+            remaining[#remaining + 1] = l
+        end
+    end
+    _sceneListeners = remaining
+end
+
 function Scene_module.load(path, name)
     return _sm:load(path, name)
 end
@@ -49,15 +76,25 @@ function Scene_module.setActive(name)
     local prev = _currentName
     _currentName = name
     EventBus.emit("scene_changing", { from = prev, to = name })
+    -- Nettoyage ciblé : seuls les ressources de la scène SORTANTE sont libérées.
+    -- Les autres scènes actives simultanément ne sont pas affectées.
+    if prev ~= "" then
+        Timer.cancelScope(prev)
+        Scheduler.cancelScope(prev)
+        _clearListenersForScope(prev)
+    end
     _sm:setActive(name)
     EventBus.emit("scene_changed", { name = name })
 end
 
 -- Transition avec fondu au noir via SceneFX (plein écran, UI incluse)
+-- opts.onBeforeChange : callback appelé pendant le noir, avant setActive
+--   → usage typique : UI.removeUI("mon_ui") pour nettoyer l'UI sortante
 function Scene_module.transition(name, opts)
     opts = opts or {}
-    local fade     = opts.fade ~= false   -- true par défaut
-    local duration = opts.duration or 0.5
+    local fade           = opts.fade ~= false
+    local duration       = opts.duration or 0.5
+    local onBeforeChange = opts.onBeforeChange
 
     if not _sm:hasScene(name) then
         Log.warn("[Scene.transition] scène '" .. name .. "' non chargée, appel load() d'abord")
@@ -66,14 +103,23 @@ function Scene_module.transition(name, opts)
 
     if fade then
         SceneFX.transition(function()
+            if onBeforeChange then onBeforeChange() end
             Scene_module.setActive(name)
         end, duration)
     else
+        if onBeforeChange then onBeforeChange() end
         Scene_module.setActive(name)
     end
 end
 
 function Scene_module.current()
+    return _currentName
+end
+
+-- Retourne le scope de la scène active (= son nom).
+-- Utilisé par les scripts qui veulent tagger leurs timers/coroutines
+-- manuellement : Timer.after(1.0, fn, Scene.scope())
+function Scene_module.scope()
     return _currentName
 end
 

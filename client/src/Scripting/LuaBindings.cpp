@@ -319,7 +319,18 @@ void LuaBindings::registerEntity(sol::state& lua) {
 void LuaBindings::registerEntityRegistry(sol::state& lua) {
     lua.new_usertype<EntityRegistry>("EntityRegistry",
         "createEntity",   [](EntityRegistry& r) { return r.createEntity(); },
-        "destroyEntity",  [](EntityRegistry& r, u64 id) {
+        "destroyEntity",  [](sol::this_state ts, EntityRegistry& r, u64 id) {
+            // Emit before removing so cleanup handlers can still read entity state
+            sol::state_view lua(ts);
+            sol::object bus = lua["EventBus"];
+            if (bus.valid() && bus.get_type() == sol::type::table) {
+                sol::protected_function emit = lua["EventBus"]["emit"];
+                if (emit.valid()) {
+                    auto data        = lua.create_table();
+                    data["entityId"] = id;
+                    emit("entity_destroyed", data);
+                }
+            }
             r.destroyEntity(id);
             r.invalidateQueryCache();
         },

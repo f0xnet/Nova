@@ -1,0 +1,7 @@
+{
+  "name": "Menu Principal",
+  "type": "interior",
+  "backgroundColor": [0, 0, 0, 255],
+  "script": "data/scripts/menu.lua",
+  "entities": []
+}

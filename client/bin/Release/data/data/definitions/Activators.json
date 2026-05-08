@@ -1,0 +1,67 @@
+{
+  "activators": [
+    {
+      "id": "pressure_plate",
+      "type": "proximity",
+      "shape": "box",
+      "size": [80, 80],
+      "canReactivate": true,
+      "cooldownTime": 0.5,
+      "targetTag": "player",
+      "showDebugZone": true,
+      "onActivateEvent": "door_open",
+      "onDeactivateEvent": "door_close"
+    },
+    {
+      "id": "trigger_zone",
+      "type": "proximity",
+      "shape": "circle",
+      "radius": 150,
+      "canReactivate": false,
+      "targetTag": "player",
+      "showDebugZone": true,
+      "onActivateEvent": "cutscene_start"
+    },
+    {
+      "id": "interactive_object",
+      "type": "manual",
+      "shape": "circle",
+      "radius": 60,
+      "canReactivate": true,
+      "targetTag": "player",
+      "showDebugZone": true,
+      "onActivateEvent": "interact"
+    },
+    {
+      "id": "damage_zone",
+      "type": "automatic",
+      "shape": "circle",
+      "radius": 100,
+      "canReactivate": true,
+      "targetTag": "player",
+      "showDebugZone": true,
+      "onActivateEvent": "take_damage"
+    },
+    {
+      "id": "checkpoint",
+      "type": "proximity",
+      "shape": "box",
+      "size": [64, 64],
+      "canReactivate": false,
+      "targetTag": "player",
+      "showDebugZone": true,
+      "onActivateEvent": "checkpoint_reached"
+    },
+    {
+      "id": "door_switch",
+      "type": "manual",
+      "shape": "box",
+      "size": [50, 50],
+      "canReactivate": true,
+      "cooldownTime": 1.0,
+      "targetTag": "player",
+      "showDebugZone": true,
+      "onActivateEvent": "toggle_door"
+    }
+  ]
+}

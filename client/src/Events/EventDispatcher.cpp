@@ -8,7 +8,6 @@ void EventDispatcher::subscribe(EventHandler* handler) {
     if (!handler) return;
     m_handlers.push_back(handler);
     LOG_DEBUG("EventHandler subscribed ({} total)", m_handlers.size());
-//test
 }
 
 void EventDispatcher::unsubscribe(EventHandler* handler) {

@@ -323,7 +323,7 @@ bool Game::onInitialize() {
         m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
         if (m_ssaoEffect) {
             m_ssaoEffect->setStrength(0.3f);
-            m_ssaoEffect->setRadius(2.0f);
+            m_ssaoEffect->setRadius(12.0f);
             LOG_INFO("SSAO effect added successfully");
         }
 
