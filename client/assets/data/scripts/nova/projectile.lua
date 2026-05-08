@@ -8,9 +8,13 @@
 --   Projectile.fire(x, y, opts)        -- tire un projectile, retourne l'entité (ou nil)
 --   Projectile.release(entity)         -- libère manuellement (avant expiration)
 --   Projectile.clearPool(poolID)       -- détruit un pool et ses projectiles actifs
---   Projectile.clearAll()              -- détruit tous les pools
+--   Projectile.clearAll()              -- détruit tous les pools et handlers de collision
 --   Projectile.activeCount()           -- nombre de projectiles en vol
 --   Projectile._update(dt)             -- appelé par ScriptSystem chaque frame
+--
+-- Cycle de vie :
+--   Au changement de scène (scene_changed), Projectile.clearAll() est appelé
+--   automatiquement — les handlers de collision et les références d'entités sont libérés.
 --
 -- opts pour init() :
 --   poolID      string   -- identifiant du pool (défaut "projectile")

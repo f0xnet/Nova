@@ -3,13 +3,18 @@
 -- Disponible sans require : Cooldown est un global auto-chargé.
 --
 -- API :
---   Cooldown.use(entityId, action, duration)  -- démarre le cooldown, retourne true si prêt
+--   Cooldown.use(entityId, action, duration)   -- démarre le cooldown, retourne true si prêt
 --   Cooldown.start(entityId, action, duration) -- démarre sans vérifier
 --   Cooldown.isReady(entityId, action)         -- vrai si pas en cooldown
 --   Cooldown.getRemaining(entityId, action)    -- secondes restantes (0 si prêt)
---   Cooldown.reset(entityId, action)           -- annule le cooldown immédiatement
---   Cooldown.resetAll(entityId)               -- annule tous les cooldowns de l'entité
+--   Cooldown.getProgress(entityId, action, duration) -- progression 0..1
+--   Cooldown.reset(entityId, action)           -- annule un cooldown spécifique
+--   Cooldown.resetAll(entityId)                -- annule tous les cooldowns de l'entité
 --   Cooldown.update(dt)                        -- appelé automatiquement par ScriptSystem
+--
+-- Cycle de vie :
+--   À la destruction d'une entité (entity_destroyed), Cooldown.resetAll() est appelé
+--   automatiquement — aucune entrée ne subsiste pour des entités détruites.
 --
 -- Exemple :
 --   function update(entity, dt)

@@ -31,42 +31,86 @@ namespace NovaEngine {
 //   Tween, Class, Quest, Persist, Game, Stats
 //   Camera, InputEx, Effect, Cooldown, Sound, Inventory, Notify, Physics, Flag, Scene
 //   Math, Table, Random, Color (étend le type C++), Sequence, Conversation, Anim
-//   Trigger, InputBind, Loot, Nav
+//   Trigger, InputBind, Loot, Nav, Particles, Projectile, EntityState, SceneFX
 //
 // COUCHE 3 — Scripts jeu (data/scripts/) :
-//   Scripts entité : init(entity) + update(entity, dt)
-//   Scripts globaux : init() + update(dt) via loadGlobalScript()
+//   Scripts entité  : init(entity) + update(entity, dt)  — sandbox isolé par entité
+//   Scripts de scène : init() + update(dt) — chargé quand la scène devient active
+//   Scripts globaux : init() + update(dt) via loadGlobalScript() — persistent toujours
 //
-// FONCTIONNALITÉS PAPYRUS :
+// ── NAMED EVENT HANDLERS ─────────────────────────────────────────────────────
+//   Auto-branchés par __wireNamedHandlers sans EventBus.on() manuel.
+//   Tous les handlers sont trackés et désabonnés automatiquement à la destruction
+//   de l'entité (event entity_destroyed). Ne pas utiliser EventBus.on() directement
+//   dans un script d'entité — utiliser ces named handlers ou Scene.listen().
 //
-//   NAMED EVENT HANDLERS — auto-branchés sans EventBus.on() manuel :
-//     function OnActivate(activatorId, actionID)   end
-//     function OnDeactivate(activatorId, actionID) end
-//     function OnKeyDown(key)                      end
-//     function OnKeyUp(key)                        end
-//     function OnMouseDown(button, x, y)           end
-//     function OnAnimationEvent(animID, frame)     end
-//     function OnAnimationChanged(newID, prevID)   end
-//     function OnMessage(msg, payload)             end
-//     function OnQuestComplete(questId)            end
-//     function OnQuestAdvanced(questId, stage)     end
+//     function OnActivate(activatorId, actionID)      end
+//     function OnDeactivate(activatorId, actionID)    end
+//     function OnKeyDown(key)                         end
+//     function OnKeyUp(key)                           end
+//     function OnMouseDown(button, x, y)              end
+//     function OnMouseUp(button, x, y)                end
+//     function OnAnimationEvent(animID, frame)        end
+//     function OnAnimationChanged(newID, prevID)      end
+//     function OnMessage(msg, payload)                end
+//     function OnQuestComplete(questId)               end
+//     function OnQuestAdvanced(questId, stage)        end
+//     function OnStatZeroed(entityId, stat)           end
+//     function OnItemAdded(item, count)               end
+//     function OnItemRemoved(item, count)             end
+//     function OnEffectApplied(effectId, entityId)    end
+//     function OnEffectExpired(effectId, entityId)    end
+//     function OnFlagSet(name)                        end
+//     function OnFlagUnset(name)                      end
+//     function OnTriggerEnter(triggerId, entityId)    end
+//     function OnTriggerExit(triggerId, entityId)     end
+//     function OnSceneChanged(name)                   end
+//     function OnConversationNode(nodeId, spkr, text) end
+//     function OnConversationEnd(conversationId)      end
+//     function OnUIAction(action, value, componentId) end
+//     function OnCollisionEnter(otherEntityId)        end
+//     function OnCollisionExit(otherEntityId)         end
 //
-//   CONTROL D'UPDATE DEPUIS LE SCRIPT :
+// ── NETTOYAGE AUTOMATIQUE ────────────────────────────────────────────────────
+//   Destruction d'entité (Registry.destroyEntity) :
+//     → entity_destroyed émis AVANT la suppression
+//     → tous les named handlers de l'entité désabonnés (EventBus.off)
+//     → ScriptRegistry._envs[id] = nil (env Lua collectable par le GC)
+//     → Stats.clear / Effect.clear / Cooldown.resetAll / Anim.clearCallbacks
+//
+//   Changement de scène (Scene.setActive) :
+//     → Timer.cancelScope(prev) — timers de la scène sortante annulés
+//     → Scheduler.cancelScope(prev) — coroutines annulées
+//     → Scene.listen() handlers de la scène sortante désabonnés
+//     → Sequence, Particles, Projectile réinitialisés via scene_changed
+//
+//   Timer et Scheduler : auto-scopés à Scene.current() si pas de scope fourni.
+//   Impossible de créer accidentellement un timer qui fuite entre scènes.
+//
+// ── LIMITATION CONNUE ────────────────────────────────────────────────────────
+//   Les scripts de scène (chargés via ScriptSystem) utilisant des named handlers
+//   (OnKeyDown etc.) ne sont PAS nettoyés au changement de scène car ils reçoivent
+//   entityId=0 (scope global). Les scripts de scène doivent utiliser Scene.listen()
+//   pour les souscriptions à portée limitée, pas les named handlers.
+//
+// ── CONTRÔLE D'UPDATE ────────────────────────────────────────────────────────
 //     RegisterForUpdate(0.5)   -- change la fréquence d'update à 0.5s
 //     UnregisterForUpdate()    -- suspend les updates (sans désactiver init)
 //     ResumeUpdate()           -- reprend les updates
 //
-//   INTER-SCRIPT :
+// ── INTER-SCRIPT ─────────────────────────────────────────────────────────────
 //     ScriptRegistry.call(entityId, "fn", arg1, arg2)
 //     ScriptRegistry.sendMessage(entityId, "msg", payload)
-//     entity:sendMessage("msg", payload)  -- équivalent sur l'entité directe
+//     entity:sendMessage("msg", payload)
 //
-//   GLOBALS DISPONIBLES :
+// ── GLOBALS DISPONIBLES ──────────────────────────────────────────────────────
 //     EventBus, Timer, Scheduler, StateMachine, Vec2, World
-//     Tween, Class, Quest, Persist, Game, Stats
-//     ScriptRegistry
-//     Registry, Input, Log, print, Audio, Resources, Scene
-//     dialogueActive
+//     Tween, Class, Quest, Persist, Game, Stats, Effect, Cooldown
+//     Camera, InputEx, Sound, Inventory, Notify, Physics, Flag, Scene
+//     Sequence, Conversation, Anim, Trigger, InputBind, Loot, Nav
+//     Particles, Projectile, Pool, Spatial, Easing, I18n, Achievement
+//     Data, Debug, SceneFX, EntityState, ScriptRegistry
+//     Registry, Input, Log, print, Audio, Resources
 // ============================================================================
 
 class ScriptSystem : public System {

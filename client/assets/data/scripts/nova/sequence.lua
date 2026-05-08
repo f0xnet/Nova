@@ -9,10 +9,14 @@
 --   seq:tween(seconds, fn)             -- appel fn(t) chaque frame, t = 0..1
 --   seq:emit(event, data)              -- EventBus.emit
 --   seq:dialogue(speakerId, text)      -- démarre un dialogue et attend la fin
---   seq:repeat(n, fn)                  -- répète fn(i) n fois immédiatement
+--   seq:repeat_(n, fn)                 -- répète fn(i) n fois immédiatement
 --   seq:play(onComplete)               -- lance la séquence
 --   seq:stop()                         -- arrête la séquence
 --   Sequence._update(dt)               -- appelé par ScriptSystem chaque frame
+--
+-- Cycle de vie :
+--   Au changement de scène (scene_changed), toutes les séquences en cours sont
+--   arrêtées automatiquement — leurs callbacks ne se déclenchent pas dans la nouvelle scène.
 --
 -- Exemple :
 --   local seq = Sequence.new()
