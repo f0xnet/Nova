@@ -151,4 +151,10 @@ function Particles._update(dt)
     _pool = surviving
 end
 
+-- Nettoyage automatique au changement de scène : vide les particules et
+-- émetteurs actifs pour éviter qu'ils se rendent par-dessus la nouvelle scène.
+EventBus.on("scene_changed", function()
+    Particles.clear()
+end)
+
 return Particles

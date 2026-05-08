@@ -178,4 +178,13 @@ function Sequence._update(dt)
     end
 end
 
+-- Nettoyage automatique au changement de scène : arrête toutes les séquences
+-- actives pour éviter qu'elles continuent à s'exécuter dans la nouvelle scène.
+EventBus.on("scene_changed", function()
+    for _, seq in ipairs(_running) do
+        seq._active = false
+    end
+    _running = {}
+end)
+
 return Sequence

@@ -225,4 +225,10 @@ function Projectile._update(dt)
     _active = surviving
 end
 
+-- Nettoyage automatique au changement de scène : libère tous les projectiles
+-- en vol et leurs handlers de collision pour éviter les références d'entités périmées.
+EventBus.on("scene_changed", function()
+    Projectile.clearAll()
+end)
+
 return Projectile
