@@ -113,6 +113,15 @@ needs_rebuild() {
 # ------------------------------------
 # Compilation incrémentielle
 # ------------------------------------
+# ------------------------------------
+# Copie des assets — assets/data/ est la copie exacte de data/ à la racine de l'exécutable
+# ------------------------------------
+echo "[ASSETS] Copying assets..."
+mkdir -p "$BIN_DIR/data"
+cp -r "$PROJECT_DIR/client/assets/data/." "$BIN_DIR/data/"
+echo "[ASSETS] Done."
+echo ""
+
 echo "[STEP 1/3] Compiling source files..."
 
 # main.cpp est dans client/ (pas dans client/src/)
