@@ -322,24 +322,24 @@ bool Game::onInitialize() {
         // 1. SSAO - Ambient Occlusion (applied first, single-pass)
         m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
         if (m_ssaoEffect) {
-            m_ssaoEffect->setStrength(0.3f);
-            m_ssaoEffect->setRadius(12.0f);
+            m_ssaoEffect->setStrength(1.0f);
+            m_ssaoEffect->setRadius(3.0f);
             LOG_INFO("SSAO effect added successfully");
         }
 
         // 2. Bloom - Glow effect
         m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
         if (m_bloomEffect) {
-            m_bloomEffect->setIntensity(0.4f);
+            m_bloomEffect->setIntensity(0.1f);
             LOG_INFO("Bloom effect added successfully");
         }
 
         // 3. Color Grading - Saturation, contrast, etc.
         m_colorGradingEffect = m_postProcessPipeline->addEffect<NovaEngine::ColorGradingEffect>();
         if (m_colorGradingEffect) {
-            m_colorGradingEffect->setSaturation(1.3f);
-            m_colorGradingEffect->setContrast(1.0f);
-            m_colorGradingEffect->setBrightness(0.0f);
+            m_colorGradingEffect->setSaturation(1.4f);
+            m_colorGradingEffect->setContrast(1.1f);
+            m_colorGradingEffect->setBrightness(0.1f);
             LOG_INFO("Color grading effect added successfully");
         }
 
