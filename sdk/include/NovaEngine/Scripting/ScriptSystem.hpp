@@ -120,6 +120,21 @@ public:
         for (auto& gs : m_globalScripts)
             updateGlobalScript(gs, deltaTime);
 
+        // Détection de changement de scène → charge/décharge le script de scène
+        if (m_sceneManager) {
+            Scene* activeScene = m_sceneManager->getActiveScene();
+            if (activeScene != m_lastActiveScene) {
+                m_lastActiveScene = activeScene;
+                m_sceneScripts.clear();
+                if (activeScene && !activeScene->getScriptPath().empty()) {
+                    m_sceneScripts.push_back({ activeScene->getScriptPath(), {}, {}, false, false, 0.0f, 0.0f });
+                    LOG_INFO("[ScriptSystem] Scene script : '{}'", activeScene->getScriptPath());
+                }
+            }
+        }
+        for (auto& ss : m_sceneScripts)
+            updateGlobalScript(ss, deltaTime);
+
         auto entities = registry.getEntitiesWith(getRequiredComponents());
         for (auto* entity : entities) {
             auto* script = entity->getComponent<ScriptComponent>();
@@ -200,6 +215,8 @@ private:
     sol::state    m_lua;
     SceneManager* m_sceneManager = nullptr;
     std::vector<GlobalScript>               m_globalScripts;
+    std::vector<GlobalScript>               m_sceneScripts;
+    Scene*                                  m_lastActiveScene = nullptr;
     std::unordered_map<u64, bool>           m_activatorPrevState;
     std::unordered_map<std::string, bool>   m_prevKeyState;
     std::unordered_map<std::string, bool>   m_prevMouseState;

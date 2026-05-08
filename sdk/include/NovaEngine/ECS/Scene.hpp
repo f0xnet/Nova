@@ -30,6 +30,7 @@ private:
     std::vector<std::unique_ptr<System>> m_logicSystems;
     std::unique_ptr<RenderSystem>        m_renderSystem;
     WaypointGraph m_waypointGraph;  // Waypoint-based pathfinding for NPCs
+    std::string   m_scriptPath;
 
 public:
     /**
@@ -75,6 +76,11 @@ public:
     const Color& getBackgroundColor() const { return m_backgroundColor; }
 
     /**
+     * @brief Get the scene script path (empty if none)
+     */
+    const std::string& getScriptPath() const { return m_scriptPath; }
+
+    /**
      * @brief Load scene from JSON
      * @param sceneData The JSON scene data
      * @param defManager The definition manager to use for entity definitions
@@ -103,6 +109,11 @@ public:
                 } else {
                     LOG_WARN("Scene '{}': 'backgroundColor' must be a 4-element array", m_name);
                 }
+            }
+
+            if (sceneData.contains("script")) {
+                m_scriptPath = sceneData["script"].get<std::string>();
+                LOG_INFO("Scene '{}': script = '{}'", m_name, m_scriptPath);
             }
 
             // Load waypoint graph for pathfinding

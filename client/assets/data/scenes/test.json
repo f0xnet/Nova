@@ -2,6 +2,7 @@
   "name": "Test Scene",
   "type": "interior",
   "backgroundColor": [0, 0, 0, 255],
+  "script": "data/scripts/scene_test.lua",
   "entities": [
     {
       "type": "sprite",
