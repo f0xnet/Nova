@@ -183,15 +183,12 @@ void UILoader::parseImages(const nlohmann::json& imagesJson, UIManager& uiManage
         
         std::string imagePath = imageData.value("image", "");
         if (!imagePath.empty()) {
-            LOG_ERROR("🖼️ Image '{}': loading texture from '{}'", imageID, imagePath);
             TextureHandle texHandle = RESOURCES().loadTexture(imagePath);
-            LOG_ERROR("   Result: handle={} (0=INVALID)", texHandle);
-            
             if (texHandle != INVALID_HANDLE) {
                 image->setTexture(texHandle);
-                LOG_ERROR("   ✅ Texture SET for '{}'", imageID);
+                LOG_DEBUG("Image '{}': texture chargée '{}'", imageID, imagePath);
             } else {
-                LOG_ERROR("   ❌ Failed to load texture for '{}'", imageID);
+                LOG_ERROR("Image '{}': échec chargement texture '{}'", imageID, imagePath);
             }
         }
         

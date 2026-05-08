@@ -50,6 +50,18 @@ public:
     }
 
     /**
+     * @brief Add a component via base pointer — used by ComponentFactory and scripting
+     * @return Raw pointer to the added component, or nullptr if component is null
+     */
+    Component* addComponent(std::unique_ptr<Component> component) {
+        if (!component) return nullptr;
+        ComponentTypeID typeID = component->getTypeID();
+        Component* ptr = component.get();
+        m_components[typeID] = std::move(component);
+        return ptr;
+    }
+
+    /**
      * @brief Get a component by type
      * @tparam T The component type
      * @return Pointer to the component, or nullptr if not found
@@ -97,6 +109,20 @@ public:
     }
 
     /**
+     * @brief Get a component by type ID string — utilisé par le scripting
+     * @return Pointeur vers le composant (base), ou nullptr si absent
+     */
+    Component* getComponent(const ComponentTypeID& typeID) {
+        auto it = m_components.find(typeID);
+        return (it != m_components.end()) ? it->second.get() : nullptr;
+    }
+
+    const Component* getComponent(const ComponentTypeID& typeID) const {
+        auto it = m_components.find(typeID);
+        return (it != m_components.end()) ? it->second.get() : nullptr;
+    }
+
+    /**
      * @brief Remove a component from this entity
      * @tparam T The component type
      */
@@ -105,6 +131,10 @@ public:
         static_assert(std::is_base_of<Component, T>::value,
                       "T must derive from Component");
         m_components.erase(T::staticTypeID());
+    }
+
+    void removeComponent(const ComponentTypeID& typeID) {
+        m_components.erase(typeID);
     }
 
     /**

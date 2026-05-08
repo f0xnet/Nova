@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Class — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🧱</span>
+    <h1>Class</h1>
+    <p class="subtitle">Créer des classes Lua réutilisables — orienté objet avec héritage prototype, constructeur et vérification de type.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction / Méthode</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Class.new()</td><td>Crée une nouvelle classe sans parent.</td></tr>
+        <tr><td>Class.new(Parent)</td><td>Crée une classe qui hérite de <code>Parent</code>.</td></tr>
+        <tr><td>Class.extend</td><td>Alias de <code>Class.new</code>.</td></tr>
+        <tr><td>MaClasse.new(...)</td><td>Crée une instance. Appelle <code>:init(...)</code> si défini. Notez le <strong>point</strong>, pas deux-points.</td></tr>
+        <tr><td>instance:is(Classe)</td><td>Vrai si l'instance est de cette classe ou d'un parent.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <strong>Instantiation :</strong> utilisez <code>MaClasse.new(...)</code> (point) et non <code>MaClasse:new(...)</code> (deux-points). La méthode est un constructeur statique, pas une méthode d'instance.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Classe simple</div>
+      <pre><code class="lua">-- Définir une classe "Arme"
+local Arme = Class.new()
+
+function Arme:init(nom, degats)
+    self.nom    = nom
+    self.degats = degats
+end
+
+function Arme:attaquer(cible)
+    Stats.mod(cible.id, "Vie", -self.degats)
+    Log.info(self.nom .. " inflige " .. self.degats .. " dégâts !")
+end
+
+function Arme:getDescription()
+    return self.nom .. " (" .. self.degats .. " dégâts)"
+end
+
+-- Créer des instances (point, pas deux-points)
+local epee  = Arme.new("Épée longue",  25)
+local hache = Arme.new("Hache de fer", 35)
+
+epee:attaquer(ennemi)
+Log.info(hache:getDescription())</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Héritage</div>
+      <pre><code class="lua">-- Sous-classe héritant de Arme
+local ArmeEnchantee = Class.new(Arme)
+
+function ArmeEnchantee:init(nom, degats, element)
+    Arme.init(self, nom, degats)   -- appel du constructeur parent
+    self.element = element
+end
+
+function ArmeEnchantee:attaquer(cible)
+    Arme.attaquer(self, cible)     -- dégâts de base
+
+    if self.element == "feu" then
+        Effect.apply(cible.id, "brulure", { duration = 3.0,
+            onTick = function(id, dt) Stats.mod(id, "Vie", -5 * dt) end,
+        })
+    elseif self.element == "glace" then
+        Effect.apply(cible.id, "ralenti", { duration = 2.0,
+            onApply  = function(id) Stats.mod(id, "Vitesse", -40) end,
+            onExpire = function(id) Stats.mod(id, "Vitesse",  40) end,
+        })
+    end
+end
+
+local baton_feu  = ArmeEnchantee.new("Bâton de feu",  30, "feu")
+local epee_glace = ArmeEnchantee.new("Épée de glace", 20, "glace")
+
+baton_feu:attaquer(ennemi)
+
+-- Vérification de type
+Log.info(tostring(baton_feu:is(ArmeEnchantee)))  -- true
+Log.info(tostring(baton_feu:is(Arme)))           -- true (héritage)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Classe autonome (sans héritage)</div>
+      <pre><code class="lua">-- Compteur réutilisable
+local Compteur = Class.new()
+
+function Compteur:init(debut, pas)
+    self.valeur = debut or 0
+    self.pas    = pas   or 1
+end
+
+function Compteur:incrementer()
+    self.valeur = self.valeur + self.pas
+    return self.valeur
+end
+
+function Compteur:reset()
+    self.valeur = 0
+end
+
+local score = Compteur.new(0, 10)
+score:incrementer()  -- 10
+score:incrementer()  -- 20
+Log.info("Score : " .. tostring(score.valeur))</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

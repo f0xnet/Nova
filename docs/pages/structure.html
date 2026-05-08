@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Structure du projet — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">📁</span>
+    <h1>Structure du projet</h1>
+    <p class="subtitle">Comment organiser les fichiers d'un projet Nova — scripts, assets, données et scènes.</p>
+  </div>
+
+  <div class="section">
+    <h2>Arborescence recommandée</h2>
+    <div class="code-wrap">
+      <div class="code-label">Structure de fichiers</div>
+      <pre><code class="lua">MonJeu/
+├── scenes/
+│   ├── menu_principal.scene
+│   ├── monde1.scene
+│   └── donjon_niveau1.scene
+│
+├── data/
+│   ├── scripts/
+│   │   ├── joueur.lua              -- Script attaché au joueur
+│   │   ├── ennemi_gobelin.lua      -- Script attaché au gobelin
+│   │   ├── boss_dragon.lua         -- Script du boss
+│   │   ├── coffre.lua              -- Script des coffres
+│   │   ├── global.lua              -- Script chargé au démarrage du jeu
+│   │   ├── monde1_scene.lua        -- Script de scène (champ "script" dans monde1.scene)
+│   │   └── donjon_n1_scene.lua     -- Script de scène du donjon
+│   │
+│   ├── items.json              -- Définition des objets
+│   ├── quests/
+│   │   ├── tuer_loups.json
+│   │   └── trouver_gemme.json
+│   ├── achievements.json
+│   ├── i18n/
+│   │   ├── fr.lua
+│   │   └── en.lua
+│   │
+│   ├── sprites/
+│   │   ├── joueur.png
+│   │   └── ennemis/
+│   │       ├── gobelin.png
+│   │       └── dragon.png
+│   │
+│   ├── sounds/
+│   │   ├── epee.ogg
+│   │   └── explosion.ogg
+│   │
+│   └── music/
+│       ├── menu.ogg
+│       └── combat.ogg</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Types de scripts</h2>
+    <table class="api-table">
+      <thead><tr><th>Type</th><th>Signature</th><th>Durée de vie</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Script d'entité</strong></td><td><code>init(entity)</code> + <code>update(entity, dt)</code></td><td>Tant que l'entité existe.</td></tr>
+        <tr><td><strong>Script global</strong></td><td><code>init()</code> + <code>update(dt)</code></td><td>Toute la durée du jeu (chargé via l'application).</td></tr>
+        <tr><td><strong>Script de scène</strong></td><td><code>init()</code> + <code>update(dt)</code></td><td>Uniquement quand la scène est active. Déchargé à chaque changement.</td></tr>
+      </tbody>
+    </table>
+    <p>Le script de scène est déclaré dans le champ <code>"script"</code> du JSON de la scène. Tous les named handlers sont disponibles (<code>OnTriggerEnter</code>, <code>OnKeyDown</code>, etc.).</p>
+  </div>
+
+  <div class="section">
+    <h2>Script global (démarrage)</h2>
+    <p>Le script <code>global.lua</code> est chargé une seule fois au lancement. C'est ici que vous définissez les raccourcis, les succès, les bindings.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/scripts/global.lua</div>
+      <pre><code class="lua">-- Contrôles
+InputBind.register("bouger_gauche",  "Left")
+InputBind.register("bouger_droite",  "Right")
+InputBind.register("bouger_haut",    "Up")
+InputBind.register("bouger_bas",     "Down")
+InputBind.register("attaquer",       "Space")
+InputBind.register("interagir",      "E")
+InputBind.register("inventaire",     "I")
+
+-- Langue
+I18n.load("fr", "data/i18n/fr")
+I18n.load("en", "data/i18n/en")
+I18n.fallback("en")
+local langue = Persist.get("langue", "fr")
+I18n.set(langue)
+
+-- Musique du menu
+EventBus.on("scene_changed", function(data)
+    if data.name == "menu_principal" then
+        Sound.playMusic("data/music/menu.ogg")
+    end
+end)</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Script de scène</h2>
+    <p>Déclaré dans le JSON de la scène (<code>"script": "data/scripts/monde1_scene.lua"</code>), il est chargé automatiquement quand la scène devient active et déchargé au changement suivant.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/scripts/monde1_scene.lua</div>
+      <pre><code class="lua">function init()
+    Sound.playMusic("data/music/monde1.ogg")
+    Log.info("[monde1] scène active")
+end
+
+function update(dt)
+    -- Logique propre à cette scène
+end
+
+function OnTriggerEnter(triggerId, entityId)
+    if triggerId == "sortie_donjon" then
+        Scene.transition("donjon_niveau1", { fade = true, duration = 0.5 })
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Script d'entité</h2>
+    <p>Chaque script est attaché à une entité dans l'éditeur. Les fonctions de cycle de vie sont appelées automatiquement.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/scripts/ennemi_gobelin.lua</div>
+      <pre><code class="lua">-- Variables locales au script (privées à chaque entité)
+local fsm
+local joueur
+local hp_max = 40
+
+function init(entity)
+    -- Initialiser les stats
+    Stats.init(entity.id, { Vie = hp_max, VieMax = hp_max, Degats = 10 })
+
+    -- Trouver le joueur
+    joueur = World.findByTag("player")
+
+    -- Créer la machine à états
+    fsm = StateMachine.new("Patrouille")
+    fsm:addState("Patrouille",
+        function() Anim.play(entity, "walk", true) end,
+        function(e, dt)
+            if entity:getDistance(joueur) < 200 then
+                fsm:transition("Poursuite")
+            end
+        end
+    )
+    fsm:addState("Poursuite",
+        function() Anim.play(entity, "run", true) end,
+        function(e, dt)
+            if entity:getDistance(joueur) > 300 then
+                fsm:transition("Patrouille")
+            end
+        end
+    )
+end
+
+function update(entity, dt)
+    fsm:update(entity, dt)
+end
+
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        local pos = entity:getPosition()
+        Loot.dropFor(entity, "gobelin")
+        Particles.emit(pos.x, pos.y, { count = 10, speed = 100, spread = 360 })
+        EntityState.disable(entity)
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Bonnes pratiques</h2>
+    <table class="api-table">
+      <thead><tr><th>Règle</th><th>Pourquoi</th></tr></thead>
+      <tbody>
+        <tr><td>Un script par type d'entité</td><td>Plus facile à maintenir et déboguer.</td></tr>
+        <tr><td>Variables locales en haut du script</td><td>Évite les conflits entre scripts.</td></tr>
+        <tr><td>Données dans data/ (JSON), logique dans scripts/</td><td>Modifier les stats sans toucher au code.</td></tr>
+        <tr><td>Debug.enabled = false en production</td><td>Évite les affichages de débogage chez le joueur.</td></tr>
+        <tr><td>Utiliser EventBus pour communiquer entre scripts</td><td>Évite les dépendances directes entre entités.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

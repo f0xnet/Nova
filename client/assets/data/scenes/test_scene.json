@@ -1,36 +1,189 @@
 {
+
   "name": "Test Scene",
+
   "type": "interior",
-  "backgroundColor": [30, 30, 40, 255],
+
+  "backgroundColor": [0, 0, 0, 255],
+
   "entities": [
+
     {
+
+      "type": "sprite",
+
+      "spriteID": "floor",
+
+      "x": 1000,
+
+      "y": 1100,
+
+      "zOrder": 0
+
+    },
+
+    {
+
+      "type": "sprite",
+
+      "spriteID": "border",
+
+      "x": 1000,
+
+      "y": 790,
+
+      "zOrder": 6
+
+    },
+
+    {
+
+      "type": "sprite",
+
+      "spriteID": "wall",
+
+      "x": 1000,
+
+      "y": 143,
+
+      "zOrder": 1
+
+    },
+
+    {
+
+      "type": "sprite",
+
+      "spriteID": "tv",
+
+      "x": 1000,
+
+      "y": 450,
+
+      "zOrder": 3
+
+    },
+
+    {
+
+      "type": "sprite",
+
+      "spriteID": "sofa",
+
+      "x": 1000,
+
+      "y": 1050,
+
+      "zOrder": 3
+
+    },
+
+    {
+
+      "type": "sprite",
+
+      "spriteID": "carpet",
+
+      "x": 1010,
+
+      "y": 1020,
+
+      "zOrder": 2
+
+    },
+
+    {
+
+      "type": "sprite",
+
+      "spriteID": "tv_screen",
+
+      "x": 1000,
+
+      "y": 480,
+
+      "zOrder": 2
+
+    },
+
+    {
+
       "type": "player",
+
       "spriteID": "player",
-      "position": [400, 300],
-      "rotation": 0,
-      "scale": [1.0, 1.0],
+
+      "x": 1000,
+
+      "y": 1080,
+
       "zOrder": 10
+
     },
+
     {
-      "type": "light",
-      "lightID": "torch",
-      "position": [400, 300],
-      "rotation": 0,
-      "scale": [1.0, 1.0]
+
+      "components": {
+
+        "transform": {
+
+          "position": [1000, 470]
+
+        },
+
+        "light": {
+
+          "type": "point",
+
+          "color": [0, 0, 0, 255],
+
+          "radius": 150.0,
+
+          "intensity": 0.7,
+
+          "castShadows": false,
+
+          "enabled": true
+
+        }
+
+      }
+
     },
+
     {
-      "type": "light",
-      "lightID": "candle",
-      "position": [800, 400],
-      "rotation": 0,
-      "scale": [1.0, 1.0]
-    },
-    {
-      "type": "light",
-      "lightID": "lamp",
-      "position": [600, 200],
-      "rotation": 0,
-      "scale": [1.0, 1.0]
+
+      "components": {
+
+        "transform": {
+
+          "position": [1000, 480]
+
+        },
+
+        "light": {
+
+          "type": "spot",
+
+          "color": [0, 0, 0, 255],
+
+          "radius": 600.0,
+
+          "intensity": 0.8,
+
+          "direction": [0.0, 1.0],
+
+          "angle": 120.0,
+
+          "castShadows": false,
+
+          "enabled": true
+
+        }
+
+      }
+
     }
+
   ]
+
 }

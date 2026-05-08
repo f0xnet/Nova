@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Cooldown — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">⏲️</span>
+    <h1>Cooldown</h1>
+    <p class="subtitle">Empêcher de spammer des actions — attaque, sort, dash, interaction. Chaque entité a ses propres cooldowns.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Cooldown.use(entityId, action, duree)</td><td>Déclenche le cooldown si prêt. Retourne <code>true</code> si l'action a pu être utilisée.</td></tr>
+        <tr><td>Cooldown.start(entityId, action, duree)</td><td>Démarre le cooldown sans vérifier s'il est prêt.</td></tr>
+        <tr><td>Cooldown.isReady(entityId, action)</td><td>Vrai si le cooldown est terminé (action disponible).</td></tr>
+        <tr><td>Cooldown.getRemaining(entityId, action)</td><td>Secondes restantes avant que l'action soit disponible.</td></tr>
+        <tr><td>Cooldown.getProgress(entityId, action, duree)</td><td>Progression de 0.0 à 1.0 (utile pour les barres d'UI).</td></tr>
+        <tr><td>Cooldown.reset(entityId, action)</td><td>Remet le cooldown à zéro immédiatement.</td></tr>
+        <tr><td>Cooldown.resetAll(entityId)</td><td>Réinitialise tous les cooldowns de cette entité.</td></tr>
+        <tr><td>Cooldown.update(dt)</td><td>Fait avancer tous les timers. Appelé automatiquement par ScriptSystem chaque frame — ne pas appeler manuellement.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>entityId :</strong> passez toujours <code>entity.id</code> comme premier argument. Chaque entité a ses cooldowns indépendants.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Attaque avec cooldown</div>
+      <pre><code class="lua">local COOLDOWN_ATTAQUE = 0.5  -- secondes
+
+function update(entity, dt)
+    if InputBind.isJustPressed("attaquer") then
+        -- Cooldown.use retourne true seulement si l'action est disponible
+        if Cooldown.use(entity.id, "attaque", COOLDOWN_ATTAQUE) then
+            attaquer(entity)
+        end
+    end
+end
+
+function attaquer(entity)
+    Anim.play(entity, "attack", false)
+    Sound.play("data/sounds/epee.ogg")
+    -- ...
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Soin automatique avec cooldown</div>
+      <pre><code class="lua">local COOLDOWN_SOIN = 8.0   -- secondes entre chaque soin
+local SEUIL_VIE    = 30     -- se soigne sous 30 PV
+
+function update(entity, dt)
+    local vie = Stats.get(entity.id, "Vie", 0)
+
+    if vie < SEUIL_VIE and Cooldown.isReady(entity.id, "soin_auto") then
+        Cooldown.start(entity.id, "soin_auto", COOLDOWN_SOIN)
+        Stats.mod(entity.id, "Vie", 25)
+
+        local pos = entity:getPosition()
+        Particles.emit(pos.x, pos.y, {
+            count = 8, speed = 50, spread = 360,
+            color = Color.new(0, 255, 150),
+        })
+    end
+
+    -- Afficher le temps restant en debug
+    local restant = Cooldown.getRemaining(entity.id, "soin_auto")
+    if restant > 0 then
+        Debug.watch("soin_dans", string.format("%.1f s", restant))
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Barre de recharge UI</div>
+      <pre><code class="lua">local COOLDOWN_DASH = 2.0
+
+function update(entity, dt)
+    if InputBind.isJustPressed("dash") then
+        if Cooldown.use(entity.id, "dash", COOLDOWN_DASH) then
+            faireUnDash(entity)
+        end
+    end
+
+    -- Progression pour afficher dans l'UI (0 = en recharge, 1 = prêt)
+    local progression = Cooldown.getProgress(entity.id, "dash", COOLDOWN_DASH)
+    UI.setValue("barre_dash", progression)
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

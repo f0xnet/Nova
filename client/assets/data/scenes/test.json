@@ -1,95 +1,189 @@
 {
+
   "name": "Test Scene",
+
   "type": "interior",
+
   "backgroundColor": [0, 0, 0, 255],
+
   "entities": [
+
     {
+
       "type": "sprite",
+
       "spriteID": "floor",
+
       "x": 1000,
+
       "y": 1100,
+
       "zOrder": 0
+
     },
+
     {
+
       "type": "sprite",
+
       "spriteID": "border",
+
       "x": 1000,
+
       "y": 790,
+
       "zOrder": 6
+
     },
+
     {
+
       "type": "sprite",
+
       "spriteID": "wall",
+
       "x": 1000,
+
       "y": 143,
+
       "zOrder": 1
+
     },
+
     {
+
       "type": "sprite",
+
       "spriteID": "tv",
+
       "x": 1000,
+
       "y": 450,
+
       "zOrder": 3
+
     },
+
     {
+
       "type": "sprite",
+
       "spriteID": "sofa",
+
       "x": 1000,
+
       "y": 1050,
+
       "zOrder": 3
+
     },
+
     {
+
       "type": "sprite",
+
       "spriteID": "carpet",
+
       "x": 1010,
+
       "y": 1020,
+
       "zOrder": 2
+
     },
+
     {
+
       "type": "sprite",
+
       "spriteID": "tv_screen",
+
       "x": 1000,
+
       "y": 480,
+
       "zOrder": 2
+
     },
+
     {
+
       "type": "player",
+
       "spriteID": "player",
+
       "x": 1000,
+
       "y": 1080,
+
       "zOrder": 10
+
     },
+
     {
+
       "components": {
+
         "transform": {
-          "position": [1000, 800]
+
+          "position": [1000, 470]
+
         },
+
         "light": {
+
           "type": "point",
-          "color": [255, 200, 100, 255],
-          "radius": 520.0,
-          "intensity": 0.8,
+
+          "color": [0, 0, 0, 255],
+
+          "radius": 150.0,
+
+          "intensity": 0.7,
+
           "castShadows": false,
+
           "enabled": true
+
         }
+
       }
+
     },
+
     {
+
       "components": {
+
         "transform": {
+
           "position": [1000, 480]
+
         },
+
         "light": {
+
           "type": "spot",
-          "color": [255, 255, 255, 255],
+
+          "color": [0, 0, 0, 255],
+
           "radius": 600.0,
+
           "intensity": 0.8,
+
           "direction": [0.0, 1.0],
+
           "angle": 120.0,
+
           "castShadows": false,
+
           "enabled": true
+
         }
+
       }
+
     }
+
   ]
+
 }

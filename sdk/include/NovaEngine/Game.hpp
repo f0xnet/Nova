@@ -7,16 +7,18 @@
 #include "NovaEngine/Events/Event.hpp"
 #include "NovaEngine/ECS/ECS.hpp"
 #include "NovaEngine/Rendering/PostProcessPipeline.hpp"
-#include "NovaEngine/Rendering/Effects/SSAOEffect.hpp"
-#include "NovaEngine/Rendering/Effects/BloomEffect.hpp"
-#include "NovaEngine/Rendering/Effects/ColorGradingEffect.hpp"
-#include "NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp"
 #include "NovaEngine/Systems/LightingSystem.hpp"
 
-// Forward declarations for game modules
+// Forward declarations — Game.hpp ne stocke que des pointeurs vers ces types,
+// les includes complets sont dans Game.cpp uniquement.
 namespace NovaEngine {
     class DialogueSystem;
     class PlayerController;
+    class ScriptSystem;
+    class SSAOEffect;
+    class BloomEffect;
+    class ColorGradingEffect;
+    class DynamicLightingEffect;
 }
 
 class Game : public NovaEngine::Application {
@@ -38,7 +40,11 @@ private:
     NovaEngine::ColorGradingEffect* m_colorGradingEffect;
     NovaEngine::DynamicLightingEffect* m_dynamicLightingEffect;
 
+    // Scripting (owned by the active scene's system list)
+    NovaEngine::ScriptSystem* m_scriptSystem = nullptr;
+
     NovaEngine::FontHandle m_font;
+    float m_lastDeltaTime = 0.016f;
 
 public:
     Game();

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>I18n — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🌍</span>
+    <h1>I18n</h1>
+    <p class="subtitle">Internationalisation — afficher les textes dans la langue du joueur grâce à des fichiers de traduction.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>I18n.load(langue, chemin)</td><td>Charge un fichier de traduction pour une langue donnée.</td></tr>
+        <tr><td>I18n.loadTable(langue, table)</td><td>Charge les traductions depuis une table Lua directement.</td></tr>
+        <tr><td>I18n.set(code)</td><td>Change la langue active. Ex : <code>"fr"</code>, <code>"en"</code>, <code>"de"</code>.</td></tr>
+        <tr><td>I18n.get()</td><td>Retourne le code de la langue active.</td></tr>
+        <tr><td>I18n.t(cle, ...)</td><td>Retourne la traduction de la clé. Retourne la clé si non trouvée.</td></tr>
+        <tr><td>I18n.has(cle)</td><td>Vrai si la clé existe dans la langue active.</td></tr>
+        <tr><td>I18n.fallback(code)</td><td>Langue de repli si une clé est manquante.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Fichiers de traduction</h2>
+    <p>Placez vos fichiers dans <code>data/i18n/</code>. Un module Lua par langue, chargé manuellement au démarrage :</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; data/i18n/fr.lua</div>
+      <pre><code class="lua">return {
+    ["menu.jouer"]        = "Jouer",
+    ["menu.quitter"]      = "Quitter",
+    ["hud.vie"]           = "Vie",
+    ["notif.niveau"]      = "Niveau %d atteint !",
+    ["notif.objet"]       = "Obtenu : %s",
+    ["dialogue.marchand"] = "Bonjour, aventurier !",
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Charger et utiliser les traductions</div>
+      <pre><code class="lua">-- Charger au démarrage (script global)
+I18n.load("fr", "data/i18n/fr")
+I18n.load("en", "data/i18n/en")
+I18n.fallback("en")   -- si une clé manque en fr, utiliser en
+
+-- Restaurer la langue de la dernière session
+local langue = Persist.get("langue", "fr")
+I18n.set(langue)
+
+-- Texte simple
+local texte_jouer = I18n.t("menu.jouer")   -- "Jouer" ou "Play"
+
+-- Texte avec arguments (string.format : %d, %s, %f…)
+local notif = I18n.t("notif.niveau", 5)
+Notify.show(notif,  { color = "lime" })   -- "Niveau 5 atteint !"
+
+local objet = I18n.t("notif.objet", "Épée longue")
+Notify.show(objet)   -- "Obtenu : Épée longue"</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Changer la langue depuis les options</div>
+      <pre><code class="lua">function changerLangue(code)
+    I18n.set(code)
+    Persist.set("langue", code)
+    Notify.show("Langue : " .. code)
+end
+
+-- Appeler depuis le menu options
+changerLangue("en")</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

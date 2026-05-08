@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>UI — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🖼️</span>
+    <h1>UI</h1>
+    <p class="subtitle">Charger des layouts d'interface, lire et écrire des valeurs, réagir aux clics et actions.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Architecture :</strong> les layouts sont définis en JSON dans <code>data/ui/json/</code>. Lua charge les fichiers et se branche sur leurs événements via l'EventBus.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td colspan="2" style="font-weight:600;color:#aaa;font-size:0.85em;padding-top:10px">Chargement</td></tr>
+        <tr><td>UI.load(path)</td><td>Charge un fichier JSON de layout. Retourne <code>true</code> si réussi.</td></tr>
+        <tr><td>UI.removeUI(id)</td><td>Décharge un layout par son identifiant.</td></tr>
+        <tr><td>UI.removeGroup(id)</td><td>Supprime un groupe de composants.</td></tr>
+        <tr><td>UI.clear()</td><td>Supprime tous les composants UI.</td></tr>
+        <tr><td colspan="2" style="font-weight:600;color:#aaa;font-size:0.85em;padding-top:10px">Visibilité</td></tr>
+        <tr><td>UI.show(id)</td><td>Rend un composant visible.</td></tr>
+        <tr><td>UI.hide(id)</td><td>Cache un composant.</td></tr>
+        <tr><td>UI.setVisible(id, bool)</td><td>Contrôle la visibilité directement.</td></tr>
+        <tr><td colspan="2" style="font-weight:600;color:#aaa;font-size:0.85em;padding-top:10px">Lecture / écriture</td></tr>
+        <tr><td>UI.getText(id)</td><td>Lit le texte affiché d'un composant <code>Text</code>.</td></tr>
+        <tr><td>UI.setText(id, texte)</td><td>Modifie le texte affiché.</td></tr>
+        <tr><td>UI.getValue(id)</td><td>Lit la valeur d'un <code>Slider</code> ou <code>TextInput</code> (string ou float).</td></tr>
+        <tr><td>UI.setValue(id, valeur)</td><td>Définit la valeur d'un <code>Slider</code> (float) ou <code>Button</code> (string).</td></tr>
+        <tr><td colspan="2" style="font-weight:600;color:#aaa;font-size:0.85em;padding-top:10px">Événements</td></tr>
+        <tr><td>UI.onClick(id, fn)</td><td>Appelle <code>fn(value, action)</code> quand le composant <code>id</code> déclenche une action.</td></tr>
+        <tr><td>UI.onAction(action, fn)</td><td>Appelle <code>fn(value, id)</code> pour une action nommée spécifique.</td></tr>
+        <tr><td>UI.on(event, fn)</td><td>Écoute l'événement EventBus <code>"ui_&lt;event&gt;"</code>.</td></tr>
+        <tr><td>UI.off(event)</td><td>Supprime les écouteurs de <code>"ui_&lt;event&gt;"</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Événements reçus</h2>
+    <table class="api-table">
+      <thead><tr><th>EventBus</th><th>Données</th><th>Émis quand</th></tr></thead>
+      <tbody>
+        <tr><td><code>"ui_action"</code></td><td><code>{ action, value, id }</code></td><td>N'importe quel composant déclenche une action</td></tr>
+        <tr><td><code>"ui_action_&lt;action&gt;"</code></td><td><code>{ value, id }</code></td><td>Action spécifique déclenchée</td></tr>
+        <tr><td><code>"ui_click_&lt;id&gt;"</code></td><td><code>{ action, value }</code></td><td>Composant spécifique déclenche une action</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Callback global (named handler)</h2>
+    <p>Si vous définissez <code>OnUIAction</code> dans un script, il est appelé automatiquement pour chaque action UI.</p>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; OnUIAction</div>
+      <pre><code class="lua">function OnUIAction(action, value, id)
+    if action == "quit" then
+        -- nettoyage avant fermeture
+        Persist.set("derniere_scene", Scene.current())
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Menu principal</div>
+      <pre><code class="lua">UI.load("data/ui/json/main_menu.json")
+
+-- Bouton "Jouer"
+UI.onClick("btn_jouer", function()
+    Scene.transition("monde_01", { fade = true, duration = 1.0 })
+end)
+
+-- Bouton "Options"
+UI.onClick("btn_options", function()
+    UI.hide("panel_menu")
+    UI.show("panel_options")
+end)
+
+-- Bouton "Quitter"
+UI.onClick("btn_quitter", function()
+    -- Signal géré par le moteur
+    EventBus.emit("quit_requested", {})
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Slider de volume</div>
+      <pre><code class="lua">UI.load("data/ui/json/options.json")
+
+-- Initialiser le slider avec la valeur sauvegardée
+local vol = Persist.get("option_volume", 0.8)
+UI.setValue("slider_volume", vol)
+
+-- Réagir aux changements en temps réel
+UI.onClick("slider_volume", function()
+    local v = UI.getValue("slider_volume")
+    Sound.setVolume(v)
+    Persist.set("option_volume", v)
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; HUD de combat</div>
+      <pre><code class="lua">UI.load("data/ui/json/hud.json")
+
+local joueur = Game.getPlayer()
+
+-- Mettre à jour la barre de vie
+EventBus.on("stat_changed", function(data)
+    if data.entityId ~= joueur.id then return end
+    if data.stat ~= "Vie" then return end
+
+    local pct = data.value / Stats.get(joueur.id, "VieMax", 100)
+    UI.setValue("barre_vie", pct)
+    UI.setText("label_vie", math.floor(data.value) .. " / "
+                            .. math.floor(Stats.get(joueur.id, "VieMax", 100)))
+end)
+
+-- Afficher/cacher le HUD selon la scène
+EventBus.on("scene_changed", function(d)
+    if d.name == "menu_principal" then
+        UI.hide("hud_root")
+    else
+        UI.show("hud_root")
+    end
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Inventaire ouvert/fermé</div>
+      <pre><code class="lua">local inventaire_ouvert = false
+
+function init(entity)
+    InputBind.register("inventaire", "I")
+end
+
+function update(entity, dt)
+    if InputBind.isJustPressed("inventaire") then
+        inventaire_ouvert = not inventaire_ouvert
+        if inventaire_ouvert then
+            UI.show("panel_inventaire")
+            Game.pause()
+        else
+            UI.hide("panel_inventaire")
+            Game.resume()
+        end
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

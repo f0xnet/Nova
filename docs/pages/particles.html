@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Particles — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">✨</span>
+    <h1>Particles</h1>
+    <p class="subtitle">Système de particules 2D — explosions, traînées magiques, pluie, poussière, sang, étincelles.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Particles.emit(x, y, opts)</td><td>Burst ponctuel : émet N particules d'un coup à la position (x, y).</td></tr>
+        <tr><td>Particles.emitter(x, y, opts)</td><td>Émetteur continu : émet des particules régulièrement. Retourne un handle.</td></tr>
+        <tr><td>Particles.move(handle, x, y)</td><td>Déplace un émetteur continu (pour suivre une entité).</td></tr>
+        <tr><td>Particles.stop(handle)</td><td>Arrête un émetteur continu.</td></tr>
+        <tr><td>Particles.clear()</td><td>Supprime toutes les particules et tous les émetteurs.</td></tr>
+        <tr><td>Particles.count()</td><td>Nombre de particules actives.</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Option</th><th>Description</th><th>Défaut</th></tr></thead>
+      <tbody>
+        <tr><td>count</td><td>Nombre de particules par burst.</td><td>12</td></tr>
+        <tr><td>rate</td><td>Secondes entre spawns (émetteur continu).</td><td>0.04</td></tr>
+        <tr><td>lifetime</td><td>Durée de vie en secondes.</td><td>1.0</td></tr>
+        <tr><td>speed</td><td>Vitesse max en pixels/seconde.</td><td>80</td></tr>
+        <tr><td>spread</td><td>Demi-angle de dispersion en degrés. 180 = dans toutes les directions.</td><td>180</td></tr>
+        <tr><td>angle</td><td>Direction centrale. 0=droite, 90=bas, 270=haut.</td><td>270</td></tr>
+        <tr><td>gravity</td><td>Gravité en pixels/s². Positif = tombe.</td><td>0</td></tr>
+        <tr><td>size</td><td>Taille initiale en pixels.</td><td>5</td></tr>
+        <tr><td>sizeEnd</td><td>Taille finale en pixels.</td><td>0</td></tr>
+        <tr><td>color</td><td>Couleur de départ.</td><td>Blanc</td></tr>
+        <tr><td>colorEnd</td><td>Couleur d'arrivée (alpha → 0 par défaut).</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Explosion</div>
+      <pre><code class="lua">Particles.emit(x, y, {
+    count    = 40,
+    speed    = 250,
+    spread   = 360,         -- toutes les directions
+    lifetime = 0.8,
+    size     = 8, sizeEnd = 1,
+    color    = Color.new(255, 140, 0),       -- orange
+    colorEnd = Color.new(100, 0, 0, 0),      -- rouge transparent
+    gravity  = 80,
+})</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Traînée magique (suit le joueur)</div>
+      <pre><code class="lua">-- Créer l'émetteur
+local trainee = Particles.emitter(0, 0, {
+    rate     = 0.02,         -- 50 particules/seconde
+    count    = 1,
+    speed    = 15,
+    spread   = 360,
+    lifetime = 0.4,
+    size     = 5, sizeEnd = 0,
+    color    = Color.new(100, 150, 255),  -- bleu-mauve
+})
+
+-- Chaque frame : déplacer l'émetteur avec le joueur
+function update(entity, dt)
+    local pos = World.getPosition(entity)
+    Particles.move(trainee, pos.x, pos.y)
+end
+
+-- Stopper l'émetteur quand le sort se termine (via un message)
+function OnMessage(msg, data)
+    if msg == "sort_termine" then
+        Particles.stop(trainee)
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Pluie de pièces</div>
+      <pre><code class="lua">Particles.emit(x, y, {
+    count    = 20,
+    speed    = 120,
+    angle    = 270,          -- vers le haut
+    spread   = 60,           -- demi-cône de 60°
+    lifetime = 1.2,
+    size     = 6, sizeEnd = 4,
+    gravity  = 200,          -- retombe vite
+    color    = Color.new(255, 215, 0),    -- or
+    colorEnd = Color.new(200, 160, 0, 0),
+})</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

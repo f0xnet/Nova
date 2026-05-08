@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Easing — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">〰️</span>
+    <h1>Easing</h1>
+    <p class="subtitle">Fonctions de lissage Robert Penner complètes — interpolation manuelle avec courbes (utile si vous n'utilisez pas Tween).</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Conseil :</strong> dans la plupart des cas, utilisez <strong>Tween</strong> plutôt qu'Easing directement. Easing est utile quand vous calculez manuellement une valeur dans <code>update</code>.
+  </div>
+
+  <div class="section">
+    <h2>Helpers</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Easing.apply(nom, t)</td><td>Applique la courbe nommée à t ∈ [0, 1]. Retourne une valeur entre 0 et 1.</td></tr>
+        <tr><td>Easing.get(nom)</td><td>Retourne la fonction de courbe par son nom (ou <code>Easing.linear</code> si inconnu).</td></tr>
+        <tr><td>Easing.lerp(a, b, t, nom)</td><td>Interpolation de <code>a</code> vers <code>b</code> avec la courbe nommée.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Courbes disponibles</h2>
+    <table class="api-table">
+      <thead><tr><th>Nom</th><th>Effet</th></tr></thead>
+      <tbody>
+        <tr><td><code>"linear"</code></td><td>Vitesse constante.</td></tr>
+        <tr><td><code>"inQuad"</code> / <code>"outQuad"</code> / <code>"inOutQuad"</code></td><td>Accélération quadratique (douce).</td></tr>
+        <tr><td><code>"inCubic"</code> / <code>"outCubic"</code> / <code>"inOutCubic"</code></td><td>Accélération cubique (marquée).</td></tr>
+        <tr><td><code>"inQuart"</code> / <code>"outQuart"</code> / <code>"inOutQuart"</code></td><td>Accélération quartique.</td></tr>
+        <tr><td><code>"inQuint"</code> / <code>"outQuint"</code> / <code>"inOutQuint"</code></td><td>Accélération quintique.</td></tr>
+        <tr><td><code>"inSine"</code> / <code>"outSine"</code> / <code>"inOutSine"</code></td><td>Courbe sinusoïdale.</td></tr>
+        <tr><td><code>"inExpo"</code> / <code>"outExpo"</code> / <code>"inOutExpo"</code></td><td>Accélération exponentielle (très vive).</td></tr>
+        <tr><td><code>"inCirc"</code> / <code>"outCirc"</code> / <code>"inOutCirc"</code></td><td>Courbe circulaire.</td></tr>
+        <tr><td><code>"inElastic"</code> / <code>"outElastic"</code> / <code>"inOutElastic"</code></td><td>Vibration élastique.</td></tr>
+        <tr><td><code>"inBack"</code> / <code>"outBack"</code> / <code>"inOutBack"</code></td><td>Recul avant de partir / dépasse avant de s'arrêter.</td></tr>
+        <tr><td><code>"inBounce"</code> / <code>"outBounce"</code> / <code>"inOutBounce"</code></td><td>Rebonds.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <strong>Noms différents de Tween :</strong> Tween utilise des alias courts (<code>"easeIn"</code>, <code>"easeOut"</code>…). Easing utilise les noms complets Robert Penner (<code>"inQuad"</code>, <code>"outCubic"</code>…). Ne pas confondre.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemple — Animation manuelle dans update</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Faire apparaître un panneau avec rebond</div>
+      <pre><code class="lua">local duree     = 0.6   -- secondes
+local temps     = 0
+local debut_y   = -200  -- hors écran (au-dessus)
+local arrivee_y = 50    -- position finale
+
+function update(entity, dt)
+    if temps < duree then
+        temps = temps + dt
+        local t = math.min(temps / duree, 1.0)
+        local y = Easing.lerp(debut_y, arrivee_y, t, "outBounce")
+        entity:setPosition(400, y)
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Obtenir une fonction par nom</div>
+      <pre><code class="lua">-- Récupérer la fonction une seule fois (plus efficace dans une boucle)
+local fn = Easing.get("outElastic")
+for i = 0, 10 do
+    local t = i / 10
+    local v = fn(t)  -- v ∈ [0, 1]
+    -- utiliser v pour animer…
+end
+
+-- Équivalent direct
+local v = Easing.apply("inOutCubic", 0.75)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

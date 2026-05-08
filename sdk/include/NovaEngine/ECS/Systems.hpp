@@ -28,6 +28,7 @@ public:
         std::sort(entities.begin(), entities.end(), [](Entity* a, Entity* b) {
             auto* spriteA = a->getComponent<SpriteComponent>();
             auto* spriteB = b->getComponent<SpriteComponent>();
+            if (!spriteA || !spriteB) return false;
             return spriteA->zOrder < spriteB->zOrder;
         });
 

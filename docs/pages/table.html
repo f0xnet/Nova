@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Table — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">📋</span>
+    <h1>Table</h1>
+    <p class="subtitle">Fonctions utilitaires pour les tableaux Lua — chercher, filtrer, transformer, mélanger des listes.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Table.contains(t, valeur)</td><td>Vrai si la valeur est dans le tableau.</td></tr>
+        <tr><td>Table.find(t, fonction)</td><td>Retourne <code>(valeur, index)</code> du premier élément pour lequel <code>fonction(elem)</code> est vrai, ou <code>nil, nil</code>.</td></tr>
+        <tr><td>Table.filter(t, fonction)</td><td>Retourne un nouveau tableau avec seulement les éléments valides.</td></tr>
+        <tr><td>Table.map(t, fonction)</td><td>Retourne un nouveau tableau transformé par la fonction.</td></tr>
+        <tr><td>Table.reduce(t, fonction, initial)</td><td>Réduit le tableau à une valeur en accumulant avec <code>fonction(acc, elem)</code>.</td></tr>
+        <tr><td>Table.keys(t)</td><td>Retourne la liste des clés d'une table (dict ou tableau).</td></tr>
+        <tr><td>Table.values(t)</td><td>Retourne la liste des valeurs d'une table.</td></tr>
+        <tr><td>Table.shuffle(t)</td><td>Retourne une copie mélangée (Fisher-Yates). N'altère pas l'original.</td></tr>
+        <tr><td>Table.pick(t)</td><td>Retourne un élément aléatoire du tableau.</td></tr>
+        <tr><td>Table.merge(a, b)</td><td>Fusion shallow : retourne une nouvelle table avec les clés de <code>a</code> et <code>b</code> (b écrase a).</td></tr>
+        <tr><td>Table.count(t)</td><td>Nombre de paires dans la table (fonctionne aussi sur les dicts).</td></tr>
+        <tr><td>Table.reverse(t)</td><td>Retourne une copie inversée du tableau.</td></tr>
+        <tr><td>Table.unique(t)</td><td>Retourne une copie sans doublons (ordre préservé).</td></tr>
+        <tr><td>Table.flatten(t)</td><td>Aplatit récursivement les tables imbriquées en une liste plate.</td></tr>
+        <tr><td>Table.groupBy(t, fonction)</td><td>Regroupe les éléments par la clé retournée par la fonction.</td></tr>
+        <tr><td>Table.copy(t)</td><td>Copie profonde du tableau.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Note :</strong> Pour trier un tableau, utilisez la fonction standard Lua <code>table.sort(t, fn)</code> (t minuscule). <code>Table</code> (T majuscule) est le module Nova qui ne fournit pas de tri.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Filtrer et chercher</div>
+      <pre><code class="lua">local ennemis = World.findAllByTag("enemy")
+
+-- Garder seulement les ennemis encore en vie
+local ennemis_vivants = Table.filter(ennemis, function(e)
+    return Stats.get(e.id, "Vie", 0) > 0
+end)
+
+-- Trouver l'ennemi le plus proche du joueur
+local pos_joueur = joueur:getPosition()
+local plus_proche = Table.find(ennemis, function(e)
+    return e:getDistance(joueur) < 200
+end)
+
+-- Vérifier si une liste contient un item
+local inventaire = Inventory.getAll(joueur.id)
+if Table.contains(inventaire, "cle_donjon") then
+    print("Le joueur a la clé !")
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Transformer et compter</div>
+      <pre><code class="lua">local ennemis = World.findAllByTag("enemy")
+
+-- Créer une liste de positions
+local positions = Table.map(ennemis, function(e)
+    return e:getPosition()
+end)
+
+-- Trier par distance au joueur — table.sort standard Lua (t minuscule)
+table.sort(ennemis, function(a, b)
+    return a:getDistance(joueur) < b:getDistance(joueur)
+end)
+
+-- Compter les ennemis avec moins de 20 PV
+local nb_blesses = #Table.filter(ennemis, function(e)
+    return Stats.get(e.id, "Vie", 0) < 20
+end)
+
+-- Sommer les PV de tous les ennemis
+local total_vie = Table.reduce(ennemis, function(acc, e)
+    return acc + Stats.get(e.id, "Vie", 0)
+end, 0)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Divers utilitaires</div>
+      <pre><code class="lua">-- Supprimer les doublons dans une liste de tags
+local tags    = { "feu", "poison", "feu", "glace", "poison" }
+local uniques = Table.unique(tags)   -- { "feu", "poison", "glace" }
+
+-- Mélanger un tableau (copie, l'original est intact)
+local joueurs = { "Alice", "Bob", "Carol" }
+local ordre   = Table.shuffle(joueurs)
+
+-- Fusion de configurations (override écrase base)
+local base     = { vie = 100, mana = 50, vitesse = 80 }
+local override = { vie = 200 }
+local config   = Table.merge(base, override)
+-- config.vie = 200, config.mana = 50, config.vitesse = 80
+
+-- Compter les entrées d'un dict
+local quetes_actives = Quest.getActive()
+print("Quêtes en cours : " .. Table.count(quetes_actives))
+
+-- Regrouper des drops par type
+local drops = Loot.roll("boss")
+local par_type = Table.groupBy(drops, function(d)
+    return d.item and "objet" or "vide"
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

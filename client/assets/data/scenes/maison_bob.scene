@@ -1,0 +1,58 @@
+{
+  "name": "Maison de Bob",
+  "type": "interior",
+  "backgroundColor": [80, 70, 60, 255],
+  "entities": [
+    {
+      "type": "sprite",
+      "spriteID": "floor_wood",
+      "position": [0, 0],
+      "scale": [10, 8],
+      "zOrder": -10
+    },
+    {
+      "type": "sprite",
+      "spriteID": "door_interior",
+      "position": [400, 580],
+      "zOrder": 5,
+      "comment": "Porte de sortie - entryPortal dans scenegraph (entrée depuis la ville)"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "bed",
+      "position": [200, 300],
+      "zOrder": 1,
+      "comment": "Lit de Bob - homePosition"
+    },
+    {
+      "type": "sprite",
+      "spriteID": "table",
+      "position": [500, 350],
+      "zOrder": 1
+    },
+    {
+      "type": "sprite",
+      "spriteID": "chair",
+      "position": [450, 350],
+      "zOrder": 1
+    },
+    {
+      "type": "sprite",
+      "spriteID": "chest",
+      "position": [150, 450],
+      "zOrder": 1
+    },
+    {
+      "type": "light",
+      "lightID": "candle",
+      "position": [500, 350],
+      "comment": "Bougie sur la table"
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [400, 580],
+      "comment": "Zone qui détecte quand joueur/NPC sort vers la ville"
+    }
+  ]
+}

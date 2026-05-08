@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Nav — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🧭</span>
+    <h1>Nav</h1>
+    <p class="subtitle">Navigation automatique — déplacer une entité vers une cible en évitant les obstacles, suivre un chemin pré-calculé.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Nav.moveTo(entity, cible, vitesse, onFin)</td><td>Déplace l'entité vers <code>cible</code> (entité ou Vec2f). <code>vitesse</code> et <code>onFin</code> sont optionnels.</td></tr>
+        <tr><td>Nav.findPath(entity, cible)</td><td>Calcule et retourne le chemin vers la cible sous forme de liste de points <code>[{x,y}...]</code>.</td></tr>
+        <tr><td>Nav.moveAlongPath(entity, chemin, vitesse, onFin)</td><td>Déplace l'entité le long d'un chemin pré-calculé.</td></tr>
+        <tr><td>Nav.stop(entity)</td><td>Arrête le déplacement de l'entité.</td></tr>
+        <tr><td>Nav.isMoving(entity)</td><td>Vrai si l'entité est en déplacement.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Déplacer un ennemi vers le joueur</div>
+      <pre><code class="lua">function update(entity, dt)
+    local joueur = World.findByTag("player")
+    if not joueur then return end
+
+    local dist = entity:getDistance(joueur)
+
+    if dist < 300 then
+        -- Poursuivre le joueur à vitesse 120
+        Nav.moveTo(entity, joueur, 120)
+        Anim.play(entity, "run", true)
+    else
+        Nav.stop(entity)
+        Anim.play(entity, "idle", true)
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Déplacer vers une position fixe avec callback</div>
+      <pre><code class="lua">-- Aller à un point, puis faire quelque chose à l'arrivée
+local destination = World.findByTag("checkpoint_a"):getPosition()
+
+Nav.moveTo(entity, destination, 100, function()
+    print("Arrivé au checkpoint !")
+    Anim.play(entity, "idle", true)
+    Timer.after(2.0, function()
+        -- Repartir vers le prochain point
+        local suivant = World.findByTag("checkpoint_b"):getPosition()
+        Nav.moveTo(entity, suivant, 100)
+    end)
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Chemin manuel avec findPath</div>
+      <pre><code class="lua">-- Calculer le chemin d'abord, puis le suivre
+local joueur = World.findByTag("player")
+local chemin = Nav.findPath(entity, joueur)
+
+if #chemin > 0 then
+    Nav.moveAlongPath(entity, chemin, 150, function()
+        print("Chemin terminé !")
+    end)
+
+    -- Visualiser le chemin en debug
+    for i = 1, #chemin - 1 do
+        Debug.drawLine(
+            chemin[i].x,   chemin[i].y,
+            chemin[i+1].x, chemin[i+1].y,
+            Color.new(0, 200, 255), 0
+        )
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Patrouille entre plusieurs points</div>
+      <pre><code class="lua">-- Patrouille manuelle entre des points de passage
+local points = {
+    World.findByTag("patrol_a"):getPosition(),
+    World.findByTag("patrol_b"):getPosition(),
+    World.findByTag("patrol_c"):getPosition(),
+}
+local index_actuel = 1
+
+function allerAuProchainPoint()
+    local destination = points[index_actuel]
+
+    Nav.moveTo(entity, destination, 80, function()
+        -- Passer au point suivant (boucle)
+        index_actuel = (index_actuel % #points) + 1
+        Timer.after(1.5, allerAuProchainPoint)
+    end)
+end
+
+function init(entity)
+    allerAuProchainPoint()
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

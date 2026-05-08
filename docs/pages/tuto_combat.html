@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tutoriel : Système de combat — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">⚔️</span>
+    <h1>Tutoriel : Système de combat</h1>
+    <p class="subtitle">Créer un système de combat complet pour le joueur — attaque au corps à corps, dash, invincibilité, barre de vie, mort et respawn.</p>
+  </div>
+
+  <div class="section">
+    <h2>1. Initialisation du joueur</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — init</div>
+      <pre><code class="lua">local VITESSE       = 180
+local VIE_MAX       = 100
+local DEGATS_BASE   = 25
+local PORTEE_ATK    = 80
+
+local invincible    = false
+local checkpoint    = { x = 200, y = 300 }
+
+function init(entity)
+    Stats.init(entity.id, {
+        Vie    = VIE_MAX,
+        VieMax = VIE_MAX,
+        Degats = DEGATS_BASE,
+    })
+
+    Camera.follow(entity)
+    Sound.playMusic("data/music/combat.ogg")
+
+    -- Mort quand les PV tombent à 0
+    EventBus.on("stat_zeroed", function(data)
+        if data.entityId == entity.id and data.stat == "Vie" then
+            mourir(entity)
+        end
+    end)
+
+    -- Être touché
+    EventBus.on("joueur_touche", function(data)
+        if invincible then return end
+
+        SceneFX.flash(Color.new(255, 0, 0, 120), 0.15)
+        Camera.shake(0.2, 6)
+        Sound.play("data/sounds/joueur_touche.ogg")
+
+        -- Invincibilité temporaire après le coup
+        invincible = true
+        Timer.after(1.0, function() invincible = false end)
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. Déplacement et actions</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; joueur.lua — update</div>
+      <pre><code class="lua">function update(entity, dt)
+    -- Déplacement
+    local dx, dy = 0, 0
+    if InputBind.isPressed("bouger_gauche") then dx = -1 end
+    if InputBind.isPressed("bouger_droite") then dx =  1 end
+    if InputBind.isPressed("bouger_haut")   then dy = -1 end
+    if InputBind.isPressed("bouger_bas")    then dy =  1 end
+
+    -- Normaliser la diagonale
+    if dx ~= 0 and dy ~= 0 then dx = dx * 0.707; dy = dy * 0.707 end
+
+    local pos = entity:getPosition()
+    entity:setPosition(pos.x + dx * VITESSE * dt,
+                       pos.y + dy * VITESSE * dt)
+
+    -- Animation
+    if dx ~= 0 or dy ~= 0 then
+        if Anim.current(entity) ~= "run" then Anim.play(entity, "run", true) end
+    else
+        if Anim.current(entity) ~= "idle" then Anim.play(entity, "idle", true) end
+    end
+
+    -- Actions
+    if InputBind.isJustPressed("attaquer") then attaquer(entity) end
+    if InputBind.isJustPressed("dash")     then dash(entity, dx, dy) end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Attaque</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; attaquer()</div>
+      <pre><code class="lua">function attaquer(entity)
+    if not Cooldown.use(entity.id, "attaque", 0.5) then return end
+
+    Anim.play(entity, "attack", false)
+    Sound.play("data/sounds/epee_swing.ogg")
+
+    -- Zone de dégâts au frame 4
+    Anim.onFrame(entity, 4, function()
+        local pos     = entity:getPosition()
+        local victimes = Physics.findInRadius(entity, PORTEE_ATK, "enemy")
+
+        for _, victime in ipairs(victimes) do
+            local dmg = Stats.get(entity.id, "Degats", DEGATS_BASE)
+
+            -- 10% de chances de coup critique
+            if Random.chance(0.10) then
+                dmg = dmg * 2
+                SceneFX.flash(Color.new(255, 255, 200, 150), 0.1)
+            end
+
+            Stats.mod(victime.id, "Vie", -dmg)
+        end
+    end)
+
+    Anim.onFinish(entity, function()
+        Anim.play(entity, "idle", true)
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>4. Dash avec invincibilité</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; dash()</div>
+      <pre><code class="lua">local VITESSE_DASH = 500
+local DUREE_DASH   = 0.2
+
+function dash(entity, dx, dy)
+    if dx == 0 and dy == 0 then return end
+    if not Cooldown.use(entity.id, "dash", 1.5) then return end
+
+    invincible = true
+
+    -- Traînée de particules
+    local pos0    = entity:getPosition()
+    local trainee = Particles.emitter(pos0.x, pos0.y, {
+        rate = 0.02, count = 1, speed = 10, spread = 360,
+        lifetime = 0.3, size = 6, sizeEnd = 0,
+        color = Color.new(100, 200, 255),
+    })
+
+    -- Déplacement rapide sur DUREE_DASH secondes
+    local temps = 0
+    local function avancer(dt_frame)
+        if temps >= DUREE_DASH then
+            Particles.stop(trainee)
+            -- Invincibilité encore 0.3 sec après le dash
+            Timer.after(0.3, function() invincible = false end)
+            return
+        end
+        local pos = entity:getPosition()
+        entity:setPosition(pos.x + dx * VITESSE_DASH * dt_frame,
+                           pos.y + dy * VITESSE_DASH * dt_frame)
+        Particles.move(trainee, entity:getPosition().x, entity:getPosition().y)
+        temps = temps + dt_frame
+    end
+
+    -- Exécuter via Scheduler pour une animation fluide
+    local FRAME_DT = 0.016  -- pas fixe par frame (~60 fps)
+    Scheduler.start(function()
+        while temps < DUREE_DASH do
+            avancer(FRAME_DT)
+            Scheduler.wait(0)
+        end
+        Particles.stop(trainee)
+        Timer.after(0.3, function() invincible = false end)
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>5. Mort et respawn</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; mourir()</div>
+      <pre><code class="lua">function mourir(entity)
+    Sound.play("data/sounds/joueur_mort.ogg")
+
+    SceneFX.fadeIn(1.5, function()
+        -- Remettre en vie
+        Stats.set(entity.id, "Vie", VIE_MAX)
+        invincible = false
+
+        -- Revenir au checkpoint
+        entity:setPosition(checkpoint.x, checkpoint.y)
+        Sound.playMusic("data/music/combat.ogg")
+
+        Notify.show("Vous êtes mort. Retour au checkpoint.",  { color = "orange" })
+        SceneFX.fadeOut(1.0)
+    end)
+end
+
+-- Sauvegarder le checkpoint quand on le touche
+-- triggerId = identifiant string de la zone Trigger (ex: "checkpoint_zone")
+function OnTriggerEnter(triggerId, entityId)
+    if triggerId == "checkpoint_zone" then
+        checkpoint = entity:getPosition()
+        Notify.show("Checkpoint sauvegardé !",  { color = "lime" })
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

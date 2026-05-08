@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Notify — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🔔</span>
+    <h1>Notify</h1>
+    <p class="subtitle">Notifications à l'écran et textes flottants au-dessus des entités. S'empilent automatiquement et disparaissent après quelques secondes.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Fonctionnement :</strong> <code>Notify</code> émet des événements EventBus (<code>"ui_notification"</code>, <code>"floating_text"</code>). C'est votre script HUD qui les écoute et les affiche dans l'UI. Le module gère la logique, pas le rendu.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Notify.show(texte, opts)</td><td>Notification en haut d'écran. <code>opts</code> optionnel.</td></tr>
+        <tr><td>Notify.floatingText(entity, texte, opts)</td><td>Texte qui flotte au-dessus de l'entité (dégâts, XP…).</td></tr>
+        <tr><td>Notify.clear()</td><td>Efface toutes les notifications.</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Option (opts)</th><th>Description</th><th>Défaut</th></tr></thead>
+      <tbody>
+        <tr><td>color</td><td>Couleur CSS : <code>"white"</code>, <code>"gold"</code>, <code>"red"</code>, <code>"lime"</code>, <code>"orange"</code>, <code>"#ff8800"</code>…</td><td><code>"white"</code></td></tr>
+        <tr><td>duration</td><td>Durée d'affichage en secondes.</td><td><code>3.0</code> (1.5 pour floating)</td></tr>
+        <tr><td>size</td><td>Taille relative du texte.</td><td><code>1.0</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Notifications colorées</div>
+      <pre><code class="lua">-- Basique (blanc, 3 secondes)
+Notify.show("Nouvelle zone découverte !")
+
+-- Coloré
+Notify.show("Quête terminée !",       { color = "lime" })
+Notify.show("Vie faible !",            { color = "orange" })
+Notify.show("Vous êtes mort.",         { color = "red" })
+Notify.show("Objet légendaire trouvé !", { color = "gold", duration = 6.0 })
+
+-- Grand texte avec durée personnalisée
+Notify.show("BOSS VAINCU",             { color = "gold", size = 1.6, duration = 5.0 })</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Textes flottants (dégâts, soins, XP)</div>
+      <pre><code class="lua">-- Dégâts reçus
+Notify.floatingText(joueur, "-25", { color = "red" })
+
+-- Soin
+Notify.floatingText(joueur, "+50 PV", { color = "lime" })
+
+-- XP gagné
+Notify.floatingText(joueur, "+120 XP", { color = "gold" })
+
+-- Critique !
+Notify.floatingText(ennemi, "CRITIQUE !", { color = "orange", size = 1.4 })</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Brancher sur l'UI (dans le script HUD)</div>
+      <pre><code class="lua">-- Le script HUD écoute les événements et les affiche
+EventBus.on("ui_notification", function(data)
+    UI.setText("hud_notif", data.text)
+    -- Appliquer la couleur si votre UI le supporte
+    UI.show("hud_notif")
+    Timer.after(data.duration, function()
+        UI.hide("hud_notif")
+    end)
+end)
+
+EventBus.on("ui_notification_clear", function()
+    UI.hide("hud_notif")
+end)</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Événements émis</h2>
+    <div class="events">
+      <h3>EventBus</h3>
+      <div class="ev"><span class="ev-name">ui_notification</span><span class="ev-data">{ text, duration, color, size }</span></div>
+      <div class="ev"><span class="ev-name">floating_text</span><span class="ev-data">{ entityId, text, duration, color, size, x, y }</span></div>
+      <div class="ev"><span class="ev-name">ui_notification_clear</span><span class="ev-data">{ }</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

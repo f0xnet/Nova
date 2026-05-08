@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Loot — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎁</span>
+    <h1>Loot</h1>
+    <p class="subtitle">Butin aléatoire — définir des tables de loot avec garantis et tirages pondérés, faire tomber des objets à la mort d'un ennemi.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Loot.define(id, table)</td><td>Déclare une table de loot avec un identifiant. À appeler une seule fois (démarrage).</td></tr>
+        <tr><td>Loot.roll(id, nb, ctx)</td><td>Tire <code>nb</code> fois dans la table. Retourne une liste <code>{ {item, quantity}, ... }</code>. <code>nb</code> et <code>ctx</code> optionnels.</td></tr>
+        <tr><td>Loot.rollOne(id, ctx)</td><td>Tire une seule fois. Retourne <code>{ item, quantity }</code> ou <code>nil</code>.</td></tr>
+        <tr><td>Loot.dropFor(entity, id, ctx)</td><td>Tire le loot et l'ajoute directement à l'inventaire de l'entité.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Structure d'une table de loot</h2>
+    <table class="api-table">
+      <thead><tr><th>Champ</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>guaranteed</td><td>Liste d'objets <strong>toujours</strong> inclus dans le butin.</td></tr>
+        <tr><td>pool</td><td>Liste d'objets en tirage pondéré. Un seul est sélectionné par tirage.</td></tr>
+        <tr><td>rolls</td><td>Nombre de tirages dans <code>pool</code> (défaut : 1).</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Champ d'une entrée</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>item</td><td>Identifiant de l'objet. <code>nil</code> = rien (bonne pratique pour régler les chances).</td></tr>
+        <tr><td>weight</td><td>Poids relatif dans le tirage. Plus c'est grand, plus c'est probable.</td></tr>
+        <tr><td>quantity</td><td>Nombre ou <code>{ min = N, max = M }</code> pour une quantité variable.</td></tr>
+        <tr><td>cond</td><td>Fonction optionnelle <code>(ctx) → bool</code> — l'entrée n'est eligible que si <code>cond(ctx)</code> est vrai.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Définir et utiliser une table de loot</div>
+      <pre><code class="lua">-- Définir au démarrage (script global)
+Loot.define("gobelin", {
+    -- Toujours inclus
+    guaranteed = {
+        { item = "piece_or", quantity = { min = 1, max = 5 } },
+    },
+    -- Tirage unique parmi ces entrées
+    pool = {
+        { item = "potion_soin",  weight = 30 },
+        { item = "cle_rouille",  weight = 10 },
+        { item = "epee_gobelin", weight = 5  },
+        { item = nil,            weight = 55 },   -- 55% de ne rien avoir en plus
+    },
+})
+
+-- À la mort du gobelin : donner le butin au joueur
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        local joueur = World.findByTag("player")
+        if joueur then
+            Loot.dropFor(joueur, "gobelin")
+        end
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Coffre avec plusieurs tirages et condition</div>
+      <pre><code class="lua">Loot.define("coffre_boss", {
+    guaranteed = {
+        { item = "piece_or", quantity = { min = 50, max = 150 } },
+    },
+    pool = {
+        { item = "armure_rare", weight = 20 },
+        { item = "epee_rare",   weight = 20 },
+        -- Objet bonus seulement en mode difficile
+        { item = "legendaire",  weight = 10,
+          cond = function(ctx) return ctx and ctx.difficulte == "hard" end },
+        { item = nil,           weight = 50 },
+    },
+    rolls = 2,   -- 2 tirages dans le pool
+})
+
+-- Ouvrir le coffre
+function OnActivate(activatorId, actionID)
+    local joueur = Registry:getEntity(activatorId)
+    local ctx    = { difficulte = Persist.get("difficulte", "normal") }
+
+    Loot.dropFor(joueur, "coffre_boss", ctx)
+    Notify.show("Coffre ouvert !", { color = "gold" })
+    entity:disable()
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Vérifier ce qui a été tiré</div>
+      <pre><code class="lua">-- Loot.roll retourne la liste des drops
+local drops = Loot.roll("gobelin")
+for _, drop in ipairs(drops) do
+    if drop.item then
+        print("Drop : " .. drop.item .. " x" .. drop.quantity)
+        Notify.show("Obtenu : " .. drop.item, { color = "gold" })
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

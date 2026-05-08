@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Tutoriel : Ennemi avec IA — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🧟</span>
+    <h1>Tutoriel : Ennemi avec IA</h1>
+    <p class="subtitle">Créer un ennemi complet — détection du joueur, poursuite, attaque, mort avec loot. Tous les modules clés en un seul exemple.</p>
+  </div>
+
+  <div class="callout info">
+    <strong>Ce que vous allez créer :</strong> un gobelin qui détecte le joueur à 250 pixels, le poursuit, l'attaque à portée et lâche du butin en mourant.
+  </div>
+
+  <div class="section">
+    <h2>1. Initialisation</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; ennemi_gobelin.lua — init</div>
+      <pre><code class="lua">-- Variables du script (privées à chaque gobelin)
+local fsm              -- Machine à états
+local joueur           -- Référence au joueur
+local pv_max    = 40
+local degats    = 12
+local dist_vue  = 250
+local dist_atk  = 70
+
+-- Définir le loot (une fois dans le script global de démarrage)
+-- Loot.define("gobelin", { ... })
+
+function init(entity)
+    joueur = World.findByTag("player")
+
+    Stats.init(entity.id, {
+        Vie    = pv_max,
+        VieMax = pv_max,
+    })
+
+    -- Créer la machine à états
+    fsm = StateMachine.new("Patrouille")
+
+    fsm:addState("Patrouille",
+        -- onEnter
+        function()
+            Anim.play(entity, "walk", true)
+        end,
+        -- onUpdate
+        function(e, dt)
+            if e:getDistance(joueur) < dist_vue then
+                fsm:transition("Poursuite")
+            end
+        end,
+        -- onExit
+        function()
+            Nav.stop(entity)
+        end
+    )
+
+    fsm:addState("Poursuite",
+        function()
+            Anim.play(entity, "run", true)
+            Sound.play("data/sounds/gobelin_alerte.ogg")
+        end,
+        function(e, dt)
+            local dist  = e:getDistance(joueur)
+            local pos_j = joueur:getPosition()
+
+            if dist > dist_vue * 1.5 then
+                fsm:transition("Patrouille")
+            elseif dist < dist_atk then
+                fsm:transition("Attaque")
+            else
+                Nav.moveTo(entity, pos_j, 100)
+            end
+        end
+    )
+
+    fsm:addState("Attaque",
+        function()
+            Nav.stop(entity)
+            Anim.play(entity, "attack", false)
+
+            Anim.onFrame(entity, 4, function()
+                if entity:getDistance(joueur) < dist_atk * 1.2 then
+                    Stats.mod(joueur.id, "Vie", -degats)
+                    Camera.shake(0.15, 4)
+                end
+            end)
+
+            Anim.onFinish(entity, function()
+                fsm:transition("Poursuite")
+            end)
+        end
+    )
+
+    fsm:addState("Mort",
+        function()
+            Nav.stop(entity)
+            Anim.play(entity, "death", false)
+            Sound.play("data/sounds/gobelin_mort.ogg")
+
+            local pos = entity:getPosition()
+            Loot.dropFor(entity, "gobelin")
+
+            Particles.emit(pos.x, pos.y, {
+                count = 15, speed = 80, spread = 360,
+                color = Color.new(100, 200, 80),
+            })
+
+            Anim.onFinish(entity, function()
+                EntityState.disable(entity)
+            end)
+        end
+    )
+end
+
+function update(entity, dt)
+    if fsm then
+        fsm:update(entity, dt)
+    end
+
+    Debug.watch("gobelin_vie", Stats.get(entity.id, "Vie", 0))
+    Debug.watch("gobelin_etat", fsm and fsm:getState() or "init")
+end
+
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        fsm:transition("Mort")
+    end
+end</code></pre>
+    </div>
+  </div>
+
+  <div class="callout success">
+    <strong>Résultat :</strong> un gobelin avec 4 états, animation synchronisée, dégâts au bon frame, loot à la mort, et état persistant (ne réapparaît pas si tué).
+  </div>
+
+</div>
+</body>
+</html>

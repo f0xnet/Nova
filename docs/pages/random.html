@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Random — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎲</span>
+    <h1>Random</h1>
+    <p class="subtitle">Génération de nombres aléatoires — entiers, flottants, choix dans une liste, dés, seed reproductible.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Random.int(min, max)</td><td>Entier aléatoire entre min et max (inclus).</td></tr>
+        <tr><td>Random.float(min, max)</td><td>Flottant aléatoire entre min et max.</td></tr>
+        <tr><td>Random.chance(probabilite)</td><td>Vrai avec la probabilité donnée (0.0 à 1.0).</td></tr>
+        <tr><td>Random.pick(tableau)</td><td>Retourne un élément aléatoire du tableau.</td></tr>
+        <tr><td>Random.shuffle(tableau)</td><td>Mélange le tableau. Retourne le tableau mélangé.</td></tr>
+        <tr><td>Random.weighted(items)</td><td>Tirage pondéré. Chaque item a un champ <code>weight</code>.</td></tr>
+        <tr><td>Random.dice(faces)</td><td>Lance un dé à N faces. Ex : <code>Random.dice(6)</code> = 1 à 6.</td></tr>
+        <tr><td>Random.dice(nb, faces)</td><td>Lance nb dés et retourne la somme. Ex : <code>Random.dice(2, 6)</code> = 2D6.</td></tr>
+        <tr><td>Random.gaussian(moyenne, ecart)</td><td>Valeur aléatoire selon une courbe normale. Défauts : 0, 1.</td></tr>
+        <tr><td>Random.seed(valeur)</td><td>Fixe la graine pour des résultats reproductibles.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Usages courants</div>
+      <pre><code class="lua">-- Dégâts aléatoires entre 15 et 25
+local degats = Random.int(15, 25)
+Stats.mod(ennemi.id, "Vie", -degats)
+
+-- Position aléatoire dans une zone
+local x = Random.float(100, 500)
+local y = Random.float(100, 400)
+entity:setPosition(x, y)
+
+-- 30% de chance de lâcher un objet rare
+if Random.chance(0.30) then
+    Inventory.add(joueur.id, "gemme_rare")
+    Notify.show("Objet rare trouvé !",  { color = "lime" })
+end
+
+-- Choisir une réplique au hasard
+local repliques = {
+    "Bonjour, aventurier !",
+    "Beau temps pour se battre...",
+    "Méfie-toi du boss au nord.",
+}
+local texte = Random.pick(repliques)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Dés et tirage pondéré</div>
+      <pre><code class="lua">-- 2D6 pour les dégâts (style jeu de rôle)
+local degats = Random.dice(2, 6)  -- entre 2 et 12
+print("Dégâts : " .. degats)
+
+-- Tirage pondéré pour le loot
+local objets = {
+    { value = "piece_or",    weight = 60 },
+    { value = "potion_soin", weight = 25 },
+    { value = "epee_rare",   weight = 10 },
+    { value = "legendaire",  weight = 5  },
+}
+local gagne = Random.weighted(objets)
+print("Obtenu : " .. tostring(gagne))</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Seed reproductible</div>
+      <pre><code class="lua">-- Générer le même donjon à chaque fois avec le même seed
+Random.seed(42)
+
+for i = 1, 10 do
+    local x = Random.int(0, 20)
+    local y = Random.int(0, 15)
+    -- Toujours les mêmes positions avec seed = 42
+    placerSalle(x, y)
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -101,15 +101,19 @@ namespace NovaEngine {
         std::string formatString(std::string_view format, Args&&... args) {
             std::string result{format};
             std::string values[] = {toString(std::forward<Args>(args))...};
-            
+
             size_t i = 0;
             size_t pos = 0;
-            while ((pos = result.find("{}", pos)) != std::string::npos && i < sizeof...(args)) {
-                result.replace(pos, 2, values[i]);
-                pos += values[i].length();
+            while (i < sizeof...(args)) {
+                size_t found = result.find('{', pos);
+                if (found == std::string::npos) break;
+                size_t end = result.find('}', found + 1);
+                if (end == std::string::npos) break;
+                result.replace(found, end - found + 1, values[i]);
+                pos = found + values[i].length();
                 ++i;
             }
-            
+
             return result;
         }
 

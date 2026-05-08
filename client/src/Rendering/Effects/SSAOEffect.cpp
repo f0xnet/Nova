@@ -7,7 +7,7 @@ SSAOEffect::SSAOEffect()
     : m_ssaoShader(INVALID_HANDLE)
     , m_width(0)
     , m_height(0)
-    , m_strength(1.0f)
+    , m_strength(2.0f)
     , m_radius(50.0f)
 {
 }

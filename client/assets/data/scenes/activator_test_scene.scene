@@ -1,0 +1,55 @@
+{
+  "name": "Activator Test Scene",
+  "type": "interior",
+  "backgroundColor": [20, 20, 30, 255],
+  "entities": [
+    {
+      "type": "player",
+      "position": [400, 500],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "activator",
+      "activatorID": "pressure_plate",
+      "position": [400, 300],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "activator",
+      "activatorID": "trigger_zone",
+      "position": [700, 400],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "activator",
+      "activatorID": "damage_zone",
+      "position": [200, 200],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "activator",
+      "activatorID": "checkpoint",
+      "position": [600, 600],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "light",
+      "lightID": "torch",
+      "position": [400, 300],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    },
+    {
+      "type": "light",
+      "lightID": "lamp",
+      "position": [700, 400],
+      "rotation": 0,
+      "scale": [1.0, 1.0]
+    }
+  ]
+}

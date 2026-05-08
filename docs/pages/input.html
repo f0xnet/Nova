@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Input — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎮</span>
+    <h1>Input</h1>
+    <p class="subtitle">Lire les entrées clavier et souris — touches enfoncées, clics, position de la souris.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API — Clavier</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Input.isKeyPressed(touche)</td><td>Vrai tant que la touche est maintenue.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>API — Souris</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Input.isMouseButtonPressed(bouton)</td><td>Vrai si le bouton est enfoncé. Valeurs : <code>"left"</code>, <code>"right"</code>, <code>"middle"</code>.</td></tr>
+        <tr><td>Input.getMousePosition()</td><td>Retourne la position de la souris dans le monde (Vec2f).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>API — InputEx (événements instantanés)</h2>
+    <p><code>InputEx</code> détecte ce qui se passe exactement sur ce frame — utile pour réagir à une pression sans répétition.</p>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>InputEx.isKeyJustPressed(touche)</td><td>Vrai uniquement le premier frame où la touche est pressée.</td></tr>
+        <tr><td>InputEx.isKeyJustReleased(touche)</td><td>Vrai uniquement le frame où la touche est relâchée.</td></tr>
+        <tr><td>InputEx.isMouseJustPressed(bouton)</td><td>Vrai uniquement le premier frame du clic.</td></tr>
+        <tr><td>InputEx.isMouseJustReleased(bouton)</td><td>Vrai uniquement le frame du relâchement.</td></tr>
+        <tr><td>InputEx.getJustPressedKeys()</td><td>Tableau de toutes les touches pressées ce frame.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Touches disponibles</h2>
+    <p><code>"A"</code> … <code>"Z"</code>, <code>"0"</code> … <code>"9"</code><br>
+    <code>"Escape"</code>, <code>"Space"</code>, <code>"Enter"</code>, <code>"Backspace"</code>, <code>"Tab"</code><br>
+    <code>"Left"</code>, <code>"Right"</code>, <code>"Up"</code>, <code>"Down"</code><br>
+    <code>"LShift"</code>, <code>"RShift"</code>, <code>"LControl"</code>, <code>"RControl"</code>, <code>"LAlt"</code>, <code>"RAlt"</code></p>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Déplacement clavier 4 directions</div>
+      <pre><code class="lua">local VITESSE = 200
+
+function update(entity, dt)
+    local dx, dy = 0, 0
+
+    if Input.isKeyPressed("Left")  or Input.isKeyPressed("A") then dx = -1 end
+    if Input.isKeyPressed("Right") or Input.isKeyPressed("D") then dx =  1 end
+    if Input.isKeyPressed("Up")    or Input.isKeyPressed("W") then dy = -1 end
+    if Input.isKeyPressed("Down")  or Input.isKeyPressed("S") then dy =  1 end
+
+    -- Normaliser pour ne pas aller plus vite en diagonale
+    if dx ~= 0 and dy ~= 0 then
+        dx = dx * 0.707
+        dy = dy * 0.707
+    end
+
+    local pos = entity:getPosition()
+    entity:setPosition(pos.x + dx * VITESSE * dt,
+                       pos.y + dy * VITESSE * dt)
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Attaque au clic souris</div>
+      <pre><code class="lua">function update(entity, dt)
+    -- Tirer vers la souris au clic gauche (une seule fois par clic)
+    if InputEx.isMouseJustPressed("left") then
+        local pos    = entity:getPosition()
+        local souris = Input.getMousePosition()
+        local angle  = Math.angleTo(pos.x, pos.y, souris.x, souris.y)
+
+        Projectile.fire(pos.x, pos.y, {
+            angle    = angle,
+            speed    = 400,
+            lifetime = 2.0,
+        })
+    end
+
+    -- Ouvrir l'inventaire (une seule fois par pression)
+    if InputEx.isKeyJustPressed("I") then
+        EventBus.emit("inventaire_toggle", {})
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Achievement — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🏆</span>
+    <h1>Achievement</h1>
+    <p class="subtitle">Succès et trophées — définir, débloquer, afficher, persister entre les sessions.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Achievement.define(id, opts)</td><td>Déclare un succès. À appeler une seule fois (démarrage).</td></tr>
+        <tr><td>Achievement.unlock(id)</td><td>Débloque le succès. Ne fait rien si déjà débloqué. Émet <code>"achievement_unlocked"</code>.</td></tr>
+        <tr><td>Achievement.isUnlocked(id)</td><td>Vrai si le succès a déjà été obtenu.</td></tr>
+        <tr><td>Achievement.getAll()</td><td>Retourne <code>{ [id] = { name, desc, hidden, unlocked, unlockedAt } }</code>.</td></tr>
+        <tr><td>Achievement.getUnlocked()</td><td>Liste triée des ids débloqués.</td></tr>
+        <tr><td>Achievement.save()</td><td>Sauvegarde l'état dans Persist.</td></tr>
+        <tr><td>Achievement.load()</td><td>Recharge l'état depuis Persist.</td></tr>
+        <tr><td>Achievement.reset()</td><td>Réinitialise tous les succès (tests uniquement).</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <table class="api-table">
+      <thead><tr><th>Option de define()</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>Nom affiché au joueur.</td></tr>
+        <tr><td>desc</td><td>Description du succès.</td></tr>
+        <tr><td>hidden</td><td>Si <code>true</code>, le succès est caché jusqu'à ce qu'il soit débloqué.</td></tr>
+        <tr><td>cond</td><td>Fonction optionnelle <code>(ctx) → bool</code> — condition externe vérifiable.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Événements émis</h2>
+    <div class="events">
+      <h3>EventBus</h3>
+      <div class="ev"><span class="ev-name">achievement_unlocked</span><span class="ev-data">{ id, name }</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Définir et débloquer des succès</div>
+      <pre><code class="lua">-- Définir au démarrage (script global)
+Achievement.define("premier_pas", {
+    name = "Premiers pas",
+    desc = "Lancer le jeu pour la première fois.",
+})
+
+Achievement.define("tueur_de_dragon", {
+    name = "Tueur de dragon",
+    desc = "Vaincre le boss final.",
+})
+
+Achievement.define("collectionneur", {
+    name = "Collectionneur",
+    desc = "Remplir complètement votre inventaire.",
+})
+
+Achievement.define("salle_secrete", {
+    name   = "???",
+    desc   = "Vous avez trouvé la salle cachée.",
+    hidden = true,  -- titre et description masqués avant déblocage
+})
+
+-- Charger l'état sauvegardé au démarrage
+Achievement.load()
+
+-- Débloquer
+Achievement.unlock("premier_pas")
+
+-- À la mort du boss (dans le script du boss)
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" then
+        Achievement.unlock("tueur_de_dragon")
+        Achievement.save()
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Réagir au déblocage (affichage)</div>
+      <pre><code class="lua">-- Brancher une notification sur l'EventBus
+EventBus.on("achievement_unlocked", function(data)
+    Notify.show("🏆 Succès débloqué : " .. data.name, {
+        color    = "gold",
+        duration = 5.0,
+        size     = 1.2,
+    })
+    Sound.play("data/sounds/achievement.ogg")
+end)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Succès conditionnel et écran des trophées</div>
+      <pre><code class="lua">-- Succès "finir sans mourir"
+EventBus.on("joueur_mort", function()
+    Flag.set("mort_au_moins_une_fois")
+end)
+
+EventBus.on("fin_du_jeu", function()
+    if not Flag.get("mort_au_moins_une_fois") then
+        Achievement.unlock("sans_mourir")
+    end
+    Achievement.save()
+end)
+
+-- Afficher l'écran des trophées
+function afficherSucces()
+    local tous = Achievement.getAll()
+    for id, data in pairs(tous) do
+        if not data.hidden or data.unlocked then
+            local statut = data.unlocked and "✓" or "○"
+            print(statut .. " " .. data.name .. " — " .. data.desc)
+        end
+    end
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

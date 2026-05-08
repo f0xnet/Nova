@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Quest — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">📜</span>
+    <h1>Quest</h1>
+    <p class="subtitle">Système de quêtes à étapes — enregistrer une quête, la démarrer, avancer stage par stage, la terminer ou la rater.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Quest.register(id, def)</td><td>Déclare une quête avec ses étapes. À appeler une seule fois (démarrage).</td></tr>
+        <tr><td>Quest.start(id)</td><td>Démarre la quête. Retourne <code>false</code> si déjà commencée.</td></tr>
+        <tr><td>Quest.advance(id)</td><td>Passe à l'étape suivante. Appelle <code>Quest.complete()</code> si c'était la dernière étape. Retourne <code>false</code> si la quête n'est pas active.</td></tr>
+        <tr><td>Quest.complete(id)</td><td>Marque la quête comme terminée (réussie).</td></tr>
+        <tr><td>Quest.fail(id)</td><td>Marque la quête comme échouée.</td></tr>
+        <tr><td>Quest.isActive(id)</td><td>Vrai si la quête est en cours.</td></tr>
+        <tr><td>Quest.isCompleted(id)</td><td>Vrai si la quête est terminée avec succès.</td></tr>
+        <tr><td>Quest.getStage(id)</td><td>Retourne l'étape actuelle (table avec les données définies).</td></tr>
+        <tr><td>Quest.getStageIndex(id)</td><td>Index de l'étape actuelle (commence à 1).</td></tr>
+        <tr><td>Quest.getName(id)</td><td>Nom lisible de la quête.</td></tr>
+        <tr><td>Quest.getAll()</td><td>Liste de tous les ids de quêtes <strong>actives</strong> (en cours).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Flux :</strong> <code>Quest.register()</code> au démarrage → <code>Quest.start()</code> quand donnée → <code>Quest.advance()</code> à chaque objectif → <code>Quest.complete()</code> à la fin. Les événements <code>"quest_completed"</code> et <code>"quest_failed"</code> sont émis automatiquement sur l'EventBus.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Quête avec plusieurs étapes</div>
+      <pre><code class="lua">-- Définir la quête au démarrage
+Quest.register("delivrance_village", {
+    name   = "Délivrance du village",
+    stages = {
+        { desc = "Trouver le chef de village." },
+        { desc = "Vaincre les 5 gobelins qui pillent." },
+        { desc = "Retourner voir le chef." },
+    }
+})
+
+-- Étape 1 : parler au chef
+function OnActivate(activatorId, actionID)
+    if not Quest.isActive("delivrance_village") then
+        Quest.start("delivrance_village")
+        Notify.show("Nouvelle quête : " .. Quest.getName("delivrance_village"))
+    end
+end
+
+-- Étape 2 : tuer les gobelins (dans le script gobelin)
+local gobelins_tues = 0
+
+function OnStatZeroed(entityId, stat)
+    if stat == "Vie" and Quest.isActive("delivrance_village")
+        and Quest.getStageIndex("delivrance_village") == 2 then
+        gobelins_tues = gobelins_tues + 1
+        Notify.show("Gobelins : " .. gobelins_tues .. " / 5")
+
+        if gobelins_tues >= 5 then
+            Quest.advance("delivrance_village")  -- passer à l'étape 3
+        end
+    end
+end
+
+-- Étape 3 : retourner au chef (dans son script)
+function OnActivate(activatorId, actionID)
+    if Quest.isActive("delivrance_village") and Quest.getStageIndex("delivrance_village") == 3 then
+        Quest.complete("delivrance_village")
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Réagir à la completion</div>
+      <pre><code class="lua">-- Écouter les événements de quête
+EventBus.on("quest_completed", function(data)
+    if data.questId == "delivrance_village" then
+        Inventory.add(joueur.id, "piece_or", 100)
+        Notify.show("Quête terminée ! +100 pièces d'or.",  { color = "lime" })
+        Flag.set("village_sauve")
+    end
+end)
+
+EventBus.on("quest_failed", function(data)
+    Notify.show("Échec : " .. Quest.getName(data.questId),  { color = "red" })
+end)</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

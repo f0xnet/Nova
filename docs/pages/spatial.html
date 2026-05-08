@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Spatial — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🔍</span>
+    <h1>Spatial</h1>
+    <p class="subtitle">Recherches spatiales rapides — trouver les entités dans un rayon ou un rectangle, compter par tag.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Spatial vs Physics :</strong> <code>Spatial</code> utilise une grille interne et cherche par position dans le monde. <code>Physics</code> interroge les colliders réels. Pour des zones de dégâts précises, préférez <code>Physics.findInRadius()</code>.
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Spatial.findInRadius(x, y, rayon, tag)</td><td>Retourne toutes les entités avec ce tag dans le rayon. Tag optionnel.</td></tr>
+        <tr><td>Spatial.findInRect(x, y, w, h, tag)</td><td>Retourne toutes les entités dans le rectangle.</td></tr>
+        <tr><td>Spatial.nearest(x, y, tag)</td><td>Retourne l'entité la plus proche et sa distance : <code>(entité, distance)</code>.</td></tr>
+        <tr><td>Spatial.findAt(cellX, cellY, tag)</td><td>Retourne les entités dans la cellule de grille donnée. Tag optionnel.</td></tr>
+        <tr><td>Spatial.count(tag)</td><td>Nombre total d'entités actives avec ce tag. Tag optionnel (nil = toutes).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Explosion en zone</div>
+      <pre><code class="lua">function exploser(x, y)
+    Particles.emit(x, y, { count = 40, speed = 250, spread = 360,
+                            color = Color.new(255, 140, 0), gravity = 80 })
+    Camera.shake(0.5, 15)
+    Sound.play("data/sounds/explosion.ogg")
+
+    -- Toucher tout ce qui est dans 120 pixels
+    local victimes = Spatial.findInRadius(x, y, 120, "enemy")
+    for _, victime in ipairs(victimes) do
+        Stats.mod(victime.id, "Vie", -50)
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Cibler l'ennemi le plus proche</div>
+      <pre><code class="lua">function attaquerLePlusProche(entity)
+    local pos = entity:getPosition()
+
+    -- nearest retourne (entité, distance)
+    local cible, dist = Spatial.nearest(pos.x, pos.y, "enemy")
+
+    if cible and dist < 150 then
+        Stats.mod(cible.id, "Vie", -25)
+    end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Compter les ennemis sur la carte</div>
+      <pre><code class="lua">-- Vérifier si tous les ennemis sont vaincus
+function update(entity, dt)
+    local nb_ennemis = Spatial.count("enemy")
+
+    if nb_ennemis == 0 then
+        EventBus.emit("salle_videe", {})
+        Timer.after(1.0, function()
+            EventBus.emit("ouvrir_porte_sortie", {})
+        end)
+    end
+
+    Debug.watch("ennemis_restants", nb_ennemis)
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

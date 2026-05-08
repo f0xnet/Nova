@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Inventory — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🎒</span>
+    <h1>Inventory</h1>
+    <p class="subtitle">Inventaire par entité — ajouter, retirer, compter des objets, transférer entre entités.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Inventory.defineItem(item, def)</td><td>Enregistre les propriétés d'un type d'objet (poids, maxStack, nom…). Optionnel.</td></tr>
+        <tr><td>Inventory.add(entityId, item, count)</td><td>Ajoute <code>count</code> exemplaires (défaut : 1). Retourne la quantité ajoutée.</td></tr>
+        <tr><td>Inventory.remove(entityId, item, count)</td><td>Retire <code>count</code> exemplaires. Retourne la quantité réellement retirée.</td></tr>
+        <tr><td>Inventory.count(entityId, item)</td><td>Quantité possédée.</td></tr>
+        <tr><td>Inventory.has(entityId, item, count)</td><td>Vrai si l'entité possède au moins <code>count</code> exemplaires (défaut : 1).</td></tr>
+        <tr><td>Inventory.getAll(entityId)</td><td>Retourne <code>{ item = quantite, ... }</code>.</td></tr>
+        <tr><td>Inventory.transfer(fromEntity, toEntity, item, count)</td><td>Transfert d'un inventaire à l'autre.</td></tr>
+        <tr><td>Inventory.clear(entityId)</td><td>Vide complètement l'inventaire.</td></tr>
+        <tr><td>Inventory.clearItem(entityId, item)</td><td>Retire toutes les copies d'un item.</td></tr>
+        <tr><td>Inventory.getWeight(entityId)</td><td>Poids total (si les items ont un champ <code>weight</code>).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Événements émis</h2>
+    <div class="events">
+      <h3>EventBus</h3>
+      <div class="ev"><span class="ev-name">item_added</span><span class="ev-data">{ entityId, item, count, total }</span></div>
+      <div class="ev"><span class="ev-name">item_removed</span><span class="ev-data">{ entityId, item, count, total }</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Ramasser un objet au sol</div>
+      <pre><code class="lua">-- Le joueur entre en contact avec un objet ramassable
+function OnActivate(activatorId, actionID)
+    local joueur = Registry:getEntity(activatorId)
+    if joueur.tag ~= "player" then return end
+
+    -- Ajouter l'objet à l'inventaire du joueur
+    Inventory.add(joueur.id, "epee_longue", 1)
+    Notify.show("Épée longue obtenue !", { color = "gold" })
+
+    -- Désactiver l'objet au sol
+    local entity = World.findByTag("item_epee")  -- ou via activatorId
+    if entity then entity:disable() end
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Coffre avec clé requise</div>
+      <pre><code class="lua">function OnActivate(activatorId, actionID)
+    local joueur = Registry:getEntity(activatorId)
+    if joueur.tag ~= "player" then return end
+
+    -- Vérifier si le joueur a la clé
+    if not Inventory.has(joueur.id, "cle_donjon") then
+        Notify.show("Il vous faut une clé.", { color = "orange" })
+        return
+    end
+
+    -- Consommer la clé et ouvrir
+    Inventory.remove(joueur.id, "cle_donjon", 1)
+    Inventory.add(joueur.id, "epee_ancienne", 1)
+    Inventory.add(joueur.id, "piece_or", 50)
+
+    Notify.show("Coffre ouvert !", { color = "gold" })
+    entity:disable()
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Utiliser une potion</div>
+      <pre><code class="lua">function utiliserPotion(joueur)
+    if not Inventory.has(joueur.id, "potion_soin") then
+        Notify.show("Pas de potions !", { color = "red" })
+        return
+    end
+
+    -- Consommer la potion
+    Inventory.remove(joueur.id, "potion_soin", 1)
+
+    -- Effet de soin
+    local soin = 50
+    Stats.mod(joueur.id, "Vie", soin)
+    Notify.floatingText(joueur, "+" .. soin .. " PV", { color = "lime" })
+    Sound.play("data/sounds/potion.ogg")
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Définir les propriétés d'un item</div>
+      <pre><code class="lua">-- Définir au démarrage (script global)
+Inventory.defineItem("epee_longue",  { weight = 3.0, maxStack = 1,  displayName = "Épée longue" })
+Inventory.defineItem("potion_soin",  { weight = 0.5, maxStack = 10, displayName = "Potion de soin" })
+Inventory.defineItem("piece_or",     { weight = 0.1, maxStack = 999, displayName = "Pièce d'or" })
+
+-- Vérifier le poids total
+local poids = Inventory.getWeight(joueur.id)
+if poids > 20 then
+    Notify.show("Inventaire trop lourd !", { color = "orange" })
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

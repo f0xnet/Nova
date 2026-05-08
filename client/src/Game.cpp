@@ -1,6 +1,15 @@
 #include "NovaEngine/Game.hpp"
 #include "NovaEngine/Backend/BackendManager.hpp"
 #include "NovaEngine/Core/ConfigManager.hpp"
+#include "NovaEngine/Scripting/Scripting.hpp"
+#include "NovaEngine/Rendering/Effects/SSAOEffect.hpp"
+#include "NovaEngine/Rendering/Effects/BloomEffect.hpp"
+#include "NovaEngine/Rendering/Effects/ColorGradingEffect.hpp"
+#include "NovaEngine/Rendering/Effects/DynamicLightingEffect.hpp"
+#include "NovaEngine/UI/Components/Text.hpp"
+#include "NovaEngine/UI/Components/Button.hpp"
+#include "NovaEngine/UI/Components/TextInput.hpp"
+#include "NovaEngine/UI/Components/Slider.hpp"
 #include "Dialogue/DialogueSystem.hpp"
 #include "Player/PlayerController.hpp"
 
@@ -68,7 +77,7 @@ bool Game::onInitialize() {
     }
 
     // Load game scene
-    if (!m_sceneManager.loadScene("data/scenes/test.json", "test")) {
+    if (!m_sceneManager.loadScene("data/scenes/test.scene", "test")) {
         LOG_ERROR("Failed to load test scene");
         return false;
     }
@@ -80,12 +89,199 @@ bool Game::onInitialize() {
     NovaEngine::Scene* scene = m_sceneManager.getActiveScene();
     if (scene) {
         using namespace NovaEngine;
+
+        // Add scripting system to the scene — passe le SceneManager pour
+        // que les scripts puissent changer de scène via Scene.setActive(...)
+        m_scriptSystem = scene->addSystem<ScriptSystem>(&m_sceneManager);
+
+        // Expose DialogueSystem to Lua :
+        //   Dialogue.start(entityId)  — démarre un dialogue avec un NPC
+        //   Dialogue.advance()        — avance le dialogue
+        //   Dialogue.isActive()       — vrai si dialogue en cours
+        //   Dialogue.reset()          — ferme le dialogue
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table dlg = lua.create_table();
+            dlg["start"] = [this](u64 entityId) {
+                auto* sc = m_sceneManager.getActiveScene();
+                if (!sc) return;
+                auto* e = sc->getEntityRegistry().getEntity(entityId);
+                if (e) m_dialogueSystem->startDialogue(e);
+            };
+            dlg["advance"]  = [this]() { m_dialogueSystem->advanceDialogue(); };
+            dlg["isActive"] = [this]() -> bool { return m_dialogueSystem->isActive(); };
+            dlg["reset"]    = [this]() { m_dialogueSystem->reset(); };
+            lua["Dialogue"] = dlg;
+        }
+
+        // --- PostFX : effets visuels scriptables ---
+        // PostFX.setBloom(0.8) / setSaturation(1.5) / setContrast / setBrightness
+        // PostFX.setSSAO(enabled) / setLighting(enabled) / setAmbientDark(0.2)
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table pfx = lua.create_table();
+            pfx["setBloom"]      = [this](float v) {
+                if (m_bloomEffect) m_bloomEffect->setIntensity(v);
+            };
+            pfx["setSaturation"] = [this](float v) {
+                if (m_colorGradingEffect) m_colorGradingEffect->setSaturation(v);
+            };
+            pfx["setContrast"]   = [this](float v) {
+                if (m_colorGradingEffect) m_colorGradingEffect->setContrast(v);
+            };
+            pfx["setBrightness"] = [this](float v) {
+                if (m_colorGradingEffect) m_colorGradingEffect->setBrightness(v);
+            };
+            pfx["setSSAO"]       = [this](bool en) {
+                if (m_ssaoEffect) m_ssaoEffect->setEnabled(en);
+            };
+            pfx["setLighting"]   = [this](bool en) {
+                if (m_dynamicLightingEffect) m_dynamicLightingEffect->setEnabled(en);
+            };
+            pfx["setAmbientDark"] = [this](float v) {
+                if (m_dynamicLightingEffect) m_dynamicLightingEffect->setAmbientDarkness(v);
+            };
+            pfx["toggleSSAO"]     = [this]() {
+                if (m_ssaoEffect) m_ssaoEffect->setEnabled(!m_ssaoEffect->isEnabled());
+            };
+            pfx["toggleBloom"]    = [this]() {
+                if (m_bloomEffect) m_bloomEffect->setEnabled(!m_bloomEffect->isEnabled());
+            };
+            pfx["toggleGrading"]  = [this]() {
+                if (m_colorGradingEffect)
+                    m_colorGradingEffect->setEnabled(!m_colorGradingEffect->isEnabled());
+            };
+            pfx["toggleLighting"] = [this]() {
+                if (m_dynamicLightingEffect)
+                    m_dynamicLightingEffect->setEnabled(!m_dynamicLightingEffect->isEnabled());
+            };
+            lua["PostFX"] = pfx;
+        }
+
+        // --- Time : contrôle du cycle jour/nuit depuis les scripts ---
+        // Time.getHour()        → 0..23
+        // Time.setHour(n)       → positionne l'heure
+        // Time.advance(n)       → avance de n heures
+        // Time.getTimeOfDay()   → 0.0..1.0 (0 = minuit, 0.5 = midi)
+        // Time.setTimeOfDay(t)  → 0.0..1.0
+        // Time.isDaytime()      → 6h00 – 20h00
+        // Time.isNight()        → 20h00 – 6h00
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table time = lua.create_table();
+            time["getTimeOfDay"]  = [this]() -> float {
+                return m_lightingSystem ? m_lightingSystem->getTimeOfDay() : 0.0f;
+            };
+            time["setTimeOfDay"]  = [this](float t) {
+                if (m_lightingSystem) m_lightingSystem->setTimeOfDay(t);
+            };
+            time["getHour"]       = [this]() -> int {
+                if (!m_lightingSystem) return 0;
+                return static_cast<int>(m_lightingSystem->getTimeOfDay() * 24.0f) % 24;
+            };
+            time["setHour"]       = [this](int h) {
+                if (m_lightingSystem) m_lightingSystem->setTimeOfDay(h / 24.0f);
+            };
+            time["advance"]       = [this](float hours) {
+                if (!m_lightingSystem) return;
+                float t = m_lightingSystem->getTimeOfDay() + hours / 24.0f;
+                if (t >= 1.0f) t -= 1.0f;
+                m_lightingSystem->setTimeOfDay(t);
+            };
+            time["isDaytime"]     = [this]() -> bool {
+                if (!m_lightingSystem) return true;
+                float t = m_lightingSystem->getTimeOfDay() * 24.0f;
+                return t >= 6.0f && t < 20.0f;
+            };
+            time["isNight"]       = [this]() -> bool {
+                if (!m_lightingSystem) return false;
+                float t = m_lightingSystem->getTimeOfDay() * 24.0f;
+                return t < 6.0f || t >= 20.0f;
+            };
+            lua["Time"] = time;
+        }
+
+        // --- UI : contrôle bidirectionnel de l'interface depuis les scripts ---
+        // Lua → UI : show/hide/setText/setValue/load/unload
+        // UI → Lua : actions bridgées vers EventBus (via setActionCallback)
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::table ui = lua.create_table();
+
+            // Groupes / visibilité
+            ui["showGroup"]   = [this](const std::string& id) { m_uiManager.setGroupActive(id, true);  };
+            ui["hideGroup"]   = [this](const std::string& id) { m_uiManager.setGroupActive(id, false); };
+            ui["setUIActive"] = [this](const std::string& id, bool active) { m_uiManager.setUIActive(id, active); };
+            ui["removeGroup"] = [this](const std::string& id) { m_uiManager.removeGroup(id); };
+            ui["removeUI"]    = [this](const std::string& id) { m_uiManager.removeUI(id); };
+            ui["clear"]       = [this]() { m_uiManager.clear(); };
+
+            // Composant individuel
+            ui["setVisible"] = [this](const std::string& id, bool v) {
+                auto comp = m_uiManager.getComponent(id);
+                if (comp) comp->setVisible(v);
+            };
+            ui["setEnabled"] = [this](const std::string& id, bool v) {
+                auto comp = m_uiManager.getComponent(id);
+                if (comp) comp->setActive(v);
+            };
+
+            // Texte (Text component)
+            ui["setText"] = [this](const std::string& id, const std::string& text) {
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return;
+                if (auto* t = dynamic_cast<NovaEngine::Text*>(comp.get()))
+                    t->setString(text);
+            };
+            ui["getString"] = [this](const std::string& id) -> std::string {
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return "";
+                if (auto* t = dynamic_cast<NovaEngine::Text*>(comp.get()))
+                    return t->getString();
+                return "";
+            };
+
+            // Valeur générique — lit TextInput.getText(), Slider.getValue(), Button.getValue()
+            ui["getValue"] = [this](sol::this_state ts, const std::string& id) -> sol::object {
+                sol::state_view lua(ts);
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return sol::lua_nil;
+                if (auto* ti = dynamic_cast<NovaEngine::TextInput*>(comp.get()))
+                    return sol::make_object(lua, ti->getText());
+                if (auto* sl = dynamic_cast<NovaEngine::Slider*>(comp.get()))
+                    return sol::make_object(lua, sl->getValue());
+                if (auto* btn = dynamic_cast<NovaEngine::Button*>(comp.get()))
+                    return sol::make_object(lua, btn->getValue());
+                return sol::lua_nil;
+            };
+            // setValue : Slider (float) ou Button (string)
+            ui["setValue"] = [this](const std::string& id, sol::object val) {
+                auto comp = m_uiManager.getComponent(id);
+                if (!comp) return;
+                if (auto* sl = dynamic_cast<NovaEngine::Slider*>(comp.get())) {
+                    if (val.is<float>()) sl->setValue(val.as<float>());
+                }
+                if (auto* btn = dynamic_cast<NovaEngine::Button*>(comp.get())) {
+                    if (val.is<std::string>()) btn->setValue(val.as<std::string>());
+                }
+            };
+
+            // Chargement / déchargement de layouts UI depuis Lua
+            ui["load"] = [this](const std::string& path) -> bool {
+                return m_uiLoader.loadFromFile(path, m_uiManager);
+            };
+
+            lua["UI"] = ui;
+        }
+
         auto entities = scene->getEntityRegistry().getAllEntities();
         bool playerFound = false;
+        Entity* playerEntity = nullptr;
         for (auto* entity : entities) {
             auto* tag = entity->getComponent<TagComponent>();
             if (tag && tag->tag == "player") {
                 m_playerController->setPlayerID(entity->getID());
+                playerEntity = entity;
                 LOG_INFO("Player found and set to entity ID: {}", entity->getID());
                 playerFound = true;
                 break;
@@ -94,17 +290,47 @@ bool Game::onInitialize() {
         if (!playerFound) {
             LOG_ERROR("No player entity found in scene! Make sure scene JSON has an entity with type=\"player\"");
         }
+
+        // Attach the movement script to the player entity
+        if (playerEntity) {
+            auto sc = std::make_unique<ScriptComponent>();
+            sc->scriptPath = "data/scripts/player.lua";
+            playerEntity->addComponent(std::move(sc));
+            scene->getEntityRegistry().invalidateQueryCache();
+            LOG_INFO("Player script attached: data/scripts/player.lua");
+        }
+
+        // Script global de jeu — gère les raccourcis clavier et la logique globale
+        m_scriptSystem->loadGlobalScript("data/scripts/main.lua");
     }
 
     // Initialize UI system
+    // Le callback bridge les actions UI vers l'EventBus Lua :
+    //   "ui_action"            { action, value, id }   — toutes actions
+    //   "ui_action_<action>"   { value, id }            — action spécifique
+    //   "ui_click_<id>"        { action, value }        — composant spécifique
     m_uiManager.setActionCallback([this](const std::string& action,
                                          const std::string& value,
                                          const NovaEngine::ID& componentID) {
         handleUIAction(action, value, componentID);
+
+        if (m_scriptSystem) {
+            auto& lua = m_scriptSystem->getLua();
+            sol::protected_function emit = lua["EventBus"]["emit"];
+            if (emit.valid()) {
+                auto data      = lua.create_table();
+                data["action"] = action;
+                data["value"]  = value;
+                data["id"]     = componentID;
+                emit("ui_action", data);
+                emit("ui_action_" + action, data);
+                emit("ui_click_" + componentID, data);
+            }
+        }
     });
 
     // Load dialogue UI
-    if (!m_uiLoader.loadFromFile("data/ui/json/menu.json", m_uiManager)) {
+    if (!m_uiLoader.loadFromFile("data/ui/json/dialogue.json", m_uiManager)) {
         LOG_WARN("Failed to load dialogue UI");
     }
 
@@ -125,16 +351,15 @@ bool Game::onInitialize() {
         // 1. SSAO - Ambient Occlusion (applied first, single-pass)
         m_ssaoEffect = m_postProcessPipeline->addEffect<NovaEngine::SSAOEffect>();
         if (m_ssaoEffect) {
-            // COMMENTED FOR TESTING: Let constructor values take effect
-             m_ssaoEffect->setStrength(0.40f);
-             m_ssaoEffect->setRadius(3.80f);
+            m_ssaoEffect->setStrength(0.3f);
+            m_ssaoEffect->setRadius(12.0f);
             LOG_INFO("SSAO effect added successfully");
         }
 
         // 2. Bloom - Glow effect
         m_bloomEffect = m_postProcessPipeline->addEffect<NovaEngine::BloomEffect>();
         if (m_bloomEffect) {
-            m_bloomEffect->setIntensity(0.2f);
+            m_bloomEffect->setIntensity(0.4f);
             LOG_INFO("Bloom effect added successfully");
         }
 
@@ -164,6 +389,22 @@ bool Game::onInitialize() {
         }
     }
 
+    // Charge le module nova/ui.lua après que lua["UI"] est configuré par le C++.
+    // ui.lua capture local _ui = UI puis enrichit le global avec onClick/onAction/on/off.
+    if (m_scriptSystem) {
+        auto r = m_scriptSystem->getLua().safe_script(
+            "UI = require('nova/ui')", sol::script_pass_on_error);
+        if (!r.valid()) {
+            sol::error err = r;
+            LOG_WARN("[Game] nova/ui.lua : {}", err.what());
+        }
+    }
+
+    // Suite de tests Lua — s'exécute au démarrage si le dossier tests/ est présent.
+    if (m_scriptSystem) {
+        m_scriptSystem->loadGlobalScript("data/scripts/tests/run_all.lua");
+    }
+
     LOG_INFO("Game initialized successfully");
     LOG_INFO("=== Controls ===");
     LOG_INFO("  WASD / Arrow Keys - Move");
@@ -183,10 +424,12 @@ void Game::onUpdate(float deltaTime) {
 
     Scene* scene = m_sceneManager.getActiveScene();
     if (scene) {
-        // Update player movement (disabled during dialogue)
-        m_playerController->updateMovement(scene, deltaTime, !m_dialogueSystem->isActive());
+        // Expose dialogue state so Lua scripts can block movement during dialogues
+        if (m_scriptSystem) {
+            m_scriptSystem->getLua()["dialogueActive"] = m_dialogueSystem->isActive();
+        }
 
-        // Update NPC detection
+        // Update NPC detection (stays in C++)
         m_playerController->updateNPCDetection(scene);
 
         // Update camera to follow player
@@ -208,6 +451,8 @@ void Game::onUpdate(float deltaTime) {
         m_dialogueSystem->showNPCIndicator(nearestNPC != nullptr && !m_dialogueSystem->isActive());
     }
 
+    m_lastDeltaTime = deltaTime;
+
     // Update ECS scene
     m_sceneManager.update(deltaTime);
 
@@ -226,7 +471,7 @@ void Game::onRender() {
 
     // End scene rendering and apply post-processing effects
     if (m_postProcessPipeline) {
-        m_postProcessPipeline->endSceneRender(0.016f); // ~60fps delta
+        m_postProcessPipeline->endSceneRender(m_lastDeltaTime);
     }
 
     // Reset view to default before rendering UI (avoid camera offset)
@@ -234,6 +479,11 @@ void Game::onRender() {
 
     // Render UI directly to screen (no shader applied)
     m_uiManager.render();
+
+    // Debug overlay — drawn last, on top of UI, in screen space
+    if (m_scriptSystem) {
+        m_scriptSystem->renderDebug();
+    }
 }
 
 void Game::onEvent(const NovaEngine::Event& event) {
@@ -242,75 +492,13 @@ void Game::onEvent(const NovaEngine::Event& event) {
     // Dispatch to UI first
     m_uiManager.dispatchEvent(event);
 
-    // Handle game-specific input
+    // Seule la touche Escape est gérée ici (niveau moteur).
+    // Toutes les autres touches sont gérées depuis data/scripts/main.lua.
     if (event.type == EventType::Input &&
         event.inputEvent.type == InputEventType::KeyPressed) {
 
         if (event.inputEvent.key.code == KeyCode::Escape) {
             quit();
-        }
-        else if (event.inputEvent.key.code == KeyCode::E) {
-            // Handle dialogue interaction
-            if (m_dialogueSystem->isActive()) {
-                m_dialogueSystem->advanceDialogue();
-            } else {
-                Entity* nearestNPC = m_playerController->getNearestNPC();
-                if (nearestNPC) {
-                    m_dialogueSystem->startDialogue(nearestNPC);
-                }
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num1) {
-            // Toggle SSAO effect
-            if (m_ssaoEffect) {
-                bool newState = !m_ssaoEffect->isEnabled();
-                m_ssaoEffect->setEnabled(newState);
-                LOG_INFO("SSAO effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num2) {
-            // Toggle Bloom effect
-            if (m_bloomEffect) {
-                bool newState = !m_bloomEffect->isEnabled();
-                m_bloomEffect->setEnabled(newState);
-                LOG_INFO("Bloom effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num3) {
-            // Toggle Color Grading effect
-            if (m_colorGradingEffect) {
-                bool newState = !m_colorGradingEffect->isEnabled();
-                m_colorGradingEffect->setEnabled(newState);
-                LOG_INFO("Color grading effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::Num4) {
-            // Toggle Dynamic Lighting effect
-            if (m_dynamicLightingEffect) {
-                bool newState = !m_dynamicLightingEffect->isEnabled();
-                m_dynamicLightingEffect->setEnabled(newState);
-                LOG_INFO("Dynamic lighting effect {}", newState ? "enabled" : "disabled");
-            }
-        }
-        else if (event.inputEvent.key.code == KeyCode::T) {
-            // Advance time by 1 hour
-            if (m_lightingSystem && m_dynamicLightingEffect) {
-                // 1 hour = 1/24 of a full day (1.0)
-                const float oneHour = 1.0f / 24.0f;
-                float currentTime = m_lightingSystem->getTimeOfDay();
-                float newTime = currentTime + oneHour;
-
-                // Wrap around if we exceed 1.0 (midnight)
-                if (newTime >= 1.0f) {
-                    newTime -= 1.0f;
-                }
-
-                m_lightingSystem->setTimeOfDay(newTime);
-
-                // Convert timeOfDay to hours (0.0 = 0h, 0.5 = 12h, 1.0 = 24h)
-                int hours = static_cast<int>(newTime * 24.0f);
-                LOG_INFO("Time advanced to {}:00 ({}h)", hours < 10 ? "0" + std::to_string(hours) : std::to_string(hours), hours);
-            }
         }
     }
 }

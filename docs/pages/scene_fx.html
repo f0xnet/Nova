@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SceneFX — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🌑</span>
+    <h1>SceneFX</h1>
+    <p class="subtitle">Effets visuels plein écran — fondu au noir, flash de couleur, transitions entre scènes. S'affiche par-dessus tout, UI incluse.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>API</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>SceneFX.fadeIn(duree, onFin)</td><td>Fondu vers le noir (transparent → noir). <code>onFin()</code> appelé quand l'écran est totalement noir.</td></tr>
+        <tr><td>SceneFX.fadeOut(duree, onFin)</td><td>Fondu depuis le noir (noir → transparent).</td></tr>
+        <tr><td>SceneFX.transition(fonction, duree)</td><td>Fondu in → exécuter <code>fonction()</code> → fondu out. Parfait pour changer de scène.</td></tr>
+        <tr><td>SceneFX.flash(couleur, duree)</td><td>Éclat de couleur qui disparaît rapidement. Parfait pour les dégâts, les éclairs.</td></tr>
+        <tr><td>SceneFX.isActive()</td><td>Vrai si un effet est en cours.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Changer de scène avec fondu</div>
+      <pre><code class="lua">-- La façon recommandée de changer de scène
+function allerAuDonjon()
+    SceneFX.transition(function()
+        -- Cette fonction est appelée quand l'écran est totalement noir
+        Scene.setActive("donjon_01")
+    end, 0.6)   -- 0.6 seconde pour chaque demi-fondu
+end
+
+-- Ou directement via Scene.transition (qui utilise SceneFX en interne)
+Scene.transition("donjon_01", { fade = true, duration = 0.5 })</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Flash de dégâts</div>
+      <pre><code class="lua">-- Flash rouge quand le joueur est touché
+EventBus.on("joueur_touche", function(data)
+    SceneFX.flash(Color.new(255, 0, 0, 150), 0.2)
+end)
+
+-- Flash blanc à un coup critique
+SceneFX.flash(Color.new(255, 255, 255, 200), 0.15)
+
+-- Flash jaune pour un power-up
+SceneFX.flash(Color.new(255, 220, 0, 180), 0.3)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Mort du joueur (fondu, respawn, retour)</div>
+      <pre><code class="lua">function joueurMort()
+    Sound.play("data/sounds/mort.ogg")
+
+    SceneFX.fadeIn(1.5, function()
+        -- Écran totalement noir : réinitialiser
+        Stats.set(joueur.id, "Vie", Stats.get(joueur.id, "VieMax", 100))
+        World.setPosition(joueur, checkpoint.x, checkpoint.y)
+        Sound.playMusic("data/music/theme.ogg")
+
+        -- Retour progressif à l'image
+        SceneFX.fadeOut(1.0)
+    end)
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

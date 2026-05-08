@@ -27,25 +27,37 @@ private:
     Color m_backgroundColor = Color::Black;
 
     EntityRegistry m_entityRegistry;
-    std::vector<std::unique_ptr<System>> m_systems;
+    std::vector<std::unique_ptr<System>> m_logicSystems;
+    std::unique_ptr<RenderSystem>        m_renderSystem;
     WaypointGraph m_waypointGraph;  // Waypoint-based pathfinding for NPCs
+    std::string   m_scriptPath;
 
 public:
     /**
      * @brief Constructor
      * @param name Scene name
      */
-    explicit Scene(const std::string& name) : m_name(name) {
-        // Create default systems
-        // Order matters: Animation updates before Render, Light renders before Render
-        m_systems.push_back(std::make_unique<AnimationSystem>());
-        m_systems.push_back(std::make_unique<PhysicsSystem>());
-        m_systems.push_back(std::make_unique<ActivatorSystem>());  // Activator system
-        m_systems.push_back(std::make_unique<AudioSystem>());
-        m_systems.push_back(std::make_unique<LightSystem>());
-        m_systems.push_back(std::make_unique<RenderSystem>());  // Render last
-
+    explicit Scene(const std::string& name) : m_name(name),
+        m_renderSystem(std::make_unique<RenderSystem>())
+    {
+        m_logicSystems.push_back(std::make_unique<AnimationSystem>());
+        m_logicSystems.push_back(std::make_unique<PhysicsSystem>());
+        m_logicSystems.push_back(std::make_unique<ActivatorSystem>());
+        m_logicSystems.push_back(std::make_unique<AudioSystem>());
+        m_logicSystems.push_back(std::make_unique<LightSystem>());
         LOG_DEBUG("Created scene: {}", m_name);
+    }
+
+    /**
+     * @brief Inject a custom logic system (e.g. ScriptSystem).
+     * Runs during update(), before rendering.
+     */
+    template<typename T, typename... Args>
+    T* addSystem(Args&&... args) {
+        auto system = std::make_unique<T>(std::forward<Args>(args)...);
+        T* ptr = system.get();
+        m_logicSystems.push_back(std::move(system));
+        return ptr;
     }
 
     /**
@@ -62,6 +74,11 @@ public:
      * @brief Get the background color
      */
     const Color& getBackgroundColor() const { return m_backgroundColor; }
+
+    /**
+     * @brief Get the scene script path (empty if none)
+     */
+    const std::string& getScriptPath() const { return m_scriptPath; }
 
     /**
      * @brief Load scene from JSON
@@ -82,12 +99,21 @@ public:
 
             if (sceneData.contains("backgroundColor")) {
                 auto& bg = sceneData["backgroundColor"];
-                m_backgroundColor = Color{
-                    static_cast<u8>(bg[0].get<int>()),
-                    static_cast<u8>(bg[1].get<int>()),
-                    static_cast<u8>(bg[2].get<int>()),
-                    static_cast<u8>(bg[3].get<int>())
-                };
+                if (bg.is_array() && bg.size() >= 4) {
+                    m_backgroundColor = Color{
+                        static_cast<u8>(bg[0].get<int>()),
+                        static_cast<u8>(bg[1].get<int>()),
+                        static_cast<u8>(bg[2].get<int>()),
+                        static_cast<u8>(bg[3].get<int>())
+                    };
+                } else {
+                    LOG_WARN("Scene '{}': 'backgroundColor' must be a 4-element array", m_name);
+                }
+            }
+
+            if (sceneData.contains("script")) {
+                m_scriptPath = sceneData["script"].get<std::string>();
+                LOG_INFO("Scene '{}': script = '{}'", m_name, m_scriptPath);
             }
 
             // Load waypoint graph for pathfinding
@@ -120,10 +146,8 @@ public:
      * @param deltaTime Time since last frame
      */
     void update(float deltaTime) {
-        // Update logic systems only (not RenderSystem)
-        for (size_t i = 0; i < m_systems.size() - 1; ++i) {  // -1 to skip RenderSystem (last)
-            m_systems[i]->update(deltaTime, m_entityRegistry);
-        }
+        for (auto& system : m_logicSystems)
+            system->update(deltaTime, m_entityRegistry);
     }
 
     /**
@@ -131,10 +155,7 @@ public:
      */
     void render() {
         WINDOW().clear(m_backgroundColor);
-        // Call RenderSystem (last system in the list)
-        if (!m_systems.empty()) {
-            m_systems.back()->update(0.0f, m_entityRegistry);  // RenderSystem is last
-        }
+        m_renderSystem->update(0.0f, m_entityRegistry);
     }
 
     /**
@@ -190,10 +211,12 @@ private:
 
         // Position: support both "position": [x, y] and "x", "y"
         if (entityData.contains("position")) {
-            transform->position = Vec2f{
-                entityData["position"][0].get<f32>(),
-                entityData["position"][1].get<f32>()
-            };
+            auto& pos = entityData["position"];
+            if (pos.is_array() && pos.size() >= 2) {
+                transform->position = Vec2f{pos[0].get<f32>(), pos[1].get<f32>()};
+            } else {
+                LOG_WARN("Entity 'position' must be a 2-element array");
+            }
         } else if (entityData.contains("x") && entityData.contains("y")) {
             transform->position = Vec2f{
                 entityData["x"].get<f32>(),
@@ -207,14 +230,16 @@ private:
 
         // Scale: support both "scale": [x, y] and "scale": value (uniform)
         if (entityData.contains("scale")) {
-            if (entityData["scale"].is_array()) {
+            if (entityData["scale"].is_array() && entityData["scale"].size() >= 2) {
                 transform->scale = Vec2f{
                     entityData["scale"][0].get<f32>(),
                     entityData["scale"][1].get<f32>()
                 };
-            } else {
+            } else if (!entityData["scale"].is_array()) {
                 f32 uniformScale = entityData["scale"].get<f32>();
                 transform->scale = Vec2f{uniformScale, uniformScale};
+            } else {
+                LOG_WARN("Entity 'scale' array must have at least 2 elements");
             }
         }
 
@@ -295,12 +320,16 @@ private:
             // Color
             if (lightData.contains("color")) {
                 auto& color = lightData["color"];
-                light->color = Color{
-                    static_cast<u8>(color[0].get<int>()),
-                    static_cast<u8>(color[1].get<int>()),
-                    static_cast<u8>(color[2].get<int>()),
-                    static_cast<u8>(color[3].get<int>())
-                };
+                if (color.is_array() && color.size() >= 4) {
+                    light->color = Color{
+                        static_cast<u8>(color[0].get<int>()),
+                        static_cast<u8>(color[1].get<int>()),
+                        static_cast<u8>(color[2].get<int>()),
+                        static_cast<u8>(color[3].get<int>())
+                    };
+                } else {
+                    LOG_WARN("Light 'color' must be a 4-element array");
+                }
             }
 
             // Radius
@@ -316,10 +345,11 @@ private:
             // Direction
             if (lightData.contains("direction")) {
                 auto& dir = lightData["direction"];
-                light->direction = Vec2f{
-                    dir[0].get<f32>(),
-                    dir[1].get<f32>()
-                };
+                if (dir.is_array() && dir.size() >= 2) {
+                    light->direction = Vec2f{dir[0].get<f32>(), dir[1].get<f32>()};
+                } else {
+                    LOG_WARN("Light 'direction' must be a 2-element array");
+                }
             }
 
             // Angle
@@ -488,19 +518,28 @@ private:
         // Create light component from definition
         auto light = std::make_unique<LightComponent>();
 
-        std::string typeStr = (*lightDef)["type"];
-        if (typeStr == "point") light->type = LightComponent::LightType::Point;
-        else if (typeStr == "directional") light->type = LightComponent::LightType::Directional;
-        else if (typeStr == "spot") light->type = LightComponent::LightType::Spot;
+        if (lightDef->contains("type")) {
+            std::string typeStr = (*lightDef)["type"];
+            if (typeStr == "point") light->type = LightComponent::LightType::Point;
+            else if (typeStr == "directional") light->type = LightComponent::LightType::Directional;
+            else if (typeStr == "spot") light->type = LightComponent::LightType::Spot;
+            else LOG_WARN("Light '{}': unknown type '{}'", lightID, typeStr);
+        } else {
+            LOG_WARN("Light definition '{}' missing 'type' field, defaulting to Point", lightID);
+        }
 
         if (lightDef->contains("color")) {
             auto& color = (*lightDef)["color"];
-            light->color = Color{
-                static_cast<u8>(color[0].get<int>()),
-                static_cast<u8>(color[1].get<int>()),
-                static_cast<u8>(color[2].get<int>()),
-                static_cast<u8>(color[3].get<int>())
-            };
+            if (color.is_array() && color.size() >= 4) {
+                light->color = Color{
+                    static_cast<u8>(color[0].get<int>()),
+                    static_cast<u8>(color[1].get<int>()),
+                    static_cast<u8>(color[2].get<int>()),
+                    static_cast<u8>(color[3].get<int>())
+                };
+            } else {
+                LOG_WARN("Light '{}': 'color' must be a 4-element array", lightID);
+            }
         }
 
         if (lightDef->contains("radius")) {
@@ -513,7 +552,11 @@ private:
 
         if (lightDef->contains("direction")) {
             auto& dir = (*lightDef)["direction"];
-            light->direction = Vec2f{dir[0].get<f32>(), dir[1].get<f32>()};
+            if (dir.is_array() && dir.size() >= 2) {
+                light->direction = Vec2f{dir[0].get<f32>(), dir[1].get<f32>()};
+            } else {
+                LOG_WARN("Light '{}': 'direction' must be a 2-element array", lightID);
+            }
         }
 
         if (lightDef->contains("angle")) {
@@ -555,10 +598,14 @@ private:
 
         if (animDef->contains("frames")) {
             for (const auto& frame : (*animDef)["frames"]) {
-                animation->frames.push_back(IntRect{
-                    frame[0].get<i32>(), frame[1].get<i32>(),
-                    frame[2].get<i32>(), frame[3].get<i32>()
-                });
+                if (frame.is_array() && frame.size() >= 4) {
+                    animation->frames.push_back(IntRect{
+                        frame[0].get<i32>(), frame[1].get<i32>(),
+                        frame[2].get<i32>(), frame[3].get<i32>()
+                    });
+                } else {
+                    LOG_WARN("Animation '{}': each frame must be a 4-element array [x, y, w, h]", animID);
+                }
             }
         }
 
