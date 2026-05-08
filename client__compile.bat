@@ -44,7 +44,7 @@ echo     type="win32"
 echo     name="Nova.Game"
 echo     version="1.0.0.0"
 echo     processorArchitecture="*"/^>
-echo.    
+echo.
 echo   ^<trustInfo xmlns="urn:schemas-microsoft-com:asm.v3"^>
 echo     ^<security^>
 echo       ^<requestedPrivileges^>
@@ -52,14 +52,14 @@ echo         ^<requestedExecutionLevel level="asInvoker" uiAccess="false"/^>
 echo       ^</requestedPrivileges^>
 echo     ^</security^>
 echo   ^</trustInfo^>
-echo.  
+echo.
 echo   ^<asmv3:application^>
 echo     ^<asmv3:windowsSettings^>
 echo       ^<dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings"^>true/pm^</dpiAware^>
 echo       ^<dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings"^>PerMonitorV2^</dpiAwareness^>
 echo     ^</asmv3:windowsSettings^>
 echo   ^</asmv3:application^>
-echo.  
+echo.
 echo   ^<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1"^>
 echo     ^<application^>
 echo       ^<supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/^>
@@ -135,11 +135,11 @@ echo.
 :: Create directories
 if not exist "%BIN_DIR%" mkdir "%BIN_DIR%"
 if not exist "%OBJ_DIR%" mkdir "%OBJ_DIR%"
+if not exist "%OBJ_DIR%\nlohmann" mkdir "%OBJ_DIR%\nlohmann"
+if not exist "%OBJ_DIR%\sol"      mkdir "%OBJ_DIR%\sol"
 
 :: Copy assets
-:: Ligne 1 : assets directement dans assets/ (structure Windows courante)
 xcopy /E /I /Y "%SOURCE_DIR%\assets\" "%BIN_DIR%\data\" >nul 2>&1
-:: Ligne 2 : assets dans assets/data/ (structure repo Linux) — écrase proprement
 if exist "%SOURCE_DIR%\assets\data\" (
     xcopy /E /I /Y "%SOURCE_DIR%\assets\data\" "%BIN_DIR%\data\" >nul 2>&1
 )
@@ -178,16 +178,56 @@ if not exist "%LIB_DIR%\lua54.lib" (
 echo.
 
 :: PCH — nlohmann/json.hpp
-echo    Compiling precompiled header (json.hpp)...
-if not exist "%OBJ_DIR%\nlohmann" mkdir "%OBJ_DIR%\nlohmann"
-g++ -x c++-header "%SDK_DIR%\nlohmann\json.hpp" -o "%OBJ_DIR%\nlohmann\json.hpp.gch" ^
-    -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
-if %ERRORLEVEL% NEQ 0 (
-    echo    [ERROR] PCH compilation failed
-    goto :build_failed
+set "JSON_PCH_SRC=%SDK_DIR%\nlohmann\json.hpp"
+set "JSON_PCH_OUT=%OBJ_DIR%\nlohmann\json.hpp.gch"
+powershell -NoProfile -Command "exit [int](-not (Test-Path '%JSON_PCH_OUT%') -or (Get-Item '%JSON_PCH_SRC%').LastWriteTime -gt (Get-Item '%JSON_PCH_OUT%').LastWriteTime)"
+if %ERRORLEVEL% EQU 1 (
+    echo    Compiling precompiled header ^(json.hpp^)...
+    g++ -x c++-header "%JSON_PCH_SRC%" -o "%JSON_PCH_OUT%" ^
+        -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
+    if %ERRORLEVEL% NEQ 0 ( echo    [ERROR] json.hpp PCH failed & goto :build_failed )
+    echo    [OK] json.hpp PCH ready.
+) else (
+    echo    [OK] json.hpp PCH up-to-date, skipping.
 )
-echo    [OK] PCH ready
+
+:: PCH — sol/sol.hpp  ^(sol2 — header-only, très lourd en templates^)
+set "SOL_PCH_SRC=%SDK_DIR%\sol\sol.hpp"
+set "SOL_PCH_OUT=%OBJ_DIR%\sol\sol.hpp.gch"
+powershell -NoProfile -Command "exit [int](-not (Test-Path '%SOL_PCH_OUT%') -or (Get-Item '%SOL_PCH_SRC%').LastWriteTime -gt (Get-Item '%SOL_PCH_OUT%').LastWriteTime)"
+if %ERRORLEVEL% EQU 1 (
+    echo    Compiling precompiled header ^(sol/sol.hpp^)...
+    g++ -x c++-header "%SOL_PCH_SRC%" -o "%SOL_PCH_OUT%" ^
+        -I "%SDK_DIR%" -DSFML_STATIC -std=c++17 -O2
+    if %ERRORLEVEL% NEQ 0 ( echo    [ERROR] sol/sol.hpp PCH failed & goto :build_failed )
+    echo    [OK] sol/sol.hpp PCH ready.
+) else (
+    echo    [OK] sol/sol.hpp PCH up-to-date, skipping.
+)
 echo.
+
+:: -------------------------------------------------------
+:: Script PowerShell pour le check de dépendances
+:: Lit le fichier .d généré lors de la dernière compilation
+:: et vérifie si l'un des headers est plus récent que le .o.
+:: Passe les chemins via variables d'environnement pour
+:: éviter les problèmes d'échappement de guillemets.
+::
+:: Exit 1 = recompilation nécessaire
+:: Exit 0 = à jour
+:: -------------------------------------------------------
+set "PS_DEP_CHECK=%TEMP%\nova_dep_check.ps1"
+(
+echo $obj = $env:NOVA_OBJ
+echo $dep = $env:NOVA_DEP
+echo if ^(-not ^(Test-Path $obj^)^)                          { exit 1 }
+echo if ^(-not ^(Test-Path $dep^)^)                          { exit 1 }
+echo $t   = ^(Get-Item $obj^).LastWriteTime
+echo $raw = ^(Get-Content $dep -Raw^) -replace '\\\r?\n', ' '
+echo $deps = ^($raw -split ':', 2^)[1] -split '\s+' ^| Where-Object { $_ }
+echo if ^($deps ^| Where-Object { ^(Test-Path $_^) -and ^(Get-Item $_^).LastWriteTime -gt $t }^) { exit 1 }
+echo exit 0
+) > "!PS_DEP_CHECK!"
 
 :: Source files list
 set "SOURCE_FILES=main.cpp"
@@ -206,43 +246,57 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\PostProcessManager.cpp src\Render
 set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp src\Rendering\Effects\SSAOEffect.cpp src\Rendering\Effects\BloomEffect.cpp src\Rendering\Effects\ColorGradingEffect.cpp src\Rendering\Effects\DynamicLightingEffect.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Systems\LightingSystem.cpp"
 
-:: Compile each source file
-set COMPILED=0
-set SKIPPED=0
+set "COMPILED=0"
+set "SKIPPED=0"
 
 for %%f in (%SOURCE_FILES%) do (
     set "SOURCE_PATH=%SOURCE_DIR%\%%f"
     for %%n in ("%%f") do set "BASE_NAME=%%~nxn"
     set "OBJ_FILE=!BASE_NAME:.cpp=.o!"
     set "OBJ_PATH=%OBJ_DIR%\!OBJ_FILE!"
-    
+    set "DEP_FILE=%OBJ_DIR%\!BASE_NAME:.cpp=.d!"
+
+    :: Vérification des dépendances via le fichier .d
     set "NEEDS_COMPILE=0"
-    
-    if not exist "!OBJ_PATH!" (
-        set "NEEDS_COMPILE=1"
-    ) else (
-        for %%s in ("!SOURCE_PATH!") do set "SOURCE_TIME=%%~ts"
-        for %%o in ("!OBJ_PATH!") do set "OBJ_TIME=%%~to"
-        if "!SOURCE_TIME!" gtr "!OBJ_TIME!" set "NEEDS_COMPILE=1"
-    )
-    
+    set "NOVA_OBJ=!OBJ_PATH!"
+    set "NOVA_DEP=!DEP_FILE!"
+    powershell -NoProfile -File "!PS_DEP_CHECK!" > nul 2>&1
+    set "PS_ERR=!ERRORLEVEL!"
+    if "!PS_ERR!"=="1" set "NEEDS_COMPILE=1"
+
     if "!NEEDS_COMPILE!"=="1" (
-        echo    Compiling %%f...
-        g++ -o "!OBJ_PATH!" -O0 -DNDEBUG -I "%SDK_DIR%" -I "%OBJ_DIR%" -include nlohmann/json.hpp -c "!SOURCE_PATH!" -Wall -DSFML_STATIC -std=c++17 -Wa,-mbig-obj
-        
+        echo    [COMPILE] %%f
+        g++ -o "!OBJ_PATH!" -O0 -DNDEBUG ^
+            -I "%SDK_DIR%" -I "%OBJ_DIR%" ^
+            -include nlohmann/json.hpp ^
+            -include sol/sol.hpp ^
+            -MMD -MF "!DEP_FILE!" ^
+            -c "!SOURCE_PATH!" ^
+            -Wall -DSFML_STATIC -std=c++17 -Wa,-mbig-obj
+
         if !ERRORLEVEL! NEQ 0 (
             echo    [ERROR] Compilation failed for %%f
+            del "!PS_DEP_CHECK!" > nul 2>&1
             goto :build_failed
         )
         set /a COMPILED+=1
     ) else (
+        echo    [UP-TO-DATE] %%f
         set /a SKIPPED+=1
     )
 )
 
+del "!PS_DEP_CHECK!" > nul 2>&1
+
 echo.
-echo    Compiled: %COMPILED% file(s)
-echo    Skipped:  %SKIPPED% file(s) (up-to-date)
+echo    Compiled: !COMPILED! file(s) -- Skipped: !SKIPPED! file(s) ^(up-to-date^)
+
+:: Aucun fichier recompilé et exécutable déjà présent → pas besoin de relinker
+if "!COMPILED!"=="0" if exist "%BIN_DIR%\Nova.exe" (
+    echo.
+    echo    Nothing to do -- executable is up-to-date.
+    goto :build_success_no_manifest
+)
 
 :: ============================================
 :: STEP 4: LINKING

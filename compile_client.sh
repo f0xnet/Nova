@@ -13,10 +13,7 @@ SDK_DIR="$PROJECT_DIR/sdk/include"
 LIB_DIR="$PROJECT_DIR/sdk/libs"
 LUA_SRC="$PROJECT_DIR/deps/lua-5.4.7/src"
 
-mkdir -p "$BIN_DIR"
-mkdir -p "$OBJ_DIR"
-mkdir -p "$OBJ_DIR/nlohmann"
-mkdir -p "$OBJ_DIR/sol"
+mkdir -p "$BIN_DIR" "$OBJ_DIR" "$OBJ_DIR/nlohmann" "$OBJ_DIR/sol"
 
 # ------------------------------------
 # Lua 5.4 — compile si liblua54.a absent ou sources plus récentes
@@ -86,52 +83,99 @@ else
 fi
 echo ""
 
+# ------------------------------------
+# Dépendances incrémentielles
+# Lit le fichier .d généré lors de la dernière compilation et vérifie si
+# l'un des headers listés est plus récent que le .o — si oui, recompile.
+# Retourne 0 (vrai) = recompilation nécessaire, 1 (faux) = à jour.
+# ------------------------------------
+needs_rebuild() {
+    local obj="$1"
+    local dep="${obj%.o}.d"
+
+    # Pas encore compilé
+    [ ! -f "$obj" ] && return 0
+
+    # Pas de .d — impossible de vérifier les dépendances, on recompile par sécurité
+    [ ! -f "$dep" ] && return 0
+
+    # Lit le .d, supprime les '\' de continuation, éclate sur les espaces,
+    # ignore le token "cible.o:" et vérifie chaque fichier listé
+    local deps
+    deps=$(sed 's/\\$//' "$dep" | tr '\n' ' ' | sed 's/[^:]*://')
+    for f in $deps; do
+        [ -f "$f" ] && [ "$f" -nt "$obj" ] && return 0
+    done
+
+    return 1
+}
+
+# ------------------------------------
+# Compilation incrémentielle
+# ------------------------------------
 echo "[STEP 1/3] Compiling source files..."
 
-CPP_FILES=$(find "$SOURCE_DIR" -name "*.cpp")
+# main.cpp est dans client/ (pas dans client/src/)
+CPP_FILES="$(find "$SOURCE_DIR" -name "*.cpp") $PROJECT_DIR/client/main.cpp"
 
 OBJECT_FILES=""
+COMPILED=0
+SKIPPED=0
+
 for file in $CPP_FILES; do
-    relpath=$(dirname "${file#$SOURCE_DIR/}")
-    mkdir -p "$OBJ_DIR/$relpath"
+    # Calcul du chemin .o et .d
+    if [[ "$file" == "$SOURCE_DIR/"* ]]; then
+        rel="${file#$SOURCE_DIR/}"
+        obj_file="$OBJ_DIR/${rel%.cpp}.o"
+    else
+        # main.cpp → obj/Release/main.o
+        obj_file="$OBJ_DIR/main.o"
+    fi
+    dep_file="${obj_file%.o}.d"
 
-    obj_file="$OBJ_DIR/${file#$SOURCE_DIR/}"
-    obj_file="${obj_file%.cpp}.o"
+    mkdir -p "$(dirname "$obj_file")"
 
-    echo "  Compiling: $file"
+    if needs_rebuild "$obj_file"; then
+        echo "  [COMPILE] ${file#$PROJECT_DIR/}"
 
-    g++ -c "$file" -o "$obj_file" \
-        -I"$SDK_DIR" \
-        -I"$OBJ_DIR" \
-        -include nlohmann/json.hpp \
-        -include sol/sol.hpp \
-        -DSFML_STATIC \
-        -std=c++17 \
-        -O2 \
-        -Wall
+        g++ -c "$file" -o "$obj_file" \
+            -MMD -MF "$dep_file" \
+            -I"$SDK_DIR" \
+            -I"$OBJ_DIR" \
+            -include nlohmann/json.hpp \
+            -include sol/sol.hpp \
+            -DSFML_STATIC \
+            -std=c++17 \
+            -O2 \
+            -Wall
 
-    if [ $? -ne 0 ]; then
-        echo "ERROR: Compilation failed for $file"
-        exit 1
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Compilation failed for $file"
+            exit 1
+        fi
+        COMPILED=$((COMPILED + 1))
+    else
+        echo "  [UP-TO-DATE] ${file#$PROJECT_DIR/}"
+        SKIPPED=$((SKIPPED + 1))
     fi
 
     OBJECT_FILES="$OBJECT_FILES $obj_file"
 done
 
-echo "  Compiling: $PROJECT_DIR/client/main.cpp"
-g++ -c "$PROJECT_DIR/client/main.cpp" -o "$OBJ_DIR/main.o" \
-    -I"$SDK_DIR" \
-    -I"$OBJ_DIR" \
-    -include nlohmann/json.hpp \
-    -include sol/sol.hpp \
-    -DSFML_STATIC \
-    -std=c++17 \
-    -O2 \
-    -Wall
+echo ""
+echo "  Compiled: $COMPILED file(s) — Skipped: $SKIPPED file(s) (up-to-date)"
 
-if [ $? -ne 0 ]; then echo "ERROR: Compilation failed for main.cpp"; exit 1; fi
-
-OBJECT_FILES="$OBJECT_FILES $OBJ_DIR/main.o"
+# ------------------------------------
+# Aucun fichier recompilé et exécutable déjà présent → pas besoin de relinker
+# ------------------------------------
+if [ $COMPILED -eq 0 ] && [ -f "$BIN_DIR/NovaEngine" ]; then
+    echo ""
+    echo "Nothing to do — executable is up-to-date."
+    echo "========================================"
+    echo "  BUILD SUCCESSFUL (no changes)"
+    echo "========================================"
+    exit 0
+fi
 
 echo ""
 echo "[STEP 2/3] Linking executable..."
