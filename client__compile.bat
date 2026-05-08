@@ -207,15 +207,13 @@ if %ERRORLEVEL% EQU 1 (
 echo.
 
 :: -------------------------------------------------------
-:: Script PowerShell pour le check de dépendances
-:: Fichier commité dans tools/ — pas de génération dynamique.
-:: Passe les chemins via variables d'environnement pour
-:: éviter les problèmes d'échappement de guillemets.
-::
-:: Exit 1 = recompilation nécessaire
-:: Exit 0 = à jour
+:: Vérification incrémentielle — UN SEUL appel PowerShell
+:: tools\nova_inc_check.ps1 décide pour TOUS les fichiers et crée
+:: un marker file "<basename>.compile" pour chaque .cpp à recompiler.
+:: La boucle ci-dessous teste juste l'existence du marker.
 :: -------------------------------------------------------
-set "PS_DEP_CHECK=%PROJECT_DIR%\tools\nova_dep_check.ps1"
+set "MARKER_DIR=%TEMP%\nova_inc"
+set "FILE_LIST=%TEMP%\nova_files.txt"
 
 :: Source files list
 set "SOURCE_FILES=main.cpp"
@@ -235,6 +233,18 @@ set "SOURCE_FILES=%SOURCE_FILES% src\Rendering\Effects\CRTEffect.cpp src\Renderi
 set "SOURCE_FILES=%SOURCE_FILES% src\Systems\LightingSystem.cpp"
 set "SOURCE_FILES=%SOURCE_FILES% src\Scripting\LuaBindings.cpp"
 
+:: Génère la liste des sources dans un fichier (un .cpp par ligne)
+(for %%f in (%SOURCE_FILES%) do @echo %%f) > "%FILE_LIST%"
+
+:: Un seul appel PowerShell : crée des markers pour les fichiers à recompiler
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\tools\nova_inc_check.ps1" -SourceDir "%SOURCE_DIR%" -ObjDir "%OBJ_DIR%" -ListFile "%FILE_LIST%" -MarkerDir "%MARKER_DIR%"
+
+set "FORCE_ALL=0"
+if %ERRORLEVEL% NEQ 0 (
+    echo    [WARN] Incremental check failed -- forcing full rebuild
+    set "FORCE_ALL=1"
+)
+
 set "COMPILED=0"
 set "SKIPPED=0"
 
@@ -244,17 +254,11 @@ for %%f in (%SOURCE_FILES%) do (
     set "OBJ_FILE=!BASE_NAME:.cpp=.o!"
     set "OBJ_PATH=%OBJ_DIR%\!OBJ_FILE!"
     set "DEP_FILE=%OBJ_DIR%\!BASE_NAME:.cpp=.d!"
+    set "MARKER=!MARKER_DIR!\!BASE_NAME:.cpp=!.compile"
 
-    :: Vérification incrémentielle
-    :: Exit 1 de PowerShell = .cpp plus récent que .o → recompiler
-    :: Exit 0 = à jour → skip
     set "NEEDS_COMPILE=0"
-    if not exist "!OBJ_PATH!" (
-        set "NEEDS_COMPILE=1"
-    ) else (
-        powershell -NoProfile -ExecutionPolicy Bypass -Command "exit [int]((Get-Item '!SOURCE_PATH!').LastWriteTime -gt (Get-Item '!OBJ_PATH!').LastWriteTime)"
-        if !ERRORLEVEL! EQU 1 set "NEEDS_COMPILE=1"
-    )
+    if "!FORCE_ALL!"=="1" set "NEEDS_COMPILE=1"
+    if exist "!MARKER!" set "NEEDS_COMPILE=1"
 
     if "!NEEDS_COMPILE!"=="1" (
         echo    [COMPILE] %%f
