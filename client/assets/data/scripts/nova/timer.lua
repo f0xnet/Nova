@@ -9,6 +9,9 @@
 --   Timer.cancelScope(scope)                    annule tous les timers d'un scope
 --   Timer.cancelAll()                           annule tous les timers (reset global)
 --   Timer.update(dt)                            appelé par ScriptSystem
+--
+-- Note : scope est optionnel — si absent, Scene.current() est utilisé automatiquement.
+-- Les timers sont donc toujours liés à une scène et nettoyés au changement de scène.
 
 local Timer  = {}
 local timers = {}
@@ -16,13 +19,15 @@ local nextId = 1
 
 function Timer.after(delay, callback, scope)
     local id = nextId; nextId = nextId + 1
-    timers[id] = { remaining = delay, callback = callback, interval = nil, scope = scope }
+    timers[id] = { remaining = delay, callback = callback, interval = nil,
+                   scope = scope ~= nil and scope or Scene.current() }
     return id
 end
 
 function Timer.every(interval, callback, scope)
     local id = nextId; nextId = nextId + 1
-    timers[id] = { remaining = interval, callback = callback, interval = interval, scope = scope }
+    timers[id] = { remaining = interval, callback = callback, interval = interval,
+                   scope = scope ~= nil and scope or Scene.current() }
     return id
 end
 

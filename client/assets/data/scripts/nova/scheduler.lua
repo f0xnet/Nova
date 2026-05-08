@@ -8,12 +8,16 @@
 --   Scheduler.cancelScope(scope)     stoppe toutes les coroutines d'un scope
 --   Scheduler.clear()                stoppe toutes les coroutines (reset global)
 --   Scheduler.update(dt)             appelé par ScriptSystem
+--
+-- Note : scope est optionnel — si absent, Scene.current() est utilisé automatiquement.
+-- Les coroutines sont donc toujours liées à une scène et nettoyées au changement de scène.
 
 local Scheduler = {}
 local routines  = {}
 
 function Scheduler.start(fn, scope, ...)
     local args = { ... }
+    local resolvedScope = scope ~= nil and scope or Scene.current()
     local co = coroutine.create(function() fn(table.unpack(args)) end)
     local ok, yieldVal = coroutine.resume(co)
     if not ok then
@@ -21,7 +25,7 @@ function Scheduler.start(fn, scope, ...)
         return nil
     end
     if coroutine.status(co) ~= "dead" then
-        table.insert(routines, { co = co, wait = tonumber(yieldVal) or 0, scope = scope })
+        table.insert(routines, { co = co, wait = tonumber(yieldVal) or 0, scope = resolvedScope })
     end
     return co
 end

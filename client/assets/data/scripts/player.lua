@@ -8,7 +8,7 @@ function init(entity)
 
     -- Un autre script peut changer la vitesse :
     --   EventBus.emit("player_set_speed", { value = 300 })
-    EventBus.on("player_set_speed", function(data)
+    Scene.listen("player_set_speed", function(data)
         if data and data.value then
             speed = data.value
             Log.info("Vitesse joueur → " .. speed .. " px/s")
