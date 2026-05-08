@@ -48,11 +48,11 @@
     <p>Ces fonctions sont branchées automatiquement sur les événements correspondants. Définissez celles dont vous avez besoin — elles seront appelées sans EventBus.on() manuel.</p>
 
     <div class="callout success">
-      <strong>Nettoyage automatique des handlers.</strong> Quand une entité est détruite (<code>Registry.destroyEntity</code>), le moteur émet <code>entity_destroyed</code> <em>avant</em> la suppression, ce qui déclenche automatiquement : désinscription de tous ses named handlers de EventBus, suppression de son environnement Lua, et nettoyage de Stats / Effect / Cooldown / Anim. Aucune gestion manuelle n'est nécessaire.
+      <strong>Nettoyage automatique des handlers.</strong> Quand une entité est détruite (<code>Registry.destroyEntity</code>), le moteur émet <code>entity_destroyed</code> <em>avant</em> la suppression, ce qui déclenche automatiquement : désinscription de tous ses named handlers <strong>et de tous les <code>EventBus.on()</code> appelés dans <code>init(entity)</code></strong>, suppression de son environnement Lua, et nettoyage de Stats / Effect / Cooldown / Anim. Aucune gestion manuelle n'est nécessaire.
     </div>
 
-    <div class="callout warn">
-      <strong>Scripts de scène : utilisez <code>Scene.listen()</code> au lieu de <code>EventBus.on()</code>.</strong> Les named handlers d'un script de scène (entityId=0) ne sont pas nettoyés au changement de scène. Pour les souscriptions à durée de vie limitée, préférez <code>Scene.listen("mon_event", fn)</code> — le handler sera automatiquement retiré à la prochaine transition de scène.
+    <div class="callout success">
+      <strong>Scripts de scène : named handlers et <code>EventBus.on()</code> nettoyés automatiquement.</strong> Au changement de scène, tous les named handlers (OnKeyDown, OnMessage…) <em>et</em> tous les <code>EventBus.on()</code> appelés dans <code>init()</code> du script de scène sont retirés automatiquement. Pour les souscriptions qui doivent traverser plusieurs scènes, utilisez un script global (pas un script de scène).
     </div>
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Déclencheur</th></tr></thead>
@@ -210,6 +210,12 @@ end</code></pre>
     </div>
     <div class="callout success">
       <strong>Timer et Scheduler auto-scopés</strong> — <code>Timer.after(1, fn)</code> et <code>Scheduler.start(fn)</code> sans scope explicite sont automatiquement liés à <code>Scene.current()</code>. Impossible de créer accidentellement un timer qui fuit entre scènes.
+    </div>
+    <div class="callout tip">
+      <strong>Constantes de stats : <code>Stat.Health</code></strong> — Le global <code>Stat</code> expose des constantes canoniques pour éviter les typos silencieuses. Préférez <code>Stats.set(entity.id, Stat.Health, 100)</code> à <code>Stats.set(entity.id, "Healt", 100)</code>.
+    </div>
+    <div class="callout info">
+      <strong>Erreurs script propagées via EventBus</strong> — Toute erreur (chargement, init, update) émet <code>"script_error"</code> : <code>{ entityId, path, error, phase }</code>. Abonnez-vous pour afficher une console de debug en jeu : <code>EventBus.on("script_error", function(d) Log.error(d.path .. " [" .. d.phase .. "] " .. d.error) end)</code>.
     </div>
   </div>
 

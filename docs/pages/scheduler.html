@@ -30,6 +30,7 @@
       <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
       <tbody>
         <tr><td>Scheduler.start(fonction, scope, ...)</td><td>Lance une séquence asynchrone. <code>scope</code> optionnel — défaut : <code>Scene.current()</code>. Les arguments supplémentaires sont passés à la fonction.</td><td class="ret">coroutine</td></tr>
+        <tr><td>Scheduler.startWith(fonction, args, scope)</td><td>Variante propre : <code>args</code> est une table <code>{arg1, arg2, ...}</code>. <code>scope</code> optionnel en 3e position — évite le <code>nil</code> obligatoire de <code>start(fn, nil, arg1)</code>.</td><td class="ret">coroutine</td></tr>
         <tr><td>Scheduler.wait(secondes)</td><td>Met la séquence en pause N secondes. <strong>À appeler uniquement à l'intérieur d'un <code>Scheduler.start()</code></strong>.</td><td>—</td></tr>
         <tr><td>Scheduler.cancelScope(scope)</td><td>Annule toutes les coroutines d'un scope donné.</td><td>—</td></tr>
         <tr><td>Scheduler.clear()</td><td>Annule toutes les coroutines en cours (reset global).</td><td>—</td></tr>
@@ -66,6 +67,28 @@ Scheduler.start(function()
     Scheduler.wait(0.5)
     EventBus.emit("boss_combat_commence", {})
 end)</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>startWith — passer des arguments sans ambiguïté</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua</div>
+      <pre><code class="lua">-- Problème avec start() : pour passer des args sans scope, il faut un nil explicite
+Scheduler.start(deplacerVersPoint, nil, 400, 250, 80)
+
+-- Solution : startWith() — args en table, scope optionnel en 3e position
+Scheduler.startWith(deplacerVersPoint, {400, 250, 80})
+
+-- Avec scope explicite (ex : lié à l'entité, pas à la scène)
+Scheduler.startWith(patrouille, {entity, waypoints}, tostring(entity.id))
+
+-- Exemple de fonction coroutine avec args
+local function deplacerVersPoint(x, y, vitesse)
+    Nav.moveTo(entity, {x=x, y=y}, vitesse)
+    Scheduler.wait(2.0)
+    Nav.stop(entity)
+end</code></pre>
     </div>
   </div>
 

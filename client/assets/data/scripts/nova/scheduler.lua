@@ -3,14 +3,19 @@
 -- Disponible sans require : Scheduler est un global auto-chargé.
 --
 -- API :
---   Scheduler.start(fn, scope, ...)  démarre une coroutine (scope optionnel)
---   Scheduler.wait(seconds)          suspend la coroutine courante N secondes
---   Scheduler.cancelScope(scope)     stoppe toutes les coroutines d'un scope
---   Scheduler.clear()                stoppe toutes les coroutines (reset global)
---   Scheduler.update(dt)             appelé par ScriptSystem
+--   Scheduler.start(fn, scope, ...)   démarre une coroutine (scope optionnel avant args)
+--   Scheduler.startWith(fn, args, scope) démarre avec args passés en table (scope optionnel)
+--   Scheduler.wait(seconds)           suspend la coroutine courante N secondes
+--   Scheduler.cancelScope(scope)      stoppe toutes les coroutines d'un scope
+--   Scheduler.clear()                 stoppe toutes les coroutines (reset global)
+--   Scheduler.update(dt)              appelé par ScriptSystem
 --
 -- Note : scope est optionnel — si absent, Scene.current() est utilisé automatiquement.
 -- Les coroutines sont donc toujours liées à une scène et nettoyées au changement de scène.
+--
+-- Différence start vs startWith :
+--   Scheduler.start(fn, nil, arg1, arg2)        -- nil requis pour passer args sans scope
+--   Scheduler.startWith(fn, {arg1, arg2})       -- plus lisible, scope optionnel en 3e param
 
 local Scheduler = {}
 local routines  = {}
@@ -28,6 +33,15 @@ function Scheduler.start(fn, scope, ...)
         table.insert(routines, { co = co, wait = tonumber(yieldVal) or 0, scope = resolvedScope })
     end
     return co
+end
+
+-- Démarre une coroutine avec les arguments passés en table.
+-- Évite le nil obligatoire de start() quand on veut passer des args sans scope.
+--   Scheduler.startWith(fn, {arg1, arg2})          -- auto-scope
+--   Scheduler.startWith(fn, {arg1, arg2}, "scope") -- scope explicite
+function Scheduler.startWith(fn, args, scope)
+    args = args or {}
+    return Scheduler.start(fn, scope, table.unpack(args))
 end
 
 function Scheduler.wait(seconds)

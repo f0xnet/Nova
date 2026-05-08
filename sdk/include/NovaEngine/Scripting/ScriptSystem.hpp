@@ -74,7 +74,7 @@ namespace NovaEngine {
 // ── NETTOYAGE AUTOMATIQUE ────────────────────────────────────────────────────
 //   Destruction d'entité (Registry.destroyEntity) :
 //     → entity_destroyed émis AVANT la suppression
-//     → tous les named handlers de l'entité désabonnés (EventBus.off)
+//     → tous les named handlers ET les EventBus.on() appelés dans init() désabonnés
 //     → ScriptRegistry._envs[id] = nil (env Lua collectable par le GC)
 //     → Stats.clear / Effect.clear / Cooldown.resetAll / Anim.clearCallbacks
 //
@@ -82,16 +82,21 @@ namespace NovaEngine {
 //     → Timer.cancelScope(prev) — timers de la scène sortante annulés
 //     → Scheduler.cancelScope(prev) — coroutines annulées
 //     → Scene.listen() handlers de la scène sortante désabonnés
+//     → Named handlers des scripts de scène (isSceneScript=true) désabonnés
 //     → Sequence, Particles, Projectile réinitialisés via scene_changed
 //
 //   Timer et Scheduler : auto-scopés à Scene.current() si pas de scope fourni.
 //   Impossible de créer accidentellement un timer qui fuite entre scènes.
 //
-// ── LIMITATION CONNUE ────────────────────────────────────────────────────────
-//   Les scripts de scène (chargés via ScriptSystem) utilisant des named handlers
-//   (OnKeyDown etc.) ne sont PAS nettoyés au changement de scène car ils reçoivent
-//   entityId=0 (scope global). Les scripts de scène doivent utiliser Scene.listen()
-//   pour les souscriptions à portée limitée, pas les named handlers.
+// ── PROPAGATION D'ERREURS ───────────────────────────────────────────────────
+//   Toute erreur script (load / init / update) émet "script_error" :
+//     { entityId, path, error, phase }  — exploitable via Debug.watch ou EventBus.on
+//
+// ── NETTOYAGE SCÈNE ───────────────────────────────────────────────────────────
+//   Les scripts de scène (chargés via ScriptSystem) reçoivent entityId=0 lors du
+//   wiring. Ils sont distingués des scripts globaux par isSceneScript=true dans
+//   GlobalScript. __wireNamedHandlers reçoit isSceneScript en troisième argument :
+//   les named handlers sont alors nettoyés sur "scene_changing".
 //
 // ── CONTRÔLE D'UPDATE ────────────────────────────────────────────────────────
 //     RegisterForUpdate(0.5)   -- change la fréquence d'update à 0.5s
@@ -105,7 +110,7 @@ namespace NovaEngine {
 //
 // ── GLOBALS DISPONIBLES ──────────────────────────────────────────────────────
 //     EventBus, Timer, Scheduler, StateMachine, Vec2, World
-//     Tween, Class, Quest, Persist, Game, Stats, Effect, Cooldown
+//     Tween, Class, Quest, Persist, Game, Stats, Stat, Effect, Cooldown
 //     Camera, InputEx, Sound, Inventory, Notify, Physics, Flag, Scene
 //     Sequence, Conversation, Anim, Trigger, InputBind, Loot, Nav
 //     Particles, Projectile, Pool, Spatial, Easing, I18n, Achievement
@@ -171,7 +176,7 @@ public:
                 m_lastActiveScene = activeScene;
                 m_sceneScripts.clear();
                 if (activeScene && !activeScene->getScriptPath().empty()) {
-                    m_sceneScripts.push_back({ activeScene->getScriptPath(), {}, {}, false, false, 0.0f, 0.0f });
+                    m_sceneScripts.push_back({ activeScene->getScriptPath(), {}, {}, false, false, 0.0f, 0.0f, true });
                     LOG_INFO("[ScriptSystem] Scene script : '{}'", activeScene->getScriptPath());
                 }
             }
@@ -207,6 +212,10 @@ public:
                 sol::error err = result;
                 LOG_ERROR("[ScriptSystem] update '{}': {}", script->scriptPath, err.what());
                 script->errored = true;
+                auto ed = m_lua.create_table();
+                ed["entityId"] = entity->getID(); ed["path"] = script->scriptPath;
+                ed["error"] = std::string(err.what()); ed["phase"] = "update";
+                callEventBusEmit("script_error", ed);
             }
         }
 
@@ -254,6 +263,7 @@ private:
         bool  errored        = false;
         float updateInterval = 0.0f;
         float accumulator    = 0.0f;
+        bool  isSceneScript  = false;
     };
 
     sol::state    m_lua;
@@ -360,13 +370,15 @@ private:
 -- Handler references keyed by entityId — allows external forced cleanup if needed
 local _entityHandlers = {}
 
-function __wireNamedHandlers(env, entityId)
+function __wireNamedHandlers(env, entityId, isSceneScript)
     local function safe(fn, ...)
         local ok, err = pcall(fn, ...)
         if not ok then Log.error("[AutoWire] " .. tostring(err)) end
     end
 
-    -- Wraps EventBus.on and records the reference for later unsubscription
+    -- Wraps EventBus.on and records the reference for later unsubscription.
+    -- For entity scripts, env.EventBus.on is also patched (see below) so that
+    -- any EventBus.on() call inside init(entity) is tracked in the same table.
     local handlers = {}
     local function reg(event, fn)
         EventBus.on(event, fn)
@@ -551,29 +563,49 @@ function __wireNamedHandlers(env, entityId)
         end)
     end
 
-    -- Auto-cleanup on entity_destroyed — entity scripts only (entityId != 0).
-    -- Unsubscribes all handlers so closures and the script env can be GC'd.
-    -- Also cleans per-entity module state (Stats, Effect, Cooldown, Anim).
-    if entityId ~= 0 and #handlers > 0 then
+    -- ── Entity scripts (entityId > 0) and scene scripts (isSceneScript) ──────
+    -- Inject a scoped EventBus into the env so that any EventBus.on() call
+    -- inside init() is tracked in the same `handlers` table and cleaned up
+    -- automatically (entity_destroyed for entities, scene_changing for scenes).
+    if entityId ~= 0 or isSceneScript then
+        env.EventBus = setmetatable({
+            on = function(event, handler)
+                EventBus.on(event, handler)
+                handlers[#handlers + 1] = { event, handler }
+            end,
+        }, { __index = EventBus })
+    end
+
+    if entityId ~= 0 then
+
+        -- Always set up entity_destroyed cleanup (even if no named handlers yet,
+        -- init() may call EventBus.on() which adds to `handlers` via env.EventBus).
         _entityHandlers[entityId] = handlers
-        local cleanupFn  -- forward-declared so the closure can reference itself
+        local cleanupFn
         cleanupFn = function(data)
             if data.entityId ~= entityId then return end
-            for _, h in ipairs(handlers) do
-                EventBus.off(h[1], h[2])
-            end
+            for _, h in ipairs(handlers) do EventBus.off(h[1], h[2]) end
             EventBus.off("entity_destroyed", cleanupFn)
             _entityHandlers[entityId] = nil
-            -- Remove from ScriptRegistry so the env can be GC'd
             local sr = ScriptRegistry
             if sr and sr._envs then sr._envs[entityId] = nil end
-            -- Per-entity module cleanup
             if Stats    then Stats.clear(entityId)         end
             if Effect   then Effect.clear(entityId)        end
             if Cooldown then Cooldown.resetAll(entityId)   end
             if Anim     then Anim.clearCallbacks(entityId) end
         end
         EventBus.on("entity_destroyed", cleanupFn)
+
+    -- ── Scene scripts (entityId == 0, isSceneScript == true) ──────────────
+    -- Named handlers AND any EventBus.on() calls in init() are cleaned on
+    -- scene_changing. Global scripts (isSceneScript=false) are never cleaned.
+    elseif isSceneScript then
+        local cleanupFn
+        cleanupFn = function()
+            for _, h in ipairs(handlers) do EventBus.off(h[1], h[2]) end
+            EventBus.off("scene_changing", cleanupFn)
+        end
+        EventBus.on("scene_changing", cleanupFn)
     end
 end
         )", sol::script_pass_on_error);
@@ -597,6 +629,7 @@ end
             { "Persist",       "nova/persist"       },
             { "Game",          "nova/game"          },
             { "Stats",         "nova/stats"         },
+            { "Stat",          "nova/stat_names"    },
             { "Camera",        "nova/camera"        },
             { "InputEx",       "nova/input_ext"     },
             { "Effect",        "nova/effect"        },
@@ -915,6 +948,10 @@ end
                 sol::error err = res;
                 LOG_ERROR("[ScriptSystem] Chargement '{}' : {}", script->scriptPath, err.what());
                 script->errored = true;
+                auto ed = m_lua.create_table();
+                ed["entityId"] = entity->getID(); ed["path"] = script->scriptPath;
+                ed["error"] = std::string(err.what()); ed["phase"] = "load";
+                callEventBusEmit("script_error", ed);
                 return;
             }
             script->fnInit   = script->env["init"];
@@ -945,6 +982,10 @@ end
                     sol::error err = r;
                     LOG_ERROR("[ScriptSystem] init '{}' : {}", script->scriptPath, err.what());
                     script->errored = true;
+                    auto ed = m_lua.create_table();
+                    ed["entityId"] = entity->getID(); ed["path"] = script->scriptPath;
+                    ed["error"] = std::string(err.what()); ed["phase"] = "init";
+                    callEventBusEmit("script_error", ed);
                 }
             }
         } catch (const std::exception& e) {
@@ -964,16 +1005,20 @@ end
                 sol::error err = res;
                 LOG_ERROR("[ScriptSystem] Global '{}' : {}", gs.path, err.what());
                 gs.errored = true;
+                auto ed = m_lua.create_table();
+                ed["entityId"] = u64{0}; ed["path"] = gs.path;
+                ed["error"] = std::string(err.what()); ed["phase"] = "load";
+                callEventBusEmit("script_error", ed);
                 return;
             }
             gs.fnUpdate = gs.env["update"];
             gs.loaded   = true;
             LOG_DEBUG("[ScriptSystem] Global chargé '{}'", gs.path);
 
-            // Wire les named handlers pour les scripts globaux (entityId=0 = tous)
+            // Wire les named handlers (entityId=0, isSceneScript distingue scène vs global)
             sol::protected_function wire = m_lua["__wireNamedHandlers"];
             if (wire.valid()) {
-                auto wr = wire(gs.env, u64{0});
+                auto wr = wire(gs.env, u64{0}, gs.isSceneScript);
                 if (!wr.valid()) {
                     sol::error err = wr;
                     LOG_WARN("[ScriptSystem] wireHandlers global '{}' : {}", gs.path, err.what());
@@ -987,6 +1032,10 @@ end
                     sol::error err = r;
                     LOG_ERROR("[ScriptSystem] Global init '{}' : {}", gs.path, err.what());
                     gs.errored = true;
+                    auto ed = m_lua.create_table();
+                    ed["entityId"] = u64{0}; ed["path"] = gs.path;
+                    ed["error"] = std::string(err.what()); ed["phase"] = "init";
+                    callEventBusEmit("script_error", ed);
                 }
             }
         } catch (const std::exception& e) {
@@ -1010,6 +1059,10 @@ end
             sol::error err = r;
             LOG_ERROR("[ScriptSystem] Global update '{}' : {}", gs.path, err.what());
             gs.errored = true;
+            auto ed = m_lua.create_table();
+            ed["entityId"] = u64{0}; ed["path"] = gs.path;
+            ed["error"] = std::string(err.what()); ed["phase"] = "update";
+            callEventBusEmit("script_error", ed);
         }
     }
 
