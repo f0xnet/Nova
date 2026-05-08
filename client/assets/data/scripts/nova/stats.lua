@@ -120,4 +120,9 @@ function Stats.init(entityId, defaults)
     end
 end
 
+-- Nettoyage automatique à la destruction d'une entité
+EventBus.on("entity_destroyed", function(data)
+    Stats.clear(data.entityId)
+end)
+
 return Stats

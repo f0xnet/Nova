@@ -168,4 +168,9 @@ function Effect.update(dt)
     end
 end
 
+-- Nettoyage automatique à la destruction d'une entité (appelle onExpire sur chaque effet)
+EventBus.on("entity_destroyed", function(data)
+    Effect.clear(data.entityId)
+end)
+
 return Effect

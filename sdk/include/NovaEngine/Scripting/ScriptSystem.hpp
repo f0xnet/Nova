@@ -313,22 +313,32 @@ private:
     // -------------------------------------------------------------------------
     void initNamedHandlersWirer() {
         auto r = m_lua.safe_script(R"(
+-- Handler references keyed by entityId — allows external forced cleanup if needed
+local _entityHandlers = {}
+
 function __wireNamedHandlers(env, entityId)
     local function safe(fn, ...)
         local ok, err = pcall(fn, ...)
         if not ok then Log.error("[AutoWire] " .. tostring(err)) end
     end
 
+    -- Wraps EventBus.on and records the reference for later unsubscription
+    local handlers = {}
+    local function reg(event, fn)
+        EventBus.on(event, fn)
+        handlers[#handlers + 1] = { event, fn }
+    end
+
     -- OnActivate(activatorId, actionID) / OnDeactivate(...)
     if type(env.OnActivate) == "function" then
-        EventBus.on("activator_on", function(data)
+        reg("activator_on", function(data)
             if data.entityId == entityId then
                 safe(env.OnActivate, data.entityId, data.actionID)
             end
         end)
     end
     if type(env.OnDeactivate) == "function" then
-        EventBus.on("activator_off", function(data)
+        reg("activator_off", function(data)
             if data.entityId == entityId then
                 safe(env.OnDeactivate, data.entityId, data.actionID)
             end
@@ -336,29 +346,28 @@ function __wireNamedHandlers(env, entityId)
     end
 
     -- OnKeyDown(key) / OnKeyUp(key)
-    -- Appelé pour TOUTES les touches — filtrer dans le handler si besoin
     if type(env.OnKeyDown) == "function" then
-        EventBus.on("key_down", function(data) safe(env.OnKeyDown, data.key) end)
+        reg("key_down", function(data) safe(env.OnKeyDown, data.key) end)
     end
     if type(env.OnKeyUp) == "function" then
-        EventBus.on("key_up",   function(data) safe(env.OnKeyUp,   data.key) end)
+        reg("key_up",   function(data) safe(env.OnKeyUp,   data.key) end)
     end
 
     -- OnMouseDown(button, x, y) / OnMouseUp(button, x, y)
     if type(env.OnMouseDown) == "function" then
-        EventBus.on("mouse_down", function(data)
+        reg("mouse_down", function(data)
             safe(env.OnMouseDown, data.button, data.x, data.y)
         end)
     end
     if type(env.OnMouseUp) == "function" then
-        EventBus.on("mouse_up", function(data)
+        reg("mouse_up", function(data)
             safe(env.OnMouseUp, data.button, data.x, data.y)
         end)
     end
 
     -- OnAnimationEvent(animationID, frame)
     if type(env.OnAnimationEvent) == "function" then
-        EventBus.on("animation_frame", function(data)
+        reg("animation_frame", function(data)
             if data.entityId == entityId then
                 safe(env.OnAnimationEvent, data.animationID, data.frame)
             end
@@ -367,7 +376,7 @@ function __wireNamedHandlers(env, entityId)
 
     -- OnAnimationChanged(newAnimID, previousID)
     if type(env.OnAnimationChanged) == "function" then
-        EventBus.on("animation_changed", function(data)
+        reg("animation_changed", function(data)
             if data.entityId == entityId then
                 safe(env.OnAnimationChanged, data.animationID, data.previousID)
             end
@@ -376,28 +385,28 @@ function __wireNamedHandlers(env, entityId)
 
     -- OnMessage(msg, payload) — via entity:sendMessage() ou ScriptRegistry.sendMessage()
     if type(env.OnMessage) == "function" then
-        EventBus.on("script_message_" .. entityId, function(data)
+        reg("script_message_" .. entityId, function(data)
             safe(env.OnMessage, data.msg, data.payload)
         end)
     end
 
     -- OnQuestComplete(questId)
     if type(env.OnQuestComplete) == "function" then
-        EventBus.on("quest_completed", function(data)
+        reg("quest_completed", function(data)
             safe(env.OnQuestComplete, data.questId)
         end)
     end
 
     -- OnQuestAdvanced(questId, stageIndex)
     if type(env.OnQuestAdvanced) == "function" then
-        EventBus.on("quest_advanced", function(data)
+        reg("quest_advanced", function(data)
             safe(env.OnQuestAdvanced, data.questId, data.stageIndex)
         end)
     end
 
-    -- OnStatZeroed(entityId, stat) — émis par Stats quand une stat atteint 0
+    -- OnStatZeroed(entityId, stat)
     if type(env.OnStatZeroed) == "function" then
-        EventBus.on("stat_zeroed", function(data)
+        reg("stat_zeroed", function(data)
             if entityId == 0 or data.entityId == entityId then
                 safe(env.OnStatZeroed, data.entityId, data.stat)
             end
@@ -406,14 +415,14 @@ function __wireNamedHandlers(env, entityId)
 
     -- OnItemAdded(item, count) / OnItemRemoved(item, count)
     if type(env.OnItemAdded) == "function" then
-        EventBus.on("item_added", function(data)
+        reg("item_added", function(data)
             if entityId == 0 or data.entityId == entityId then
                 safe(env.OnItemAdded, data.item, data.count)
             end
         end)
     end
     if type(env.OnItemRemoved) == "function" then
-        EventBus.on("item_removed", function(data)
+        reg("item_removed", function(data)
             if entityId == 0 or data.entityId == entityId then
                 safe(env.OnItemRemoved, data.item, data.count)
             end
@@ -422,14 +431,14 @@ function __wireNamedHandlers(env, entityId)
 
     -- OnEffectApplied(effectId, entityId) / OnEffectExpired(effectId, entityId)
     if type(env.OnEffectApplied) == "function" then
-        EventBus.on("effect_applied", function(data)
+        reg("effect_applied", function(data)
             if entityId == 0 or data.entityId == entityId then
                 safe(env.OnEffectApplied, data.effectId, data.entityId)
             end
         end)
     end
     if type(env.OnEffectExpired) == "function" then
-        EventBus.on("effect_expired", function(data)
+        reg("effect_expired", function(data)
             if entityId == 0 or data.entityId == entityId then
                 safe(env.OnEffectExpired, data.effectId, data.entityId)
             end
@@ -438,64 +447,89 @@ function __wireNamedHandlers(env, entityId)
 
     -- OnFlagSet(name) / OnFlagUnset(name)
     if type(env.OnFlagSet) == "function" then
-        EventBus.on("flag_set",   function(data) safe(env.OnFlagSet,   data.name) end)
+        reg("flag_set",   function(data) safe(env.OnFlagSet,   data.name) end)
     end
     if type(env.OnFlagUnset) == "function" then
-        EventBus.on("flag_unset", function(data) safe(env.OnFlagUnset, data.name) end)
+        reg("flag_unset", function(data) safe(env.OnFlagUnset, data.name) end)
     end
 
     -- OnTriggerEnter(triggerId, entityId) / OnTriggerExit(triggerId, entityId)
     if type(env.OnTriggerEnter) == "function" then
-        EventBus.on("trigger_enter", function(data)
+        reg("trigger_enter", function(data)
             if entityId == 0 or data.entityId == entityId then
                 safe(env.OnTriggerEnter, data.id, data.entityId)
             end
         end)
     end
     if type(env.OnTriggerExit) == "function" then
-        EventBus.on("trigger_exit", function(data)
+        reg("trigger_exit", function(data)
             if entityId == 0 or data.entityId == entityId then
                 safe(env.OnTriggerExit, data.id, data.entityId)
             end
         end)
     end
 
-    -- OnSceneChanged(name) — émis lors des changements de scène
+    -- OnSceneChanged(name)
     if type(env.OnSceneChanged) == "function" then
-        EventBus.on("scene_changed", function(data) safe(env.OnSceneChanged, data.name) end)
+        reg("scene_changed", function(data) safe(env.OnSceneChanged, data.name) end)
     end
 
     -- OnConversationNode(nodeId, speaker, text)
     if type(env.OnConversationNode) == "function" then
-        EventBus.on("conversation_node", function(data)
+        reg("conversation_node", function(data)
             safe(env.OnConversationNode, data.nodeId, data.speaker, data.text)
         end)
     end
 
     -- OnConversationEnd(conversationId)
     if type(env.OnConversationEnd) == "function" then
-        EventBus.on("conversation_end", function(data)
+        reg("conversation_end", function(data)
             safe(env.OnConversationEnd, data.id)
         end)
     end
 
-    -- OnUIAction(action, value, componentId) — toute action UI (clic bouton, etc.)
+    -- OnUIAction(action, value, componentId)
     if type(env.OnUIAction) == "function" then
-        EventBus.on("ui_action", function(data)
+        reg("ui_action", function(data)
             safe(env.OnUIAction, data.action, data.value, data.id)
         end)
     end
 
     -- OnCollisionEnter(otherEntityId) / OnCollisionExit(otherEntityId)
     if type(env.OnCollisionEnter) == "function" then
-        EventBus.on("collision_enter_" .. tostring(entityId), function(data)
+        reg("collision_enter_" .. tostring(entityId), function(data)
             safe(env.OnCollisionEnter, data.entityId)
         end)
     end
     if type(env.OnCollisionExit) == "function" then
-        EventBus.on("collision_exit_" .. tostring(entityId), function(data)
+        reg("collision_exit_" .. tostring(entityId), function(data)
             safe(env.OnCollisionExit, data.entityId)
         end)
+    end
+
+    -- Auto-cleanup on entity_destroyed — entity scripts only (entityId != 0).
+    -- Unsubscribes all handlers so closures and the script env can be GC'd.
+    -- Also cleans per-entity module state (Stats, Effect, Cooldown, Anim).
+    if entityId ~= 0 and #handlers > 0 then
+        _entityHandlers[entityId] = handlers
+        local cleanupFn  -- forward-declared so the closure can reference itself
+        cleanupFn = function(data)
+            if data.entityId ~= entityId then return end
+            for _, h in ipairs(handlers) do
+                EventBus.off(h[1], h[2])
+            end
+            EventBus.off("entity_destroyed", cleanupFn)
+            _entityHandlers[entityId] = nil
+            -- Remove from ScriptRegistry so the env can be GC'd
+            local sr = ScriptRegistry
+            if sr and sr._envs then sr._envs[entityId] = nil end
+            -- Per-entity module cleanup
+            if Stats    then Stats.clear(entityId)         end
+            if Effect   then Effect.clear(entityId)        end
+            if Cooldown then Cooldown.resetAll(entityId)   end
+            if Anim     then Anim.clearCallbacks(entityId) end
+        end
+        EventBus.on("entity_destroyed", cleanupFn)
     end
 end
         )", sol::script_pass_on_error);

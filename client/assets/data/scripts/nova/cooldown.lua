@@ -103,4 +103,9 @@ function Cooldown.update(dt)
     end
 end
 
+-- Nettoyage automatique à la destruction d'une entité
+EventBus.on("entity_destroyed", function(data)
+    Cooldown.resetAll(data.entityId)
+end)
+
 return Cooldown
