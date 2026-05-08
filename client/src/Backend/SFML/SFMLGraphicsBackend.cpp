@@ -271,6 +271,22 @@ void SFMLGraphicsBackend::endSpriteBatch() {
 
 void SFMLGraphicsBackend::drawText(const TextData& text) {
     if(text.font == INVALID_HANDLE || !m_impl->activeRenderTarget) return;
+
+    // Flush pending batches so text always renders on top of previously batched sprites/rects
+    if (m_impl->spriteBatchActive && m_impl->spriteBatch.getVertexCount() > 0 && m_impl->spriteBatchTexture != INVALID_HANDLE) {
+        auto tfit = m_impl->textures.find(m_impl->spriteBatchTexture);
+        if (tfit != m_impl->textures.end() && tfit->second) {
+            sf::RenderStates st; st.texture = tfit->second.get();
+            m_impl->activeRenderTarget->draw(m_impl->spriteBatch, st);
+        }
+        m_impl->spriteBatch = sf::VertexArray(sf::Quads, 0);
+        m_impl->spriteBatchTexture = INVALID_HANDLE;
+    }
+    if (m_impl->rectBatchActive && m_impl->rectBatch.getVertexCount() > 0) {
+        m_impl->activeRenderTarget->draw(m_impl->rectBatch);
+        m_impl->rectBatch = sf::VertexArray(sf::Quads, 0);
+    }
+
     auto fit = m_impl->fonts.find(text.font);
     if(fit == m_impl->fonts.end() || !fit->second) return;
 
