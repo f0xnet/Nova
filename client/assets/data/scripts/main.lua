@@ -27,12 +27,13 @@ RunTests = function() IngameTest.runAll() end
 local INTERACT_RANGE = 100
 
 -- Si le moteur n'a pas préchargé DevConsole (ancienne version de l'EXE), le charger ici.
+-- On écrit dans _G pour que debug.lua (env global) puisse appeler DevConsole._flush().
 if not DevConsole then
     local ok, m = pcall(require, "nova/dev_console")
     if ok and type(m) == "table" then
-        DevConsole = m
+        _G.DevConsole = m
     else
-        Log.warn("[main] DevConsole non disponible : " .. tostring(m))
+        Log.error("[main] DevConsole non disponible : " .. tostring(m))
     end
 end
 
