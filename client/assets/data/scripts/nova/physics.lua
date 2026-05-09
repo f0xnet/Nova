@@ -54,7 +54,9 @@ local function getAABB(e)
             return { x = t.position.x + c.offset.x, y = t.position.y + c.offset.y,
                      hw = c.radius, hh = c.radius, r = c.radius, isCircle = true }
         end
-        return { x = t.position.x + c.offset.x, y = t.position.y + c.offset.y,
+        -- (cx, cy) = centre de la box, cohérent avec overlap/overlapPoint/slabAABB
+        return { x = t.position.x + c.offset.x + c.size.x * 0.5,
+                 y = t.position.y + c.offset.y + c.size.y * 0.5,
                  hw = c.size.x * 0.5, hh = c.size.y * 0.5, r = 0, isCircle = false }
     end
     local s = e:getSprite()
