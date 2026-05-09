@@ -24,6 +24,14 @@
     <strong>Nettoyage automatique :</strong> au changement de scène (<code>scene_changed</code>), toutes les séquences actives sont arrêtées automatiquement. Les callbacks en attente ne se déclenchent pas dans la nouvelle scène.
   </div>
 
+  <div class="callout info">
+    <strong>Robustesse des étapes :</strong> les étapes <code>call</code> et <code>repeat_</code> sont protégées par <code>pcall</code> — une erreur Lua dans une étape est loguée (<code>Log.error</code>) mais n'interrompt pas la séquence.
+  </div>
+
+  <div class="callout info">
+    <strong>Compatibilité <code>Conversation</code> :</strong> l'étape <code>seq:dialogue()</code> attend l'événement <code>dialogue_end</code>. <code>Conversation.stop()</code> émet automatiquement cet événement — les séquences qui utilisent <code>dialogue</code> en combinaison avec <code>Conversation</code> se débloquent correctement.
+  </div>
+
   <div class="section">
     <h2>API</h2>
     <table class="api-table">

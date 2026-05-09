@@ -100,6 +100,7 @@ function Stats.remove(entityId, stat)
     entityId = toId(entityId)
     if data[entityId] then
         data[entityId][stat] = nil
+        if not next(data[entityId]) then data[entityId] = nil end
     end
 end
 

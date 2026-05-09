@@ -16,6 +16,10 @@
     <div class="tags"><span class="tag global">Global automatique</span></div>
   </div>
 
+  <div class="callout info">
+    <strong>Compatibilité <code>Sequence</code> :</strong> <code>Conversation.stop()</code> émet à la fois <code>conversation_end</code> et <code>dialogue_end</code>. Cela permet aux séquences utilisant <code>seq:dialogue()</code> de se débloquer automatiquement quand une conversation se termine.
+  </div>
+
   <div class="section">
     <h2>API</h2>
     <table class="api-table">

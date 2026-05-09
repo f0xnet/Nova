@@ -28,7 +28,7 @@
         <tr><td>Stats.modClamped(entityId, stat, delta, min, max)</td><td>Comme <code>mod</code> mais borne le résultat entre min et max. Retourne la nouvelle valeur.</td><td class="ret">number</td></tr>
         <tr><td>Stats.has(entityId, stat)</td><td>Vrai si la stat existe.</td><td class="ret">bool</td></tr>
         <tr><td>Stats.getAll(entityId)</td><td>Retourne toutes les stats de l'entité.</td><td class="ret">table</td></tr>
-        <tr><td>Stats.remove(entityId, stat)</td><td>Supprime une stat.</td><td>—</td></tr>
+        <tr><td>Stats.remove(entityId, stat)</td><td>Supprime une stat. Si c'était la dernière stat de l'entité, la table interne est libérée.</td><td>—</td></tr>
         <tr><td>Stats.clear(entityId)</td><td>Supprime toutes les stats de l'entité.</td><td>—</td></tr>
       </tbody>
     </table>

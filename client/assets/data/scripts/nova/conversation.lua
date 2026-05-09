@@ -155,6 +155,8 @@ function Conversation.stop()
     local id = _session.treeId
     _session = nil
     EventBus.emit("conversation_end", { id = id })
+    -- Compatibilité avec Sequence:dialogue() qui attend "dialogue_end"
+    EventBus.emit("dialogue_end", { speaker = nil })
 end
 
 function Conversation.getCurrent()

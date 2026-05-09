@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <set>
 #include <unordered_set>
 #include <utility>
 #include <filesystem>
@@ -308,12 +307,18 @@ private:
     std::vector<GlobalScript>               m_globalScripts;
     std::vector<GlobalScript>               m_sceneScripts;
     Scene*                                  m_lastActiveScene = nullptr;
-    std::unordered_map<u64, bool>           m_activatorPrevState;
-    std::unordered_map<std::string, bool>   m_prevKeyState;
-    std::unordered_map<std::string, bool>   m_prevMouseState;
-    std::unordered_map<u64, u32>            m_animPrevFrame;
-    std::unordered_map<u64, std::string>    m_animPrevAnimID;
-    std::set<std::pair<u64,u64>>            m_prevCollisions;
+    struct U64PairHash {
+        size_t operator()(const std::pair<u64,u64>& p) const noexcept {
+            return std::hash<u64>{}(p.first) * 2654435761u ^ std::hash<u64>{}(p.second) * 2246822519u;
+        }
+    };
+
+    std::unordered_map<u64, bool>                            m_activatorPrevState;
+    std::unordered_map<std::string, bool>                    m_prevKeyState;
+    std::unordered_map<std::string, bool>                    m_prevMouseState;
+    std::unordered_map<u64, u32>                             m_animPrevFrame;
+    std::unordered_map<u64, std::string>                     m_animPrevAnimID;
+    std::unordered_set<std::pair<u64,u64>, U64PairHash>      m_prevCollisions;
 
     // -------------------------------------------------------------------------
     // Initialisation
@@ -361,14 +366,7 @@ private:
                 return sol::lua_nil;
             sol::protected_function pf = fnObj;
             std::vector<sol::object> v(args.begin(), args.end());
-            sol::protected_function_result r;
-            switch (v.size()) {
-                case 0:  r = pf(); break;
-                case 1:  r = pf(v[0]); break;
-                case 2:  r = pf(v[0], v[1]); break;
-                case 3:  r = pf(v[0], v[1], v[2]); break;
-                default: r = pf(v[0], v[1], v[2], v[3]); break;
-            }
+            auto r = pf(sol::as_args(v));
             if (!r.valid()) {
                 sol::error err = r;
                 LOG_WARN("[ScriptRegistry] call({}, '{}'): {}", id, fn, err.what());
@@ -470,6 +468,14 @@ private:
         };
 
         m_lua["ScriptRegistry"] = reg;
+
+        // Nettoie les maps C++ indexées par entityId à la destruction d'une entité.
+        // Appelé depuis _wire_handlers.lua cleanupFn via __cleanBridgeMaps(entityId).
+        m_lua["__cleanBridgeMaps"] = [this](u64 entityId) {
+            m_animPrevFrame.erase(entityId);
+            m_animPrevAnimID.erase(entityId);
+            m_activatorPrevState.erase(entityId);
+        };
     }
 
     // -------------------------------------------------------------------------
@@ -691,7 +697,7 @@ private:
 
         // ── Narrowphase ──────────────────────────────────────────────────────
         std::unordered_set<std::pair<size_t,size_t>, IdxPairHash> checked;
-        std::set<std::pair<u64,u64>> current;
+        std::unordered_set<std::pair<u64,u64>, U64PairHash> current;
 
         for (auto& [cell, indices] : grid) {
             for (size_t k = 0; k < indices.size(); ++k) {

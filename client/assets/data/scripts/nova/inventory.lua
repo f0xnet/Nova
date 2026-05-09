@@ -110,6 +110,10 @@ function Inventory.getAll(entityId)
     return copy
 end
 
+EventBus.on("entity_destroyed", function(data)
+    Inventory.clear(data.entityId)
+end)
+
 -- Transfert atomique : retire de `from`, ajoute à `to`
 function Inventory.transfer(fromEntity, toEntity, item, count)
     local removed = Inventory.remove(fromEntity, item, count)

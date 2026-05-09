@@ -188,6 +188,7 @@ function __wireNamedHandlers(env, entityId, isSceneScript)
             if Effect   then Effect.clear(entityId)        end
             if Cooldown then Cooldown.resetAll(entityId)   end
             if Anim     then Anim.clearCallbacks(entityId) end
+            if __cleanBridgeMaps then __cleanBridgeMaps(entityId) end
         end
         EventBus.on("entity_destroyed", cleanupFn)
     elseif isSceneScript then

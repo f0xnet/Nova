@@ -105,12 +105,14 @@ end
 -- Efface TOUS les états persistés (nouvelle partie).
 -- N'affecte pas les entités déjà en mémoire — recharger la scène pour voir l'effet.
 function EntityState.resetAll()
-    local all = Persist.getAll()
+    local all  = Persist.getAll()
+    local keys = {}
     for k in pairs(all) do
         if k:sub(1, #KEY_PREFIX) == KEY_PREFIX then
-            Persist.delete(k)
+            keys[#keys + 1] = k
         end
     end
+    if #keys > 0 then Persist.deleteBatch(keys) end
     clearRegistry()
 end
 

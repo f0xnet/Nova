@@ -91,6 +91,12 @@ function Persist.delete(key)
     Persist.save()
 end
 
+-- Supprime plusieurs clés en une seule écriture sur disque
+function Persist.deleteBatch(keys)
+    for _, k in ipairs(keys) do data[k] = nil end
+    Persist.save()
+end
+
 function Persist.clear()
     data = {}
     Persist.save()

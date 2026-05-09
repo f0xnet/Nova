@@ -24,6 +24,7 @@
         <tr><td>Persist.set(clé, valeur)</td><td>Enregistre une valeur (nombre, texte, booléen, table). Sauvegardé sur disque automatiquement.</td></tr>
         <tr><td>Persist.get(clé, défaut)</td><td>Lit une valeur. Retourne <code>défaut</code> si la clé n'existe pas.</td></tr>
         <tr><td>Persist.delete(clé)</td><td>Supprime une entrée.</td></tr>
+        <tr><td>Persist.deleteBatch(clés)</td><td>Supprime plusieurs entrées en une seule écriture sur disque. Préférer à plusieurs appels <code>delete</code> consécutifs.</td></tr>
         <tr><td>Persist.getAll()</td><td>Retourne une copie de toutes les données enregistrées (clé → valeur).</td></tr>
         <tr><td>Persist.clear()</td><td>Efface toutes les données sauvegardées.</td></tr>
         <tr><td>Persist.save()</td><td>Force l'écriture sur disque (normalement automatique).</td></tr>

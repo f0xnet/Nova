@@ -41,7 +41,8 @@ function Sequence.new()
         _tweenFn  = nil,
         _tweenDur = 0,
         _tweenElapsed = 0,
-        _waiting  = false,  -- attend "dialogue_end"
+        _waiting         = false,  -- attend "dialogue_end"
+        _dialogueHandler = nil,    -- référence au handler once pour pouvoir le retirer
         _onComplete = nil,
     }
 
@@ -87,6 +88,10 @@ function Sequence.new()
 
     function seq:stop()
         self._active = false
+        if self._dialogueHandler then
+            EventBus.off("dialogue_end", self._dialogueHandler)
+            self._dialogueHandler = nil
+        end
     end
 
     return seq
@@ -127,7 +132,8 @@ _advanceSeq = function(seq, dt)
         local step = seq._steps[seq._cursor]
 
         if step.type == "call" then
-            step.fn()
+            local ok, err = pcall(step.fn)
+            if not ok then Log.error("[Sequence] call: " .. tostring(err)) end
             seq._cursor = seq._cursor + 1
 
         elseif step.type == "emit" then
@@ -135,7 +141,10 @@ _advanceSeq = function(seq, dt)
             seq._cursor = seq._cursor + 1
 
         elseif step.type == "repeat" then
-            for i = 1, step.count do step.fn(i) end
+            for i = 1, step.count do
+                local ok, err = pcall(step.fn, i)
+                if not ok then Log.error("[Sequence] repeat: " .. tostring(err)) end
+            end
             seq._cursor = seq._cursor + 1
 
         elseif step.type == "wait" then
@@ -150,14 +159,17 @@ _advanceSeq = function(seq, dt)
 
         elseif step.type == "dialogue" then
             seq._waiting = true
-            -- Écoute la fin du dialogue
             local self_seq = seq
-            EventBus.once("dialogue_end", function(data)
+            -- Stocke la référence pour pouvoir se désabonner si la séquence est arrêtée.
+            local function dialogueHandler(data)
                 if data.speaker == nil or data.speaker == self_seq._steps[self_seq._cursor].speaker then
+                    self_seq._dialogueHandler = nil
                     self_seq._waiting = false
                     self_seq._cursor  = self_seq._cursor + 1
                 end
-            end)
+            end
+            seq._dialogueHandler = dialogueHandler
+            EventBus.once("dialogue_end", dialogueHandler)
             EventBus.emit("dialogue_start", { speaker = step.speaker, text = step.text })
             return true
         end
@@ -187,6 +199,10 @@ end
 EventBus.on("scene_changed", function()
     for _, seq in ipairs(_running) do
         seq._active = false
+        if seq._dialogueHandler then
+            EventBus.off("dialogue_end", seq._dialogueHandler)
+            seq._dialogueHandler = nil
+        end
     end
     _running = {}
 end)

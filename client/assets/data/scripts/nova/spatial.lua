@@ -91,7 +91,7 @@ function Spatial._update(dt)
 
             -- Enregistrement par tag
             local tag = entity.tag
-            if tag then
+            if tag ~= "" then
                 local bucket = _tagEntities[tag]
                 if not bucket then
                     bucket = {}
