@@ -488,14 +488,11 @@ void Game::onEvent(const NovaEngine::Event& event) {
 
     // Seule la touche Escape est gérée ici (niveau moteur).
     // Toutes les autres touches sont gérées depuis data/scripts/main.lua.
-    if (event.type == EventType::Input) {
-        if (event.inputEvent.type == InputEventType::KeyPressed &&
-            event.inputEvent.key.code == KeyCode::Escape) {
+    if (event.type == EventType::Input &&
+        event.inputEvent.type == InputEventType::KeyPressed) {
+
+        if (event.inputEvent.key.code == KeyCode::Escape) {
             quit();
-        }
-        // Transmet les caractères saisis (TextEntered SFML) à la console développeur Lua
-        if (event.inputEvent.type == InputEventType::TextEntered && m_scriptSystem) {
-            m_scriptSystem->queueTextInput(event.inputEvent.text.unicode);
         }
     }
 }

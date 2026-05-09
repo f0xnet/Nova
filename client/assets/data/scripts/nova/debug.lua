@@ -132,10 +132,6 @@ function Debug._flush()
         row = row + 1
     end
     _watches = {}
-
-    if type(DevConsole) == "table" and DevConsole._flush then
-        DevConsole._flush()
-    end
 end
 
 -- Appelé par ScriptSystem._update (via updateNovaRuntime) pour décrémenter les timers
@@ -196,18 +192,6 @@ function Debug.assert(cond, msg)
         local tb = Debug.traceback(msg or "assertion échouée", 2)
         Log.error("[Debug.assert] " .. tb)
         error(tb, 2)
-    end
-end
-
--- Charge DevConsole dans _G si l'EXE ne l'a pas intégré (ancien binaire sans la liste mise à jour).
--- Ce module-ci tourne dans le vrai _G (chargé via loadNovaModules), donc l'affectation
--- est visible par tous les scripts y compris les envs sandboxés via __index.
-if type(DevConsole) ~= "table" then
-    local ok, m = pcall(require, "nova/dev_console")
-    if ok and type(m) == "table" then
-        DevConsole = m
-    else
-        Log.warn("[Debug] DevConsole non disponible : " .. tostring(m))
     end
 end
 
