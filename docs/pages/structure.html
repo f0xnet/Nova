@@ -187,8 +187,26 @@ end</code></pre>
         <tr><td>Données dans data/ (JSON), logique dans scripts/</td><td>Modifier les stats sans toucher au code.</td></tr>
         <tr><td>Debug.enabled = false en production</td><td>Évite les affichages de débogage chez le joueur.</td></tr>
         <tr><td>Utiliser EventBus pour communiquer entre scripts</td><td>Évite les dépendances directes entre entités.</td></tr>
+        <tr><td><code>Color.new(...)</code>, jamais <code>Color(...)</code></td><td>Le call direct passe par sol2 et peut échouer silencieusement dans les callbacks de rendu. Voir <a href="math.html">Math &amp; Color</a>.</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="section">
+    <h2>Pièges à éviter</h2>
+    <div class="callout warn">
+      <strong><code>Color(r, g, b)</code> direct.</strong> Utilise toujours <code>Color.new(r, g, b)</code>.
+      Le call direct existe (binding sol2) mais peut produire des couleurs invalides utilisées
+      dans des callbacks de rendu, ce qui crashe sans message d'erreur visible. Tous les modules
+      nova et exemples de cette doc utilisent <code>Color.new</code>.
+    </div>
+    <div class="callout info">
+      <strong>Pour diagnostiquer.</strong> Toute erreur Lua est désormais propagée via l'événement
+      <code>script_error</code>. Branche un listener au démarrage pour voir les erreurs en jeu :
+      <pre style="margin-top:8px"><code class="lua">EventBus.on("script_error", function(d)
+    Log.error(string.format("[%s] %s : %s", d.phase, d.path, d.error))
+end)</code></pre>
+    </div>
   </div>
 
 </div>

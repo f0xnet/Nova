@@ -122,6 +122,17 @@ lua Stats.mod(World.findByTag("player").id, "Vie", 100)
 lua DevConsole.print(Debug.inspect(World.findByTag("player")))
 -- → affiche les propriétés de l'entité joueur</code></pre>
     </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Afficher les erreurs Lua en direct</div>
+      <pre><code class="lua">-- Le moteur émet "script_error" pour toute erreur Lua (load, init,
+-- update, render, named handler...). À brancher au démarrage pour
+-- voir les erreurs directement dans la console dev :
+EventBus.on("script_error", function(d)
+    DevConsole.print(string.format("[%s] %s", d.phase, d.path))
+    DevConsole.print("  " .. d.error)
+end)</code></pre>
+    </div>
   </div>
 
   <div class="section">

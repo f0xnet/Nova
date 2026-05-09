@@ -65,6 +65,12 @@
       <tbody>
         <tr><td>Color.new(r, g, b)</td><td>Crée une couleur opaque. Composantes 0–255.</td></tr>
         <tr><td>Color.new(r, g, b, a)</td><td>Crée une couleur avec alpha (0 = transparent, 255 = opaque).</td></tr>
+        <tr><td>Color.fromHex("#rrggbb")</td><td>Depuis une chaîne hexadécimale. Accepte aussi <code>"#rrggbbaa"</code>.</td></tr>
+        <tr><td>Color.fromHSV(h, s, v, a)</td><td>Depuis teinte (0–360), saturation (0–1), valeur (0–1). Alpha optionnel.</td></tr>
+        <tr><td>Color.lerp(a, b, t)</td><td>Interpolation linéaire entre deux couleurs (t entre 0 et 1).</td></tr>
+        <tr><td>Color.toHex(c)</td><td>Vers chaîne hexadécimale <code>"#rrggbb"</code>.</td></tr>
+        <tr><td>Color.withAlpha(c, a)</td><td>Copie avec alpha modifié (a entre 0.0 et 1.0).</td></tr>
+        <tr><td>Color.multiply(c, factor)</td><td>Multiplie les composantes RGB. <code>0.0</code> = noir, <code>1.0</code> = identique, <code>2.0</code> = double.</td></tr>
         <tr><td>c.r / c.g / c.b / c.a</td><td>Accès direct aux composantes (lecture / écriture).</td></tr>
         <tr><td colspan="2" style="font-weight:600;color:#aaa;font-size:0.85em;padding-top:10px">Constantes prédéfinies</td></tr>
         <tr><td>Color.Black</td><td><code>(0, 0, 0, 255)</code></td></tr>
@@ -76,6 +82,19 @@
         <tr><td>Color.Transparent</td><td><code>(0, 0, 0, 0)</code></td></tr>
       </tbody>
     </table>
+
+    <div class="callout warn">
+      <strong>⚠️ Toujours utiliser <code>Color.new(...)</code>, jamais <code>Color(...)</code>.</strong><br>
+      Le call direct <code>Color(r, g, b, a)</code> est exposé par le binding C++ (sol2) mais
+      <strong>échoue silencieusement</strong> dans certains contextes — notamment quand la couleur
+      est créée au chargement d'un module <em>require</em>'é et utilisée plus tard dans un
+      callback de rendu. Le module charge sans erreur mais la valeur stockée est invalide,
+      provoquant des crashes Lua silencieux à l'usage.
+      <br><br>
+      <strong>Toujours préférer <code>Color.new(...)</code></strong> qui passe par l'extension
+      Lua de <code>nova/color_ext.lua</code> et fonctionne dans tous les contextes. Tous les
+      modules nova et tous les exemples de cette doc respectent cette convention.
+    </div>
   </div>
 
   <div class="section">

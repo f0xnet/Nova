@@ -117,6 +117,19 @@ EventBus.off("joueur_touche", surDegat)</code></pre>
       <div class="ev"><span class="ev-name">effect_applied</span><span class="ev-data">{ entityId, effectId }</span></div>
       <div class="ev"><span class="ev-name">trigger_enter</span><span class="ev-data">{ id, entityId }</span></div>
       <div class="ev"><span class="ev-name">trigger_exit</span><span class="ev-data">{ id, entityId }</span></div>
+      <div class="ev"><span class="ev-name">script_error</span><span class="ev-data">{ entityId, path, error, phase }</span></div>
+    </div>
+    <div class="callout info">
+      <strong><code>script_error</code></strong> est émis par le moteur dès qu'un script Lua
+      échoue (chargement, <code>init</code>, <code>update</code>, rendu debug, named handler,
+      etc.). <code>phase</code> vaut <code>"load"</code>, <code>"init"</code>,
+      <code>"update"</code>, <code>"render"</code>, <code>"wireHandlers"</code>,
+      <code>"call"</code>, <code>"sendMessage"</code>, <code>"reload"</code> ou
+      <code>"reloadAll"</code>. <code>entityId</code> vaut <code>0</code> pour les scripts
+      globaux et de scène. Pratique pour afficher un overlay d'erreur en dev :
+      <pre style="margin-top:8px"><code class="lua">EventBus.on("script_error", function(d)
+    DevConsole.print(string.format("[%s] %s : %s", d.phase, d.path, d.error))
+end)</code></pre>
     </div>
   </div>
 
