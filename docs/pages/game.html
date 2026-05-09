@@ -80,14 +80,25 @@ end)</code></pre>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Bullet time (ralenti temporaire)</div>
-      <pre><code class="lua">function activerBulletTime(duree)
+      <pre><code class="lua">-- ATTENTION : Timer est affecté par le timescale (temps jeu).
+-- Pour une durée en temps réel, mesurer avec Game.getDeltaTime() dans update().
+function activerBulletTime(dureeReelle)
     Game.setTimescale(0.25)
     Sound.playMusic("data/music/slowmo.ogg")
 
-    -- Timer utilise le temps réel (non affecté par le timescale)
-    Timer.after(duree, function()
-        Game.setTimescale(1.0)
-    end)
+    -- Accumuler le dt brut dans update() pour un timer temps-réel
+    _bulletTimeAccum = 0
+    _bulletTimeDuree = dureeReelle
+end
+
+function update(entity, dt)
+    if _bulletTimeAccum ~= nil then
+        _bulletTimeAccum = _bulletTimeAccum + Game.getDeltaTime()  -- dt brut
+        if _bulletTimeAccum >= _bulletTimeDuree then
+            Game.setTimescale(1.0)
+            _bulletTimeAccum = nil
+        end
+    end
 end
 
 -- Effet visuel en réponse au changement de timescale
