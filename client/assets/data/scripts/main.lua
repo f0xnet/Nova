@@ -32,16 +32,24 @@ if not DevConsole then
     local ok, m = pcall(require, "nova/dev_console")
     if ok and type(m) == "table" then
         _G.DevConsole = m
+        Log.info("[main] DevConsole chargé manuellement OK")
     else
-        Log.error("[main] DevConsole non disponible : " .. tostring(m))
+        Log.error("[main] DevConsole ECHEC : " .. tostring(m))
     end
+else
+    Log.info("[main] DevConsole déjà présent via moteur")
 end
+Log.info("[main] DevConsole apres init = " .. tostring(type(DevConsole)))
 
 -- ── Named handlers ─────────────────────────────────────────────────────────
 
 -- Appelé pour toute touche pressée (OnKeyDown est câblé par __wireNamedHandlers)
 function OnKeyDown(key)
-    if not DevConsole then return end
+    Log.info("[main] OnKeyDown = " .. tostring(key))
+    if not DevConsole then
+        Log.error("[main] OnKeyDown: DevConsole est nil !")
+        return
+    end
 
     -- La console développeur capture toute la saisie quand elle est ouverte
     if DevConsole.isOpen() then
