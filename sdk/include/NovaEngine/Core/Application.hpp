@@ -132,7 +132,9 @@ private:
         registerBuiltinComponents();
 
         WINDOW().setVSync(m_config.vSync);
-        if (m_config.frameRateLimit > 0) {
+        // N'activer le frame limiter que si VSync est désactivé — les deux simultanément
+        // causent des conflits de timing dans SFML (sleep CPU vs sync GPU).
+        if (!m_config.vSync && m_config.frameRateLimit > 0) {
             WINDOW().setFramerateLimit(m_config.frameRateLimit);
         }
         

@@ -1,8 +1,8 @@
 // ============================================================================
 // SSAO SHADER (Screen-Space Ambient Occlusion)
 // ============================================================================
-// Détecte les bords des objets et applique des ombres qui s'estompent
-// Calcul ET application en une seule passe
+// Détecte les bords des objets et applique des ombres de contact.
+// Kernel fixe 8 directions — coût constant, pas de boucle conditionnelle.
 // ============================================================================
 #version 120
 
@@ -12,81 +12,45 @@ uniform vec2 resolution;
 uniform float aoStrength;  // Force de l'AO (0.0 - 1.0+)
 uniform float aoRadius;    // Rayon de recherche en pixels
 
-// ============================================================================
-// TEXTURE SAMPLING
-// ============================================================================
 vec3 sampleTex(vec2 uv) {
     return texture2D(tex, clamp(uv, 0.0, 1.0)).rgb;
 }
 
-// ============================================================================
-// AMBIENT OCCLUSION (ombres s'estompant depuis les bords des objets)
-// ============================================================================
 float computeAO(vec2 uv) {
     if (aoStrength <= 0.0) return 1.0;
 
     vec2 pixelSize = 1.0 / resolution;
+    float centerLum = dot(sampleTex(uv), vec3(0.299, 0.587, 0.114));
 
-    // Chercher la distance au bord le plus proche
-    float minDistToEdge = 999.0;
+    // 8 directions à rayon fixe — coût constant, aucune divergence de warp
+    vec2 offsets[8];
+    offsets[0] = vec2( 1.0,    0.0   );
+    offsets[1] = vec2(-1.0,    0.0   );
+    offsets[2] = vec2( 0.0,    1.0   );
+    offsets[3] = vec2( 0.0,   -1.0   );
+    offsets[4] = vec2( 0.707,  0.707 );
+    offsets[5] = vec2(-0.707,  0.707 );
+    offsets[6] = vec2( 0.707, -0.707 );
+    offsets[7] = vec2(-0.707, -0.707 );
 
-    // Échantillonner en cercle pour trouver les bords
-    for (float angle = 0.0; angle < 6.28318; angle += 0.523599) { // 12 directions
-        vec2 dir = vec2(cos(angle), sin(angle));
-
-        for (float dist = 1.0; dist <= aoRadius; dist += 1.0) {
-            vec2 sampleUV = uv + dir * dist * pixelSize;
-
-            // Détecter si ce point est un bord
-            vec3 sampleColor = sampleTex(sampleUV);
-            float sampleLum = dot(sampleColor, vec3(0.299, 0.587, 0.114));
-
-            // Vérifier le contraste avec les voisins pour détecter un bord
-            float edgeStrength = 0.0;
-            for (float checkAngle = 0.0; checkAngle < 6.28318; checkAngle += 2.094395) { // 3 checks
-                vec2 checkDir = vec2(cos(checkAngle), sin(checkAngle));
-                vec2 checkUV = sampleUV + checkDir * pixelSize;
-                float checkLum = dot(sampleTex(checkUV), vec3(0.299, 0.587, 0.114));
-                edgeStrength += abs(sampleLum - checkLum);
-            }
-
-            // Si c'est un bord (fort contraste)
-            if (edgeStrength > 0.2) {
-                if (dist < minDistToEdge) minDistToEdge = dist;
-                break; // Trouvé un bord dans cette direction
-            }
-        }
-    }
-
-    // Calculer l'occlusion basée sur la distance au bord
     float occlusion = 0.0;
-    if (minDistToEdge < aoRadius) {
-        // Plus on est proche d'un bord, plus l'ombre est forte
-        float distFactor = minDistToEdge / aoRadius;
-        occlusion = (1.0 - distFactor) * (1.0 - distFactor) * (1.0 - distFactor);
-        occlusion *= aoStrength;
+    for (int i = 0; i < 8; i++) {
+        vec2 sampleUV  = uv + offsets[i] * aoRadius * pixelSize;
+        float sampleLum = dot(sampleTex(sampleUV), vec3(0.299, 0.587, 0.114));
+        float diff = centerLum - sampleLum;
+        if (diff > 0.15) occlusion += diff;
     }
 
-    // Retourner le facteur d'assombrissement (1.0 = pas d'ombre, <1.0 = ombre)
-    return 1.0 - clamp(occlusion * 0.9, 0.0, 0.9);
+    return 1.0 - clamp(occlusion * aoStrength, 0.0, 0.9);
 }
 
-// ============================================================================
-// MAIN
-// ============================================================================
 void main()
 {
-    // Normaliser UV de pixel coords à 0-1, et flip Y (SFML RenderTexture)
     vec2 uv = gl_TexCoord[0].xy / texSize;
     uv.y = 1.0 - uv.y;
 
-    // Échantillonner la scène
     vec3 color = sampleTex(uv);
+    color *= computeAO(uv);
 
-    // Calculer et appliquer l'AO
-    float ao = computeAO(uv);
-    color *= ao;
-
-    // Output final avec AO appliqué
     gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }
