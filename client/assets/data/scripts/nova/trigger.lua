@@ -96,41 +96,44 @@ function Trigger._update(dt)
     local entities = Registry:getAllEntities()
     for zoneId, zone in pairs(_zones) do
         if zone.active then
-            local current  = {}
+            local current    = {}
+            local fired_once = false
 
             for _, ent in ipairs(entities) do
                 local eid = ent.id
-
-                -- Filtre
                 if not zone.filter or zone.filter(eid) then
                     local pos = ent:getPosition()
                     if pos and _rectContains(zone.rect, pos.x, pos.y) then
+                        -- current est toujours complet (pas de break anticipé)
                         current[eid] = true
 
-                        if not zone.inside[eid] then
-                            -- Entrée dans la zone
-                            zone.inside[eid] = true
-                            EventBus.emit("trigger_enter", { id = zoneId, entityId = eid })
-                            if zone.onEnter then zone.onEnter(eid) end
-
-                            if zone.once then
-                                zone.active = false
-                                break
+                        if not fired_once then
+                            if not zone.inside[eid] then
+                                zone.inside[eid] = true
+                                EventBus.emit("trigger_enter", { id = zoneId, entityId = eid })
+                                if zone.onEnter then zone.onEnter(eid) end
+                                if zone.once then fired_once = true end
+                            elseif zone.onStay then
+                                zone.onStay(eid, dt)
                             end
-                        elseif zone.onStay then
-                            zone.onStay(eid, dt)
                         end
                     end
                 end
             end
 
-            -- Détecte les sorties
+            -- Détecte les sorties (current est complet — pas de faux trigger_exit)
             for eid in pairs(zone.inside) do
                 if not current[eid] then
                     zone.inside[eid] = nil
                     EventBus.emit("trigger_exit", { id = zoneId, entityId = eid })
                     if zone.onExit then zone.onExit(eid) end
                 end
+            end
+
+            -- Désactive après traitement complet et vide inside pour éviter les entrées fantômes
+            if fired_once then
+                zone.active = false
+                zone.inside = {}
             end
         end
     end

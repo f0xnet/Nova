@@ -166,26 +166,25 @@ function World.raycast(x1, y1, x2, y2, filterTag)
             t = (t0 >= 0) and t0 or 0
         else
             -- Rayon vs AABB (méthode des slabs)
-            local hw     = col.size.x * 0.5
-            local hh     = col.size.y * 0.5
+            -- (cx, cy) = coin supérieur gauche, cohérent avec updateCollisionBridge C++
             local tEnter = -math.huge
             local tExit  =  math.huge
 
             if dx == 0 then
-                if x1 < cx - hw or x1 > cx + hw then goto continue end
+                if x1 < cx or x1 > cx + col.size.x then goto continue end
             else
-                local t1x = (cx - hw - x1) / dx
-                local t2x = (cx + hw - x1) / dx
+                local t1x = (cx - x1) / dx
+                local t2x = (cx + col.size.x - x1) / dx
                 if t1x > t2x then t1x, t2x = t2x, t1x end
                 tEnter = math.max(tEnter, t1x)
                 tExit  = math.min(tExit,  t2x)
             end
 
             if dy == 0 then
-                if y1 < cy - hh or y1 > cy + hh then goto continue end
+                if y1 < cy or y1 > cy + col.size.y then goto continue end
             else
-                local t1y = (cy - hh - y1) / dy
-                local t2y = (cy + hh - y1) / dy
+                local t1y = (cy - y1) / dy
+                local t2y = (cy + col.size.y - y1) / dy
                 if t1y > t2y then t1y, t2y = t2y, t1y end
                 tEnter = math.max(tEnter, t1y)
                 tExit  = math.min(tExit,  t2y)
