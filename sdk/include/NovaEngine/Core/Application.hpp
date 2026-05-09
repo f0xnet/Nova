@@ -132,9 +132,11 @@ private:
         registerBuiltinComponents();
 
         WINDOW().setVSync(m_config.vSync);
-        // N'activer le frame limiter que si VSync est désactivé — les deux simultanément
-        // causent des conflits de timing dans SFML (sleep CPU vs sync GPU).
-        if (!m_config.vSync && m_config.frameRateLimit > 0) {
+        // Toujours appliquer le frame limiter même avec VSync activé.
+        // En mode fenêtré Windows, DWM absorbe la présentation sans bloquer SwapBuffers,
+        // donc VSync seul ne met pas le thread CPU en sommeil — le frame limiter est
+        // le seul mécanisme qui yielde réellement le CPU entre les trames.
+        if (m_config.frameRateLimit > 0) {
             WINDOW().setFramerateLimit(m_config.frameRateLimit);
         }
         
