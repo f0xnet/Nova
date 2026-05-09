@@ -5,12 +5,17 @@
 -- API :
 --   Game.getPlayer()              -- retourne l'entité joueur (ou nil)
 --   Game.getTime()                -- temps écoulé depuis le début (secondes)
---   Game.getDeltaTime()           -- dernier dt (approximatif, mis à jour à chaque frame)
+--   Game.getDeltaTime()           -- dernier dt brut (avant timescale)
 --   Game.notification(text)       -- émet "ui_notification" {text} pour l'UI
---   Game.setTimescale(scale)      -- multiplie tous les dt (1.0 = normal, 0 = pause)
+--   Game.setTimescale(scale)      -- multiplie le dt des scripts (1.0=normal, 0=pause)
 --   Game.getTimescale()           -- valeur courante du timescale
 --   Game.isPaused()               -- vrai si timescale == 0
 --   Game.pause() / Game.resume()  -- raccourcis pause/reprend
+--
+-- Comportement :
+--   Game.setTimescale() affecte le dt reçu par TOUS les scripts (entity update,
+--   global scripts, scène) ainsi que les modules nova (Timer, Effect, Tween…).
+--   Game._update() reçoit le dt brut pour accumuler _time correctement.
 --
 -- Exemple :
 --   local player = Game.getPlayer()

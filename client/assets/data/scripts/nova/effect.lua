@@ -132,7 +132,20 @@ end
 function Effect.getRemaining(entityId, effectId)
     entityId = toId(entityId)
     local inst = data[entityId] and data[entityId][effectId]
-    if not inst or not inst.config then return nil end
+    if not inst then return nil end
+    if inst.instances then
+        -- Return the max remaining time across all active instances
+        local best = nil
+        for _, si in ipairs(inst.instances) do
+            if si.config then
+                local rem = si.config.duration < 0 and math.huge
+                            or math.max(0, si.config.duration - si.elapsed)
+                if best == nil or rem > best then best = rem end
+            end
+        end
+        return best
+    end
+    if not inst.config then return nil end
     if inst.config.duration < 0 then return math.huge end
     return math.max(0, inst.config.duration - inst.elapsed)
 end

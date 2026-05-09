@@ -114,7 +114,7 @@ namespace NovaEngine {
 //     Camera, InputEx, Sound, Inventory, Notify, Physics, Flag, Scene
 //     Sequence, Conversation, Anim, Trigger, InputBind, Loot, Nav
 //     Particles, Projectile, Pool, Spatial, Easing, I18n, Achievement
-//     Data, Debug, SceneFX, EntityState, ScriptRegistry
+//     Data, Debug, SceneFX, EntityState, ScriptRegistry, BT
 //     Registry, Input, Log, print, Audio, Resources
 // ============================================================================
 
@@ -180,10 +180,28 @@ public:
         updateActivatorBridge(registry);
         updateCollisionBridge(registry);
         updateInputBridge();
-        updateNovaRuntime(deltaTime);
+
+        // Game._update reçoit le dt brut (il accumule _time = _time + dt * _timescale).
+        if (m_gameUpdateFn.valid()) {
+            auto r = m_gameUpdateFn(deltaTime);
+            if (!r.valid()) {
+                sol::error err = r;
+                LOG_WARN("[ScriptSystem] Game._update: {}", err.what());
+            }
+        }
+
+        // Lire le timescale courant une fois par frame pour mettre à l'échelle tous les scripts.
+        float timescale = 1.0f;
+        if (m_gameGetTimescaleFn.valid()) {
+            auto r = m_gameGetTimescaleFn();
+            if (r.valid()) timescale = r.get<float>(0);
+        }
+        float scaledDt = deltaTime * timescale;
+
+        updateNovaRuntime(scaledDt);  // Timer, Effect, Tween… respectent le timescale
 
         for (auto& gs : m_globalScripts)
-            updateGlobalScript(gs, deltaTime);
+            updateGlobalScript(gs, scaledDt);
 
         // Détection de changement de scène → charge/décharge le script de scène
         if (m_sceneManager) {
@@ -198,7 +216,7 @@ public:
             }
         }
         for (auto& ss : m_sceneScripts)
-            updateGlobalScript(ss, deltaTime);
+            updateGlobalScript(ss, scaledDt);
 
         auto entities = registry.getEntitiesWith(getRequiredComponents());
         float frameScriptMs = 0.0f;
@@ -212,7 +230,7 @@ public:
 
             if (script->errored || !script->fnUpdate.valid()) continue;
 
-            script->m_updateAccum += deltaTime;
+            script->m_updateAccum += scaledDt;
             if (script->updateInterval > 0.0f &&
                 script->m_updateAccum < script->updateInterval) continue;
 
@@ -303,6 +321,8 @@ private:
     sol::protected_function                 m_inputExClearFn;
     sol::protected_function                 m_debugFlushFn;
     sol::protected_function                 m_eventBusEmitFn;
+    sol::protected_function                 m_gameUpdateFn;        // Game._update(rawDt)
+    sol::protected_function                 m_gameGetTimescaleFn;  // Game.getTimescale()
 
     std::vector<GlobalScript>               m_globalScripts;
     std::vector<GlobalScript>               m_sceneScripts;
@@ -549,6 +569,8 @@ private:
             // Override le global Scene C++ avec le wrapper Lua (capture _sm = Scene avant)
             // Doit être chargé après Nav (qui utilise Scene.findPath) et après SceneFX
             { "Scene",         "nova/scene"         },
+            // Behavior Trees pour l'IA — Sequence, Selector, Parallel, Action, Condition
+            { "BT",            "nova/behavior_tree" },
         };
         for (auto& [global, mod] : modules) {
             std::string code = std::string(global) + " = require('" + mod + "')";
@@ -569,9 +591,11 @@ private:
     // Appelé une fois après loadNovaModules() — évite les lookups Lua chaque frame.
     // -------------------------------------------------------------------------
     void cacheRuntimeUpdates() {
+        // Game._update est exclu : il reçoit le dt brut (il gère _timescale en interne).
+        // Tous les autres modules reçoivent le dt mis à l'échelle via updateNovaRuntime().
         static constexpr std::pair<const char*, const char*> s_list[] = {
             { "Timer",      "update"  }, { "Scheduler",  "update"  },
-            { "Tween",      "update"  }, { "Game",       "_update" },
+            { "Tween",      "update"  },
             { "Camera",     "_update" }, { "World",      "_update" },
             { "Effect",     "update"  }, { "Cooldown",   "update"  },
             { "Sequence",   "_update" }, { "Anim",       "_update" },
@@ -586,6 +610,14 @@ private:
             if (!t.valid() || t.get_type() != sol::type::table) continue;
             sol::protected_function fn = m_lua[tbl][mtd];
             if (fn.valid()) m_runtimeFns.push_back(std::move(fn));
+        }
+        // Game._update reçoit le dt brut — mis en cache séparément
+        sol::object game = m_lua["Game"];
+        if (game.valid() && game.get_type() == sol::type::table) {
+            sol::protected_function fu = m_lua["Game"]["_update"];
+            if (fu.valid()) m_gameUpdateFn = std::move(fu);
+            sol::protected_function ft = m_lua["Game"]["getTimescale"];
+            if (ft.valid()) m_gameGetTimescaleFn = std::move(ft);
         }
         // Cache séparé pour InputEx._clear (appelé avant les bridges) et Debug._flush (render)
         sol::object iex = m_lua["InputEx"];

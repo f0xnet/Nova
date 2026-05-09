@@ -12,7 +12,10 @@
 --   Stats.remove(entityId, stat)             -- supprime une stat
 --   Stats.getAll(entityId)                   -- retourne toutes les stats de l'entité
 --   Stats.clear(entityId)                    -- supprime toutes les stats de l'entité
---   Stats.init(entityId, defaults)           -- initialise sans écraser les valeurs existantes
+--   Stats.init(entityId, defaults)           -- initialise sans écraser, sans émettre stat_changed
+--   Stats.bind(entityId, stat, fn)           -- fn(value, previous, entityId, stat) à chaque set
+--   Stats.unbind(entityId, stat, fn)         -- retire un binding spécifique
+--   Stats.unbindAll(entityId)               -- retire tous les bindings de l'entité
 --
 -- Cycle de vie :
 --   Les données persistent tant que l'entité est vivante.
@@ -42,7 +45,14 @@
 --   end
 
 local Stats = {}
-local data = {}   -- data[entityId][statName] = value
+local data     = {}   -- data[entityId][statName] = value
+local _bindings = {}  -- _bindings[entityId][statName] = { fn, ... }
+
+-- Internal: set a value without emitting any events (used by Stats.init)
+local function _rawSet(entityId, stat, value)
+    if not data[entityId] then data[entityId] = {} end
+    data[entityId][stat] = value
+end
 
 -- Accepte une entité (userdata) ou un entityId (number)
 local function toId(v)
@@ -70,6 +80,17 @@ function Stats.set(entityId, stat, value)
     })
     if type(value) == "number" and value <= 0 then
         EventBus.emit("stat_zeroed", { entityId = entityId, stat = stat })
+    end
+    -- Fire reactive bindings
+    local eb = _bindings[entityId]
+    if eb then
+        local fns = eb[stat]
+        if fns then
+            for _, fn in ipairs(fns) do
+                local ok, err = pcall(fn, value, previous, entityId, stat)
+                if not ok then Log.error("[Stats] bind: " .. tostring(err)) end
+            end
+        end
     end
 end
 
@@ -117,20 +138,49 @@ function Stats.clear(entityId)
     data[entityId] = nil
 end
 
--- Initialise un ensemble de stats depuis une table
+-- Initialise un ensemble de stats depuis une table, sans émettre stat_changed.
 -- Stats.init(entity.id, { Health=100, Stamina=50, Level=1 })
 function Stats.init(entityId, defaults)
     entityId = toId(entityId)
     for stat, value in pairs(defaults) do
         if not Stats.has(entityId, stat) then
-            Stats.set(entityId, stat, value)
+            _rawSet(entityId, stat, value)
         end
     end
 end
 
--- Nettoyage automatique à la destruction d'une entité
+-- ─── Reactive bindings ────────────────────────────────────────────────────────
+
+-- Appelle fn(value, previous, entityId, stat) chaque fois que stat change pour entityId.
+function Stats.bind(entityId, stat, fn)
+    entityId = toId(entityId)
+    if not _bindings[entityId] then _bindings[entityId] = {} end
+    if not _bindings[entityId][stat] then _bindings[entityId][stat] = {} end
+    table.insert(_bindings[entityId][stat], fn)
+end
+
+function Stats.unbind(entityId, stat, fn)
+    entityId = toId(entityId)
+    local eb = _bindings[entityId]
+    if not eb or not eb[stat] then return end
+    local list = eb[stat]
+    for i = #list, 1, -1 do
+        if list[i] == fn then table.remove(list, i) end
+    end
+    if #list == 0 then eb[stat] = nil end
+    if not next(eb) then _bindings[entityId] = nil end
+end
+
+function Stats.unbindAll(entityId)
+    entityId = toId(entityId)
+    _bindings[entityId] = nil
+end
+
+-- ─── Nettoyage automatique ────────────────────────────────────────────────────
+
 EventBus.on("entity_destroyed", function(data)
     Stats.clear(data.entityId)
+    Stats.unbindAll(data.entityId)
 end)
 
 return Stats
