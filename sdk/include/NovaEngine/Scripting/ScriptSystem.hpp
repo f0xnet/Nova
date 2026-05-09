@@ -133,10 +133,14 @@ public:
             sol::lib::package
         );
 
-        // Sandbox : retire les fonctions permettant d'exécuter des commandes système
+        // Sandbox : supprime les fonctions permettant d'exécuter des commandes système
+        // ou de charger du code arbitraire depuis des scripts jeu.
         m_lua["io"]["popen"]     = sol::lua_nil;
         m_lua["os"]["execute"]   = sol::lua_nil;
         m_lua["os"]["exit"]      = sol::lua_nil;
+        m_lua["load"]            = sol::lua_nil;
+        m_lua["loadfile"]        = sol::lua_nil;
+        m_lua["dofile"]          = sol::lua_nil;
 
         std::filesystem::create_directories("data/saves");
 
@@ -145,10 +149,17 @@ public:
         if (m_sceneManager)
             LuaBindings::registerSceneManager(m_lua, *m_sceneManager);
 
+        // Pré-alimente les tables d'état des bridges (évite find() + insert chaque frame)
+        {
+            const auto& km = LuaBindings::getKeyMap();
+            m_prevKeyState.reserve(km.size());
+            for (auto& [k, _] : km) m_prevKeyState.emplace(k, false);
+        }
+        for (const char* b : { "left", "right", "middle" }) m_prevMouseState.emplace(b, false);
+
         initScriptRegistry();
         initNamedHandlersWirer();
-        loadNovaModules();
-        cacheRuntimeUpdates();
+        loadNovaModules();  // appelle cacheRuntimeUpdates() en fin de chargement
         REGISTER_COMPONENT(ScriptComponent);
 
         LOG_INFO("[ScriptSystem] Lua {}.{}.{} — stdlib complète chargée",
@@ -193,6 +204,8 @@ public:
             updateGlobalScript(ss, deltaTime);
 
         auto entities = registry.getEntitiesWith(getRequiredComponents());
+        float frameScriptMs = 0.0f;
+        int   frameScriptN  = 0;
         for (auto* entity : entities) {
             auto* script = entity->getComponent<ScriptComponent>();
             if (!script || !script->enabled || script->errored) continue;
@@ -213,6 +226,8 @@ public:
             auto result = script->fnUpdate(entity, effectiveDt);
             auto t1     = std::chrono::high_resolution_clock::now();
             float ms    = std::chrono::duration<float, std::milli>(t1 - t0).count();
+            frameScriptMs += ms;
+            ++frameScriptN;
             if (ms > 2.0f)
                 LOG_WARN("[ScriptSystem] Script lent '{}'  {:.2f}ms", script->scriptPath, ms);
 
@@ -226,6 +241,8 @@ public:
                 callEventBusEmit("script_error", ed);
             }
         }
+        if (frameScriptMs > 5.0f)
+            LOG_WARN("[ScriptSystem] Scripts : {:.2f}ms/frame ({} entités actives)", frameScriptMs, frameScriptN);
 
         updateAnimationBridge(registry);
     }
@@ -288,6 +305,7 @@ private:
     std::vector<sol::protected_function>    m_runtimeFns;
     sol::protected_function                 m_inputExClearFn;
     sol::protected_function                 m_debugFlushFn;
+    sol::protected_function                 m_eventBusEmitFn;
 
     std::vector<GlobalScript>               m_globalScripts;
     std::vector<GlobalScript>               m_sceneScripts;
@@ -536,6 +554,8 @@ private:
                 LOG_WARN("[ScriptSystem] Module '{}' non trouvé : {}", mod, err.what());
             }
         }
+        // Toujours recacher après chargement — sûr à rappeler si les modules sont rechargés
+        cacheRuntimeUpdates();
     }
 
     // -------------------------------------------------------------------------
@@ -573,6 +593,12 @@ private:
         if (dbg.valid() && dbg.get_type() == sol::type::table) {
             sol::protected_function f = m_lua["Debug"]["_flush"];
             if (f.valid()) m_debugFlushFn = std::move(f);
+        }
+        // EventBus.emit — appelé à chaque bridge event, chaque frame
+        sol::object bus = m_lua["EventBus"];
+        if (bus.valid() && bus.get_type() == sol::type::table) {
+            sol::protected_function f = m_lua["EventBus"]["emit"];
+            if (f.valid()) m_eventBusEmitFn = std::move(f);
         }
     }
 
@@ -744,8 +770,7 @@ private:
         const auto& keyMap = LuaBindings::getKeyMap();
         for (const auto& [name, code] : keyMap) {
             bool isNow   = INPUT().isKeyPressed(code);
-            auto it      = m_prevKeyState.find(name);
-            bool wasPrev = (it != m_prevKeyState.end()) ? it->second : false;
+            bool wasPrev = m_prevKeyState[name];
             if (isNow == wasPrev) continue;
 
             m_prevKeyState[name] = isNow;
@@ -985,11 +1010,8 @@ private:
     // Helpers
     // -------------------------------------------------------------------------
     void callEventBusEmit(const std::string& eventName, sol::object data) {
-        sol::object bus = m_lua["EventBus"];
-        if (!bus.valid() || bus.get_type() != sol::type::table) return;
-        sol::protected_function fn = m_lua["EventBus"]["emit"];
-        if (!fn.valid()) return;
-        auto r = fn(eventName, data);
+        if (!m_eventBusEmitFn.valid()) return;
+        auto r = m_eventBusEmitFn(eventName, data);
         if (!r.valid()) {
             sol::error err = r;
             LOG_ERROR("[ScriptSystem] EventBus.emit('{}') : {}", eventName, err.what());
