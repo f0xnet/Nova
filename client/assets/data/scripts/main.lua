@@ -26,10 +26,22 @@ RunTests = function() IngameTest.runAll() end
 -- Portée d'interaction avec un PNJ (en pixels)
 local INTERACT_RANGE = 100
 
+-- Si le moteur n'a pas préchargé DevConsole (ancienne version de l'EXE), le charger ici.
+if not DevConsole then
+    local ok, m = pcall(require, "nova/dev_console")
+    if ok and type(m) == "table" then
+        DevConsole = m
+    else
+        Log.warn("[main] DevConsole non disponible : " .. tostring(m))
+    end
+end
+
 -- ── Named handlers ─────────────────────────────────────────────────────────
 
 -- Appelé pour toute touche pressée (OnKeyDown est câblé par __wireNamedHandlers)
 function OnKeyDown(key)
+    if not DevConsole then return end
+
     -- La console développeur capture toute la saisie quand elle est ouverte
     if DevConsole.isOpen() then
         DevConsole.onKeyDown(key)

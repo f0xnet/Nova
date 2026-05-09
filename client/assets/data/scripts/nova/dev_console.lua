@@ -80,8 +80,30 @@ function DevConsole.execute(raw)
     end
 end
 
+-- _textEnteredWired : devient true dès que le moteur envoie le premier event text_entered.
+-- Quand true, la saisie passe exclusivement par text_entered (ponctuation incluse).
+-- Quand false (ancien EXE), le fallback alphanumérique OnKeyDown prend le relais.
+local _textEnteredWired = false
+
+local function keyToChar(key)
+    local shift = Input.isKeyPressed("LShift") or Input.isKeyPressed("RShift")
+    if #key == 1 and key >= "A" and key <= "Z" then
+        return shift and key or key:lower()
+    end
+    if #key == 1 and key >= "0" and key <= "9" then
+        if shift then
+            local d = { ["1"]="!", ["2"]="@", ["3"]="#", ["4"]="$", ["5"]="%",
+                        ["6"]="^", ["7"]="&", ["8"]="*", ["9"]="(", ["0"]=")" }
+            return d[key] or key
+        end
+        return key
+    end
+    if key == "Space" then return " " end
+    return nil
+end
+
 -- Gère les touches spéciales (Enter, Backspace, Escape, flèches).
--- Les caractères imprimables arrivent via l'EventBus "text_entered".
+-- Sur ancien EXE : aussi le fallback alphanumérique (A-Z, 0-9, Space).
 function DevConsole.onKeyDown(key)
     if not _open then return end
 
@@ -106,11 +128,17 @@ function DevConsole.onKeyDown(key)
             _histIdx = 0
             _input   = ""
         end
+    elseif not _textEnteredWired then
+        -- Fallback alphanumérique désactivé dès que text_entered SFML est détecté
+        local ch = keyToChar(key)
+        if ch then _input = _input .. ch end
     end
 end
 
--- Reçoit les caractères imprimables depuis les events TextEntered SFML
+-- Reçoit les caractères imprimables depuis les events TextEntered SFML (ponctuation incluse).
+-- Désactive le fallback alphanumérique dès le premier caractère reçu.
 EventBus.on("text_entered", function(data)
+    _textEnteredWired = true
     if _open and data and data.char then
         _input = _input .. data.char
     end
