@@ -176,7 +176,10 @@ public:
         m_lua["Registry"] = &registry;
 
         // Réinitialise les états "just pressed/released" avant la détection
-        if (m_inputExClearFn.valid()) m_inputExClearFn(0.0f);
+        if (m_inputExClearFn.valid()) {
+            auto r = m_inputExClearFn(0.0f);
+            if (!r.valid()) reportScriptError(r, "update", "InputEx._clear");
+        }
 
         updateActivatorBridge(registry);
         updateCollisionBridge(registry);
@@ -185,10 +188,7 @@ public:
         // Game._update reçoit le dt brut (il accumule _time = _time + dt * _timescale).
         if (m_gameUpdateFn.valid()) {
             auto r = m_gameUpdateFn(deltaTime);
-            if (!r.valid()) {
-                sol::error err = r;
-                LOG_WARN("[ScriptSystem] Game._update: {}", err.what());
-            }
+            if (!r.valid()) reportScriptError(r, "update", "Game._update");
         }
 
         // Lire le timescale courant une fois par frame pour mettre à l'échelle tous les scripts.
@@ -196,6 +196,7 @@ public:
         if (m_gameGetTimescaleFn.valid()) {
             auto r = m_gameGetTimescaleFn();
             if (r.valid()) timescale = r.get<float>(0);
+            else           reportScriptError(r, "update", "Game.getTimescale");
         }
         float scaledDt = deltaTime * timescale;
 
@@ -248,13 +249,8 @@ public:
                 LOG_WARN("[ScriptSystem] Script lent '{}'  {:.2f}ms", script->scriptPath, ms);
 
             if (!result.valid()) {
-                sol::error err = result;
-                LOG_ERROR("[ScriptSystem] update '{}': {}", script->scriptPath, err.what());
+                reportScriptError(result, "update", script->scriptPath, entity->getID());
                 script->errored = true;
-                auto ed = m_lua.create_table();
-                ed["entityId"] = entity->getID(); ed["path"] = script->scriptPath;
-                ed["error"] = std::string(err.what()); ed["phase"] = "update";
-                callEventBusEmit("script_error", ed);
             }
         }
         if (frameScriptMs > 5.0f)
@@ -270,7 +266,9 @@ public:
 
     // Appelé par Game.cpp::onRender() pour dessiner les primitives debug en overlay
     void renderDebug() {
-        if (m_debugFlushFn.valid()) m_debugFlushFn(0.0f);
+        if (!m_debugFlushFn.valid()) return;
+        auto r = m_debugFlushFn(0.0f);
+        if (!r.valid()) reportScriptError(r, "render", "Debug._flush");
     }
 
     void loadGlobalScript(const std::string& path, float updateInterval = 0.0f) {
@@ -373,9 +371,9 @@ private:
         };
 
         // Appelle une fonction dans le sandbox d'une autre entité
-        reg["call"] = [](sol::this_state ts, u64 id,
-                         const std::string& fn,
-                         sol::variadic_args args) -> sol::object {
+        reg["call"] = [this](sol::this_state ts, u64 id,
+                             const std::string& fn,
+                             sol::variadic_args args) -> sol::object {
             sol::state_view lua(ts);
             sol::object envObj = lua["ScriptRegistry"]["_envs"][id];
             if (!envObj.valid() || envObj.get_type() != sol::type::table)
@@ -388,17 +386,16 @@ private:
             std::vector<sol::object> v(args.begin(), args.end());
             auto r = pf(sol::as_args(v));
             if (!r.valid()) {
-                sol::error err = r;
-                LOG_WARN("[ScriptRegistry] call({}, '{}'): {}", id, fn, err.what());
+                reportScriptError(r, "call", "ScriptRegistry.call:" + fn, id);
                 return sol::lua_nil;
             }
             return r;
         };
 
         // Envoie un message à l'entité → déclenche OnMessage(msg, payload) dans son script
-        reg["sendMessage"] = [](sol::this_state ts, u64 id,
-                                const std::string& msg,
-                                sol::object payload) {
+        reg["sendMessage"] = [this](sol::this_state ts, u64 id,
+                                    const std::string& msg,
+                                    sol::object payload) {
             sol::state_view lua(ts);
             sol::object bus = lua["EventBus"];
             if (!bus.valid() || bus.get_type() != sol::type::table) return;
@@ -407,7 +404,9 @@ private:
             auto data        = lua.create_table();
             data["msg"]      = msg;
             data["payload"]  = payload;
-            fn("script_message_" + std::to_string(id), data);
+            auto r = fn("script_message_" + std::to_string(id), data);
+            if (!r.valid())
+                reportScriptError(r, "sendMessage", "ScriptRegistry.sendMessage:" + msg, id);
         };
 
         // Hot-reload d'un script d'entité par son entityId.
@@ -426,14 +425,29 @@ private:
 
             // Nettoyer les handlers trackés
             sol::protected_function cleanFn = lua["__cleanEntityHandlers"];
-            if (cleanFn.valid()) cleanFn(entityId);
+            if (cleanFn.valid()) {
+                auto r = cleanFn(entityId);
+                if (!r.valid()) reportScriptError(r, "reload", "__cleanEntityHandlers", entityId);
+            }
 
             // Annuler les timers/coroutines scopés à cette entité
             std::string scope = std::to_string(entityId);
             sol::table timer = lua["Timer"];
-            if (timer.valid()) { sol::protected_function f = timer["cancelScope"]; if (f.valid()) f(scope); }
+            if (timer.valid()) {
+                sol::protected_function f = timer["cancelScope"];
+                if (f.valid()) {
+                    auto r = f(scope);
+                    if (!r.valid()) reportScriptError(r, "reload", "Timer.cancelScope", entityId);
+                }
+            }
             sol::table sched = lua["Scheduler"];
-            if (sched.valid()) { sol::protected_function f = sched["cancelScope"]; if (f.valid()) f(scope); }
+            if (sched.valid()) {
+                sol::protected_function f = sched["cancelScope"];
+                if (f.valid()) {
+                    auto r = f(scope);
+                    if (!r.valid()) reportScriptError(r, "reload", "Scheduler.cancelScope", entityId);
+                }
+            }
 
             // Retirer de ScriptRegistry
             sol::table envs = lua["ScriptRegistry"]["_envs"];
@@ -466,10 +480,25 @@ private:
                 if (!script || !script->errored) continue;
                 u64 id = e->getID();
 
-                if (cleanFn.valid()) cleanFn(id);
+                if (cleanFn.valid()) {
+                    auto r = cleanFn(id);
+                    if (!r.valid()) reportScriptError(r, "reloadAll", "__cleanEntityHandlers", id);
+                }
                 std::string scope = std::to_string(id);
-                if (timer.valid()) { sol::protected_function f = timer["cancelScope"]; if (f.valid()) f(scope); }
-                if (sched.valid()) { sol::protected_function f = sched["cancelScope"]; if (f.valid()) f(scope); }
+                if (timer.valid()) {
+                    sol::protected_function f = timer["cancelScope"];
+                    if (f.valid()) {
+                        auto r = f(scope);
+                        if (!r.valid()) reportScriptError(r, "reloadAll", "Timer.cancelScope", id);
+                    }
+                }
+                if (sched.valid()) {
+                    sol::protected_function f = sched["cancelScope"];
+                    if (f.valid()) {
+                        auto r = f(scope);
+                        if (!r.valid()) reportScriptError(r, "reloadAll", "Scheduler.cancelScope", id);
+                    }
+                }
 
                 sol::table envs = lua["ScriptRegistry"]["_envs"];
                 envs[id] = sol::lua_nil;
@@ -506,10 +535,7 @@ private:
     void initNamedHandlersWirer() {
         auto r = m_lua.safe_script_file("data/scripts/nova/_wire_handlers.lua",
                                         sol::script_pass_on_error);
-        if (!r.valid()) {
-            sol::error err = r;
-            LOG_ERROR("[ScriptSystem] __wireNamedHandlers init : {}", err.what());
-        }
+        if (!r.valid()) reportScriptError(r, "load", "nova/_wire_handlers.lua");
     }
 
     void loadNovaModules() {
@@ -575,10 +601,7 @@ private:
         for (auto& [global, mod] : modules) {
             std::string code = std::string(global) + " = require('" + mod + "')";
             auto result = m_lua.safe_script(code, sol::script_pass_on_error);
-            if (!result.valid()) {
-                sol::error err = result;
-                LOG_WARN("[ScriptSystem] Module '{}' non trouvé : {}", mod, err.what());
-            }
+            if (!result.valid()) reportScriptError(result, "load", mod);
         }
         // Toujours recacher après chargement — sûr à rappeler si les modules sont rechargés
         cacheRuntimeUpdates();
@@ -641,10 +664,7 @@ private:
     void updateNovaRuntime(float dt) {
         for (auto& fn : m_runtimeFns) {
             auto r = fn(dt);
-            if (!r.valid()) {
-                sol::error err = r;
-                LOG_WARN("[ScriptSystem] nova update: {}", err.what());
-            }
+            if (!r.valid()) reportScriptError(r, "update", "nova/runtime");
         }
     }
 
@@ -927,13 +947,8 @@ private:
             auto res = m_lua.script_file(script->scriptPath, script->env,
                                          sol::script_pass_on_error);
             if (!res.valid()) {
-                sol::error err = res;
-                LOG_ERROR("[ScriptSystem] Chargement '{}' : {}", script->scriptPath, err.what());
+                reportScriptError(res, "load", script->scriptPath, entity->getID());
                 script->errored = true;
-                auto ed = m_lua.create_table();
-                ed["entityId"] = entity->getID(); ed["path"] = script->scriptPath;
-                ed["error"] = std::string(err.what()); ed["phase"] = "load";
-                callEventBusEmit("script_error", ed);
                 return;
             }
             script->fnInit   = script->env["init"];
@@ -952,22 +967,15 @@ private:
             sol::protected_function wire = m_lua["__wireNamedHandlers"];
             if (wire.valid()) {
                 auto wr = wire(script->env, entity->getID());
-                if (!wr.valid()) {
-                    sol::error err = wr;
-                    LOG_WARN("[ScriptSystem] wireHandlers '{}' : {}", script->scriptPath, err.what());
-                }
+                if (!wr.valid())
+                    reportScriptError(wr, "wireHandlers", script->scriptPath, entity->getID());
             }
 
             if (script->fnInit.valid()) {
                 auto r = script->fnInit(entity);
                 if (!r.valid()) {
-                    sol::error err = r;
-                    LOG_ERROR("[ScriptSystem] init '{}' : {}", script->scriptPath, err.what());
+                    reportScriptError(r, "init", script->scriptPath, entity->getID());
                     script->errored = true;
-                    auto ed = m_lua.create_table();
-                    ed["entityId"] = entity->getID(); ed["path"] = script->scriptPath;
-                    ed["error"] = std::string(err.what()); ed["phase"] = "init";
-                    callEventBusEmit("script_error", ed);
                 }
             }
         } catch (const std::exception& e) {
@@ -988,13 +996,8 @@ private:
             gs.env["dofile"]   = sol::lua_nil;
             auto res = m_lua.script_file(gs.path, gs.env, sol::script_pass_on_error);
             if (!res.valid()) {
-                sol::error err = res;
-                LOG_ERROR("[ScriptSystem] Global '{}' : {}", gs.path, err.what());
+                reportScriptError(res, "load", gs.path);
                 gs.errored = true;
-                auto ed = m_lua.create_table();
-                ed["entityId"] = u64{0}; ed["path"] = gs.path;
-                ed["error"] = std::string(err.what()); ed["phase"] = "load";
-                callEventBusEmit("script_error", ed);
                 return;
             }
             gs.fnUpdate = gs.env["update"];
@@ -1005,23 +1008,15 @@ private:
             sol::protected_function wire = m_lua["__wireNamedHandlers"];
             if (wire.valid()) {
                 auto wr = wire(gs.env, u64{0}, gs.isSceneScript);
-                if (!wr.valid()) {
-                    sol::error err = wr;
-                    LOG_WARN("[ScriptSystem] wireHandlers global '{}' : {}", gs.path, err.what());
-                }
+                if (!wr.valid()) reportScriptError(wr, "wireHandlers", gs.path);
             }
 
             sol::protected_function fnInit = gs.env["init"];
             if (fnInit.valid()) {
                 auto r = fnInit();
                 if (!r.valid()) {
-                    sol::error err = r;
-                    LOG_ERROR("[ScriptSystem] Global init '{}' : {}", gs.path, err.what());
+                    reportScriptError(r, "init", gs.path);
                     gs.errored = true;
-                    auto ed = m_lua.create_table();
-                    ed["entityId"] = u64{0}; ed["path"] = gs.path;
-                    ed["error"] = std::string(err.what()); ed["phase"] = "init";
-                    callEventBusEmit("script_error", ed);
                 }
             }
         } catch (const std::exception& e) {
@@ -1042,19 +1037,50 @@ private:
 
         auto r = gs.fnUpdate(effectiveDt);
         if (!r.valid()) {
-            sol::error err = r;
-            LOG_ERROR("[ScriptSystem] Global update '{}' : {}", gs.path, err.what());
+            reportScriptError(r, "update", gs.path);
             gs.errored = true;
-            auto ed = m_lua.create_table();
-            ed["entityId"] = u64{0}; ed["path"] = gs.path;
-            ed["error"] = std::string(err.what()); ed["phase"] = "update";
-            callEventBusEmit("script_error", ed);
         }
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    // Garde-fou contre la récursion : si reportScriptError échoue à émettre
+    // "script_error" via EventBus, on ne tente pas de re-rapporter cette erreur.
+    bool m_reportingScriptError = false;
+
+    // Rapport unifié d'erreur Lua : LOG_ERROR + propagation EventBus("script_error").
+    // À utiliser pour tout sol::protected_function_result invalide. Garantit que
+    // les erreurs ne soient jamais silencieusement avalées (cf. bug DevConsole).
+    //
+    // phase    : "load", "init", "update", "render", "wireHandlers", "call", etc.
+    // context  : chemin du script, nom du module ou de la fonction concernée
+    // entityId : id de l'entité associée (0 si script global / scène / interne)
+    template<typename Result>
+    void reportScriptError(Result& result,
+                           const char* phase,
+                           const std::string& context,
+                           u64 entityId = 0)
+    {
+        sol::error err = result;
+        LOG_ERROR("[ScriptSystem] {} '{}' : {}", phase, context, err.what());
+
+        if (!m_eventBusEmitFn.valid() || m_reportingScriptError) return;
+        m_reportingScriptError = true;
+        auto ed = m_lua.create_table();
+        ed["entityId"] = entityId;
+        ed["path"]     = context;
+        ed["error"]    = std::string(err.what());
+        ed["phase"]    = phase;
+        auto er = m_eventBusEmitFn("script_error", ed);
+        if (!er.valid()) {
+            sol::error e2 = er;
+            LOG_ERROR("[ScriptSystem] EventBus.emit('script_error') : {}", e2.what());
+        }
+        m_reportingScriptError = false;
+    }
+
     void callEventBusEmit(const std::string& eventName, sol::object data) {
         if (!m_eventBusEmitFn.valid()) return;
         auto r = m_eventBusEmitFn(eventName, data);
