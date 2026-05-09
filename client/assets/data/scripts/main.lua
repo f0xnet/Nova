@@ -5,29 +5,40 @@
 -- Gère :
 --   E        — interaction avec les PNJ / avance le dialogue
 --   T        — avance le temps d'une heure
---   1/2/3/4  — bascule les effets PostFX
+--   N        — ouvre/ferme la console développeur (DevConsole)
 --
--- Utilise les named handlers auto-câblés par __wireNamedHandlers(env, 0).
--- Pour les contrôles remappables, utilise InputBind.
+-- Les effets PostFX, les tests et les autres outils développeur sont
+-- accessibles depuis la console (touche N → tape 'help').
 
 -- ── Bindings de contrôle ───────────────────────────────────────────────────
-InputBind.register("interact", "E")
-InputBind.register("timeAdvance", "T")
-InputBind.register("toggleSSAO",     "1")
-InputBind.register("toggleBloom",    "2")
-InputBind.register("toggleGrading",  "3")
-InputBind.register("toggleLighting", "4")
-InputBind.register("ingameTests",    "P")
+InputBind.register("interact",   "E")
+InputBind.register("timeAdvance","T")
+InputBind.register("devConsole", "N")
 
 local IngameTest = require("tests/test_ingame")
+local DevConsole = require("nova/dev_console")
+
+-- Exposé globalement pour la commande 'test' de la console
+RunTests = function() IngameTest.runAll() end
 
 -- Portée d'interaction avec un PNJ (en pixels)
 local INTERACT_RANGE = 100
 
 -- ── Named handlers ─────────────────────────────────────────────────────────
 
--- Appelé pour toute touche pressée (OnKeyDown est câblé par __wireNamedHandlers)
 function OnKeyDown(key)
+    -- La console capture toute la saisie quand elle est ouverte
+    if DevConsole.isOpen() then
+        DevConsole.onKeyDown(key)
+        return
+    end
+
+    -- Ouvre la console (touche N)
+    if key == InputBind.getKey("devConsole") then
+        DevConsole.toggle()
+        return
+    end
+
     -- Interaction / dialogue (touche E)
     if key == InputBind.getKey("interact") then
         if Dialogue.isActive() then
@@ -46,24 +57,6 @@ function OnKeyDown(key)
     elseif key == InputBind.getKey("timeAdvance") then
         Time.advance(1)
         Log.info("Heure : " .. tostring(Time.getHour()) .. "h00")
-
-    -- Tests interactifs en jeu (F5)
-    elseif key == InputBind.getKey("ingameTests") then
-        IngameTest.runAll()
-
-    -- Bascule les effets PostFX (touches 1-4)
-    elseif key == InputBind.getKey("toggleSSAO") then
-        PostFX.toggleSSAO()
-        Log.info("SSAO basculé")
-    elseif key == InputBind.getKey("toggleBloom") then
-        PostFX.toggleBloom()
-        Log.info("Bloom basculé")
-    elseif key == InputBind.getKey("toggleGrading") then
-        PostFX.toggleGrading()
-        Log.info("Color grading basculé")
-    elseif key == InputBind.getKey("toggleLighting") then
-        PostFX.toggleLighting()
-        Log.info("Lighting dynamique basculé")
     end
 end
 
@@ -71,4 +64,5 @@ end
 -- Appelé chaque frame par ScriptSystem
 function update(dt)
     IngameTest.update(dt)
+    DevConsole.draw()
 end
