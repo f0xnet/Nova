@@ -132,6 +132,10 @@ function Debug._flush()
         row = row + 1
     end
     _watches = {}
+
+    if type(DevConsole) == "table" and DevConsole._flush then
+        DevConsole._flush()
+    end
 end
 
 -- Appelé par ScriptSystem._update (via updateNovaRuntime) pour décrémenter les timers

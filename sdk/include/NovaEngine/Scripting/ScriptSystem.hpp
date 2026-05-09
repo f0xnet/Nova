@@ -268,6 +268,15 @@ public:
     // -------------------------------------------------------------------------
     sol::state& getLua() { return m_lua; }
 
+    // Enregistre un caractère unicode entrant (depuis Game::onEvent TextEntered).
+    // Drainé par updateInputBridge() chaque frame via l'événement EventBus "text_entered".
+    void queueTextInput(u32 unicode) {
+        // Accepte uniquement les caractères ASCII imprimables (espace à tilde inclus)
+        if (unicode >= 32 && unicode <= 126) {
+            m_pendingText += static_cast<char>(unicode);
+        }
+    }
+
     // Appelé par Game.cpp::onRender() pour dessiner les primitives debug en overlay
     void renderDebug() {
         if (m_debugFlushFn.valid()) m_debugFlushFn(0.0f);
@@ -336,6 +345,7 @@ private:
     std::unordered_map<u64, bool>                            m_activatorPrevState;
     std::unordered_map<std::string, bool>                    m_prevKeyState;
     std::unordered_map<std::string, bool>                    m_prevMouseState;
+    std::string                                              m_pendingText;
     std::unordered_map<u64, u32>                             m_animPrevFrame;
     std::unordered_map<u64, std::string>                     m_animPrevAnimID;
     std::unordered_set<std::pair<u64,u64>, U64PairHash>      m_prevCollisions;
@@ -571,6 +581,8 @@ private:
             { "Scene",         "nova/scene"         },
             // Behavior Trees pour l'IA — Sequence, Selector, Parallel, Action, Condition
             { "BT",            "nova/behavior_tree" },
+            // Console développeur in-game (N pour ouvrir) — doit être chargé en dernier
+            { "DevConsole",    "nova/dev_console"   },
         };
         for (auto& [global, mod] : modules) {
             std::string code = std::string(global) + " = require('" + mod + "')";
@@ -840,6 +852,14 @@ private:
             // Générique : mouse_down / mouse_up  →  OnMouseDown(button, x, y)
             callEventBusEmit(isNow ? std::string("mouse_down") : std::string("mouse_up"), data);
         }
+
+        // Drain du buffer de texte saisi (TextEntered SFML → EventBus "text_entered")
+        for (char c : m_pendingText) {
+            auto data = m_lua.create_table();
+            data["char"] = std::string(1, c);
+            callEventBusEmit("text_entered", data);
+        }
+        m_pendingText.clear();
     }
 
     // -------------------------------------------------------------------------
