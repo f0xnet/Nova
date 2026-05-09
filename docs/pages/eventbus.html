@@ -22,6 +22,10 @@
     <strong>Principe :</strong> au lieu qu'un script appelle directement une fonction d'un autre script (ce qui crée des dépendances rigides), il <em>annonce</em> qu'il s'est passé quelque chose. Chaque script intéressé peut réagir.
   </div>
 
+  <div class="callout success">
+    <strong>Nettoyage automatique dans les scripts d'entité et de scène.</strong> Tout appel à <code>EventBus.on()</code> ou <code>EventBus.once()</code> effectué dans <code>init()</code> est automatiquement tracké. À la destruction de l'entité (ou au changement de scène pour un script de scène), tous ces handlers sont désinscrits sans action manuelle. Pas besoin de <code>EventBus.off()</code> dans ces contextes.
+  </div>
+
   <div class="section">
     <h2>API</h2>
     <table class="api-table">

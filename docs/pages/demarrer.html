@@ -48,11 +48,11 @@
     <p>Ces fonctions sont branchées automatiquement sur les événements correspondants. Définissez celles dont vous avez besoin — elles seront appelées sans EventBus.on() manuel.</p>
 
     <div class="callout success">
-      <strong>Nettoyage automatique des handlers.</strong> Quand une entité est détruite (<code>Registry.destroyEntity</code>), le moteur émet <code>entity_destroyed</code> <em>avant</em> la suppression, ce qui déclenche automatiquement : désinscription de tous ses named handlers <strong>et de tous les <code>EventBus.on()</code> appelés dans <code>init(entity)</code></strong>, suppression de son environnement Lua, et nettoyage de Stats / Effect / Cooldown / Anim. Aucune gestion manuelle n'est nécessaire.
+      <strong>Nettoyage automatique des handlers.</strong> Quand une entité est détruite (<code>Registry.destroyEntity</code>), le moteur émet <code>entity_destroyed</code> <em>avant</em> la suppression, ce qui déclenche automatiquement : désinscription de tous ses named handlers <strong>et de tous les <code>EventBus.on()</code> / <code>EventBus.once()</code> appelés dans <code>init(entity)</code></strong>, suppression de son environnement Lua, et nettoyage de Stats / Effect / Cooldown / Anim. Aucune gestion manuelle n'est nécessaire.
     </div>
 
     <div class="callout success">
-      <strong>Scripts de scène : named handlers et <code>EventBus.on()</code> nettoyés automatiquement.</strong> Au changement de scène, tous les named handlers (OnKeyDown, OnMessage…) <em>et</em> tous les <code>EventBus.on()</code> appelés dans <code>init()</code> du script de scène sont retirés automatiquement. Pour les souscriptions qui doivent traverser plusieurs scènes, utilisez un script global (pas un script de scène).
+      <strong>Scripts de scène : named handlers et <code>EventBus.on()</code> / <code>EventBus.once()</code> nettoyés automatiquement.</strong> Au changement de scène, tous les named handlers (OnKeyDown, OnMessage…) <em>et</em> tous les <code>EventBus.on()</code> et <code>EventBus.once()</code> appelés dans <code>init()</code> du script de scène sont retirés automatiquement. Pour les souscriptions qui doivent traverser plusieurs scènes, utilisez un script global (pas un script de scène).
     </div>
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Déclencheur</th></tr></thead>
