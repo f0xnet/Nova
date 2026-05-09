@@ -12,7 +12,7 @@
   <div class="page-header">
     <span class="icon">💾</span>
     <h1>Persist</h1>
-    <p class="subtitle">Sauvegarde et chargement de données — stocker des valeurs entre les sessions de jeu (scores, progression, options).</p>
+    <p class="subtitle">Sauvegarde et chargement de données — stocker des valeurs entre les sessions de jeu (scores, progression, options). Versioning et migration automatiques du schéma de sauvegarde.</p>
     <div class="tags"><span class="tag global">Global automatique</span></div>
   </div>
 
@@ -25,12 +25,27 @@
         <tr><td>Persist.get(clé, défaut)</td><td>Lit une valeur. Retourne <code>défaut</code> si la clé n'existe pas.</td></tr>
         <tr><td>Persist.delete(clé)</td><td>Supprime une entrée.</td></tr>
         <tr><td>Persist.deleteBatch(clés)</td><td>Supprime plusieurs entrées en une seule écriture sur disque. Préférer à plusieurs appels <code>delete</code> consécutifs.</td></tr>
-        <tr><td>Persist.getAll()</td><td>Retourne une copie de toutes les données enregistrées (clé → valeur).</td></tr>
+        <tr><td>Persist.getAll()</td><td>Retourne une copie de toutes les données enregistrées.</td></tr>
         <tr><td>Persist.clear()</td><td>Efface toutes les données sauvegardées.</td></tr>
         <tr><td>Persist.save()</td><td>Force l'écriture sur disque (normalement automatique).</td></tr>
-        <tr><td>Persist.load()</td><td>Force le rechargement depuis le disque.</td></tr>
+        <tr><td>Persist.load()</td><td>Force le rechargement depuis le disque. Exécute les migrations si nécessaire.</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="section">
+    <h2>Versioning et migration</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Persist.setVersion(v)</td><td>Déclare la version courante du schéma de sauvegarde. À appeler avant <code>Persist.load()</code> (ou au chargement du script global).</td></tr>
+        <tr><td>Persist.onMigrate(fromV, toV, fn)</td><td>Enregistre une migration. <code>fn(data)</code> reçoit la table brute, la modifie et la retourne. Appelée automatiquement lors d'un chargement si la version sauvegardée est inférieure à <code>toV</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>Fonctionnement :</strong> la version du schéma est transparente — elle est écrite dans le fichier de sauvegarde mais jamais exposée via <code>getAll()</code> ou <code>get()</code>. Si le fichier sauvegardé est plus ancien que <code>setVersion(v)</code>, les migrations sont appliquées dans l'ordre et le fichier est réécrit automatiquement.
+    </div>
   </div>
 
   <div class="callout info">
@@ -47,62 +62,77 @@ local meilleur     = Persist.get("meilleur_score", 0)
 
 if score_actuel > meilleur then
     Persist.set("meilleur_score", score_actuel)
-    Notify.show("Nouveau record : " .. score_actuel .. " !",  { color = "lime" })
+    Notify.show("Nouveau record : " .. score_actuel .. " !", { color = "lime" })
 end
 
 -- Sauvegarder la scène actuelle pour reprendre plus tard
-Persist.set("derniere_scene",    Scene.current())
-Persist.set("joueur_x",         pos.x)
-Persist.set("joueur_y",         pos.y)
-Persist.set("joueur_vie",       Stats.get(joueur.id, "Vie", 100))
+Persist.set("derniere_scene", Scene.current())
+Persist.set("joueur_x",      pos.x)
+Persist.set("joueur_y",      pos.y)
+Persist.set("joueur_vie",    Stats.get(joueur.id, "Vie", 100))
 
 -- Reprendre la partie
 local scene = Persist.get("derniere_scene", "ville_principale")
-local px    = Persist.get("joueur_x", 0)
-local py    = Persist.get("joueur_y", 0)
+Scene.setActive(scene)</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Migration de schéma — renommer une clé</div>
+      <pre><code class="lua">-- Dans votre script global, AVANT le chargement du jeu :
 
-Scene.setActive(scene)
-World.setPosition(joueur, px, py)</code></pre>
+-- v1 : les stats s'appelaient "player_hp" / "player_mp"
+-- v2 : renommées en "health" / "mana"
+
+Persist.setVersion(2)
+
+Persist.onMigrate(1, 2, function(data)
+    data["health"] = data["player_hp"]
+    data["mana"]   = data["player_mp"]
+    data["player_hp"] = nil
+    data["player_mp"] = nil
+    return data
+end)
+
+-- Si le fichier sauvegardé est en v1, la migration s'exécute automatiquement.
+-- Si la sauvegarde est déjà en v2 (ou absente), rien ne se passe.
+Persist.load()</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Migration multi-étapes</div>
+      <pre><code class="lua">-- Le jeu est maintenant en v3 ; il a existé en v1 et v2.
+Persist.setVersion(3)
+
+-- v1 → v2 : ajout du champ "difficulty" avec valeur par défaut
+Persist.onMigrate(1, 2, function(data)
+    if not data["difficulty"] then
+        data["difficulty"] = "normal"
+    end
+    return data
+end)
+
+-- v2 → v3 : le score était un int, maintenant c'est une table {value, date}
+Persist.onMigrate(2, 3, function(data)
+    local old = data["meilleur_score"]
+    if type(old) == "number" then
+        data["meilleur_score"] = { value = old, date = "inconnu" }
+    end
+    return data
+end)
+
+-- Les deux migrations s'enchaînent automatiquement si la sauvegarde est en v1.</code></pre>
     </div>
     <br>
     <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Options de jeu persistantes</div>
-      <pre><code class="lua">-- Charger les options au démarrage
-local volume_musique = Persist.get("option_volume_musique", 0.8)
+      <pre><code class="lua">local volume_musique = Persist.get("option_volume_musique", 0.8)
 local volume_sons    = Persist.get("option_volume_sons",    1.0)
-local plein_ecran    = Persist.get("option_plein_ecran",    false)
-
 Sound.setMusicVolume(volume_musique)
 Sound.setVolume(volume_sons)
 
--- Sauvegarder quand le joueur change une option
 function changerVolumeMusique(nouvelle_valeur)
     Persist.set("option_volume_musique", nouvelle_valeur)
     Sound.setMusicVolume(nouvelle_valeur)
-end
-
--- Réinitialiser toutes les options
-function reinitialiserOptions()
-    Persist.delete("option_volume_musique")
-    Persist.delete("option_volume_sons")
-    Persist.delete("option_plein_ecran")
-    Notify.show("Options réinitialisées.")
-end</code></pre>
-    </div>
-    <br>
-    <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Effacer la sauvegarde (nouveau jeu)</div>
-      <pre><code class="lua">function nouveauJeu()
-    -- Effacer toute la progression
-    Persist.clear()
-
-    -- Ou effacer seulement certaines clés
-    Persist.delete("derniere_scene")
-    Persist.delete("joueur_x")
-    Persist.delete("joueur_y")
-
-    -- Repartir depuis le début
-    Scene.transition("intro", { fade = true, duration = 1.0 })
 end</code></pre>
     </div>
   </div>
