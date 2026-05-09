@@ -26,30 +26,11 @@ RunTests = function() IngameTest.runAll() end
 -- Portée d'interaction avec un PNJ (en pixels)
 local INTERACT_RANGE = 100
 
--- Si le moteur n'a pas préchargé DevConsole (ancienne version de l'EXE), le charger ici.
--- On écrit dans _G pour que debug.lua (env global) puisse appeler DevConsole._flush().
-if not DevConsole then
-    local ok, m = pcall(require, "nova/dev_console")
-    if ok and type(m) == "table" then
-        _G.DevConsole = m
-        Log.info("[main] DevConsole chargé manuellement OK")
-    else
-        Log.error("[main] DevConsole ECHEC : " .. tostring(m))
-    end
-else
-    Log.info("[main] DevConsole déjà présent via moteur")
-end
-Log.info("[main] DevConsole apres init = " .. tostring(type(DevConsole)))
-
 -- ── Named handlers ─────────────────────────────────────────────────────────
 
 -- Appelé pour toute touche pressée (OnKeyDown est câblé par __wireNamedHandlers)
 function OnKeyDown(key)
-    Log.info("[main] OnKeyDown = " .. tostring(key))
-    if not DevConsole then
-        Log.error("[main] OnKeyDown: DevConsole est nil !")
-        return
-    end
+    if not DevConsole then return end
 
     -- La console développeur capture toute la saisie quand elle est ouverte
     if DevConsole.isOpen() then

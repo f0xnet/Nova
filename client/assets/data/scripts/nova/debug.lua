@@ -199,4 +199,16 @@ function Debug.assert(cond, msg)
     end
 end
 
+-- Charge DevConsole dans _G si l'EXE ne l'a pas intégré (ancien binaire sans la liste mise à jour).
+-- Ce module-ci tourne dans le vrai _G (chargé via loadNovaModules), donc l'affectation
+-- est visible par tous les scripts y compris les envs sandboxés via __index.
+if type(DevConsole) ~= "table" then
+    local ok, m = pcall(require, "nova/dev_console")
+    if ok and type(m) == "table" then
+        DevConsole = m
+    else
+        Log.warn("[Debug] DevConsole non disponible : " .. tostring(m))
+    end
+end
+
 return Debug

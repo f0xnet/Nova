@@ -146,13 +146,19 @@ end)
 
 -- ── Rendu via DebugDraw ───────────────────────────────────────────────────────
 
-local COL_BG    = Color(0,   0,   0,   210)
-local COL_HINT  = Color(150, 150, 150, 255)
-local COL_OUT   = Color.Green
-local COL_INPUT = Color.Yellow
+-- Initialisés au premier appel de _flush() pour éviter tout échec au chargement du module.
+local COL_BG, COL_HINT, COL_OUT, COL_INPUT
+local function ensureColors()
+    if COL_BG then return end
+    COL_BG    = Color(0,   0,   0,   210)
+    COL_HINT  = Color(150, 150, 150, 255)
+    COL_OUT   = Color.Green
+    COL_INPUT = Color.Yellow
+end
 
 function DevConsole._flush()
     if not _open then return end
+    ensureColors()
 
     local sz     = Viewport.getWindowSize()
     local sw     = sz.x
