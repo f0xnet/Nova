@@ -133,14 +133,12 @@ public:
             sol::lib::package
         );
 
-        // Sandbox : supprime les fonctions permettant d'exécuter des commandes système
-        // ou de charger du code arbitraire depuis des scripts jeu.
-        m_lua["io"]["popen"]     = sol::lua_nil;
-        m_lua["os"]["execute"]   = sol::lua_nil;
-        m_lua["os"]["exit"]      = sol::lua_nil;
-        m_lua["load"]            = sol::lua_nil;
-        m_lua["loadfile"]        = sol::lua_nil;
-        m_lua["dofile"]          = sol::lua_nil;
+        // Sandbox global : commandes système uniquement.
+        // load/loadfile/dofile sont laissés globaux (requis par les modules nova comme Persist).
+        // Ils sont neutralisés par-environnement dans loadEntityScript / loadGlobalScriptImpl.
+        m_lua["io"]["popen"]   = sol::lua_nil;
+        m_lua["os"]["execute"] = sol::lua_nil;
+        m_lua["os"]["exit"]    = sol::lua_nil;
 
         std::filesystem::create_directories("data/saves");
 
@@ -868,6 +866,12 @@ private:
             // C'est l'équivalent de `self` qui est l'ObjectReference en Papyrus.
             script->env.set("entity", entity);
 
+            // Sandbox per-env : masque load/loadfile/dofile dans les scripts jeu.
+            // Les modules nova (ex: Persist) conservent l'accès via l'état global.
+            script->env["load"]     = sol::lua_nil;
+            script->env["loadfile"] = sol::lua_nil;
+            script->env["dofile"]   = sol::lua_nil;
+
             // RegisterForUpdate(interval) / UnregisterForUpdate() / ResumeUpdate()
             // Permettent au script de contrôler sa propre fréquence d'update
             script->env["RegisterForUpdate"] = [script](float interval) {
@@ -940,6 +944,10 @@ private:
     void loadGlobalScriptImpl(GlobalScript& gs) {
         try {
             gs.env = sol::environment(m_lua, sol::create, m_lua.globals());
+            // Sandbox per-env : masque load/loadfile/dofile dans les scripts jeu.
+            gs.env["load"]     = sol::lua_nil;
+            gs.env["loadfile"] = sol::lua_nil;
+            gs.env["dofile"]   = sol::lua_nil;
             auto res = m_lua.script_file(gs.path, gs.env, sol::script_pass_on_error);
             if (!res.valid()) {
                 sol::error err = res;

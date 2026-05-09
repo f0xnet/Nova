@@ -26,6 +26,10 @@
     <strong>Nettoyage automatique dans les scripts d'entité et de scène.</strong> Tout appel à <code>EventBus.on()</code> ou <code>EventBus.once()</code> effectué dans <code>init()</code> est automatiquement tracké. À la destruction de l'entité (ou au changement de scène pour un script de scène), tous ces handlers sont désinscrits sans action manuelle. Pas besoin de <code>EventBus.off()</code> dans ces contextes.
   </div>
 
+  <div class="callout info">
+    <strong>Ré-entrance sûre.</strong> <code>EventBus.emit()</code> travaille sur un snapshot de la liste des handlers avant d'itérer. Un handler peut appeler <code>EventBus.on()</code>, <code>EventBus.off()</code> ou <code>EventBus.emit()</code> sans corrompre la boucle en cours.
+  </div>
+
   <div class="section">
     <h2>API</h2>
     <table class="api-table">

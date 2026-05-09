@@ -97,7 +97,13 @@ function Effect.remove(entityId, effectId)
     entityId = toId(entityId)
     if not data[entityId] or not data[entityId][effectId] then return end
     local inst = data[entityId][effectId]
-    safeCall(inst.config and inst.config.onExpire, entityId)
+    if inst.instances then
+        for _, si in ipairs(inst.instances) do
+            safeCall(si.config and si.config.onExpire, entityId)
+        end
+    else
+        safeCall(inst.config and inst.config.onExpire, entityId)
+    end
     data[entityId][effectId] = nil
     EventBus.emit("effect_removed", { entityId = entityId, effectId = effectId })
 end
@@ -111,7 +117,13 @@ function Effect.clear(entityId)
     entityId = toId(entityId)
     if not data[entityId] then return end
     for effectId, inst in pairs(data[entityId]) do
-        safeCall(inst.config and inst.config.onExpire, entityId)
+        if inst.instances then
+            for _, si in ipairs(inst.instances) do
+                safeCall(si.config and si.config.onExpire, entityId)
+            end
+        else
+            safeCall(inst.config and inst.config.onExpire, entityId)
+        end
         EventBus.emit("effect_removed", { entityId = entityId, effectId = effectId })
     end
     data[entityId] = nil

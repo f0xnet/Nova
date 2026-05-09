@@ -34,16 +34,15 @@ end
 
 function EventBus.emit(event, data)
     if not listeners[event] then return end
-    local toRemove = {}
-    for i, l in ipairs(listeners[event]) do
+    -- Snapshot avant itération : les handlers peuvent appeler on/off/emit sans corrompre la boucle.
+    local snapshot = {}
+    for i = 1, #listeners[event] do snapshot[i] = listeners[event][i] end
+    for _, l in ipairs(snapshot) do
         local ok, err = pcall(l.fn, data)
         if not ok then
             Log.error("EventBus '" .. tostring(event) .. "': " .. tostring(err))
         end
-        if l.once then table.insert(toRemove, i) end
-    end
-    for i = #toRemove, 1, -1 do
-        table.remove(listeners[event], toRemove[i])
+        if l.once then EventBus.off(event, l.fn) end
     end
 end
 

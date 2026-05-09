@@ -108,6 +108,7 @@ function Cooldown.update(dt)
                 actions[action] = next
             end
         end
+        if not next(actions) then timers[entityId] = nil end
     end
 end
 

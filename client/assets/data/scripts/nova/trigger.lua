@@ -93,9 +93,9 @@ function Trigger.clear()
 end
 
 function Trigger._update(dt)
+    local entities = Registry:getAllEntities()
     for zoneId, zone in pairs(_zones) do
         if zone.active then
-            local entities = Registry:getAllEntities()
             local current  = {}
 
             for _, ent in ipairs(entities) do
