@@ -6,12 +6,13 @@
 -- Chaque fichier de tests retourne { pass, fail }.
 -- Ce runner agrège les résultats et affiche un bilan final.
 --
--- Modules couverts (41 total) :
---   test_core.lua     → EventBus · Timer · Scheduler · Tween
---   test_math.lua     → Math · Table · Random · Easing · Color (ext)
---   test_gameplay.lua → Stats · Effect · Inventory · Quest · Flag · Loot · Persist
---   test_systems.lua  → Sequence · Conversation · InputBind · I18n · Achievement · Data
---   test_engine.lua   → Anim · Trigger · Nav · Spatial · Pool · Debug · UI · Camera · Scene
+-- Modules couverts :
+--   test_core.lua          → EventBus · Timer · Scheduler · Tween
+--   test_math.lua          → Math · Table · Random · Easing · Color (ext)
+--   test_gameplay.lua      → Stats (bind, init silence) · Effect (stackable) · Inventory · Quest · Flag · Loot · Persist
+--   test_systems.lua       → Sequence · Conversation · InputBind · I18n · Achievement · Data
+--   test_engine.lua        → Anim · Trigger · Nav · Spatial · Pool · Debug · UI · Camera · Scene
+--   test_nova_features.lua → BT · Persist.migration · Debug.inspect
 
 local suites = {
     "tests/test_core",
@@ -19,6 +20,7 @@ local suites = {
     "tests/test_gameplay",
     "tests/test_systems",
     "tests/test_engine",
+    "tests/test_nova_features",
 }
 
 Log.info("══════════════════════════════════════════════")

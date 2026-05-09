@@ -35,6 +35,9 @@
   </div>
 
   <div class="callout info">
+    <strong>Portée du timescale :</strong> <code>Game.setTimescale()</code> affecte le <code>dt</code> reçu par <em>tous</em> les scripts (entity <code>update</code>, scripts globaux, scènes) ainsi que les modules nova (Timer, Effect, Tween, Scheduler…). <code>Game.getDeltaTime()</code> retourne le <code>dt</code> brut avant application du timescale.
+  </div>
+  <div class="callout info">
     <strong>EventBus :</strong> <code>Game.setTimescale()</code> émet <code>"timescale_changed"</code> avec <code>{ timescale = valeur }</code>. Écoutez cet événement pour mettre à jour l'UI de pause ou les animations.
   </div>
 

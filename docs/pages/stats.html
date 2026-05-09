@@ -21,9 +21,9 @@
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
       <tbody>
-        <tr><td>Stats.init(entityId, defaults)</td><td>Initialise un ensemble de stats depuis une table. N'écrase pas les valeurs déjà définies.</td><td>—</td></tr>
+        <tr><td>Stats.init(entityId, defaults)</td><td>Initialise un ensemble de stats depuis une table. N'écrase pas les valeurs déjà définies. <strong>N'émet aucun <code>stat_changed</code></strong> — sans bruit pour l'UI au chargement.</td><td>—</td></tr>
         <tr><td>Stats.get(entityId, stat, defaut)</td><td>Lit la valeur d'une stat. Si absente, retourne <code>defaut</code>.</td><td class="ret">number</td></tr>
-        <tr><td>Stats.set(entityId, stat, valeur)</td><td>Définit une stat à une valeur précise.</td><td>—</td></tr>
+        <tr><td>Stats.set(entityId, stat, valeur)</td><td>Définit une stat à une valeur précise. Émet <code>stat_changed</code> et déclenche les bindings réactifs.</td><td>—</td></tr>
         <tr><td>Stats.mod(entityId, stat, delta)</td><td>Ajoute <code>delta</code> à la stat (négatif = enlever). Retourne la nouvelle valeur.</td><td class="ret">number</td></tr>
         <tr><td>Stats.modClamped(entityId, stat, delta, min, max)</td><td>Comme <code>mod</code> mais borne le résultat entre min et max. Retourne la nouvelle valeur.</td><td class="ret">number</td></tr>
         <tr><td>Stats.has(entityId, stat)</td><td>Vrai si la stat existe.</td><td class="ret">bool</td></tr>
@@ -32,6 +32,21 @@
         <tr><td>Stats.clear(entityId)</td><td>Supprime toutes les stats de l'entité.</td><td>—</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="section">
+    <h2>Bindings réactifs</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Stats.bind(entityId, stat, fn)</td><td>Enregistre <code>fn(value, previous, entityId, stat)</code> appelée à chaque <code>Stats.set</code> sur cette stat. Plusieurs bindings par stat sont supportés.</td></tr>
+        <tr><td>Stats.unbind(entityId, stat, fn)</td><td>Retire un binding spécifique.</td></tr>
+        <tr><td>Stats.unbindAll(entityId)</td><td>Retire tous les bindings de l'entité. Appelé automatiquement lors de <code>entity_destroyed</code>.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <strong>Nettoyage automatique :</strong> <code>Stats.unbindAll</code> est appelé lors de <code>entity_destroyed</code> — aucune fuite mémoire possible. Pas besoin de cleanup manuel dans <code>OnDeactivate</code>.
+    </div>
   </div>
 
   <div class="section">
@@ -83,23 +98,30 @@ end</code></pre>
   <div class="section">
     <h2>Exemple — Réagir automatiquement aux changements</h2>
     <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Binding réactif — barre de vie liée à la stat</div>
+      <pre><code class="lua">function init(entity)
+    -- Initialiser sans déclencher l'UI (Stats.init est silencieux)
+    Stats.init(entity.id, {
+        Vie    = self.vie    or 100,
+        VieMax = self.vieMax or 100,
+    })
+
+    -- Binding : la barre de vie se met à jour à chaque changement de "Vie"
+    Stats.bind(entity.id, "Vie", function(value, previous, eid)
+        local vieMax = Stats.get(eid, "VieMax", 100)
+        UI.setValue("barre_vie", value / vieMax)
+    end)
+    -- Pas besoin de unbind : nettoyé automatiquement à entity_destroyed
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Détecter une mort via EventBus</div>
       <pre><code class="lua">-- Quand n'importe quelle stat "Vie" atteint 0 ou moins
 EventBus.on("stat_zeroed", function(data)
     if data.stat == "Vie" then
         local e = Registry:getEntity(data.entityId)
-        if e then
-            e:sendMessage("mourir", {})
-        end
-    end
-end)
-
--- Mettre à jour une barre de vie dans l'UI
-EventBus.on("stat_changed", function(data)
-    if data.stat == "Vie" and data.entityId == joueur.id then
-        local vieMax = Stats.get(data.entityId, "VieMax", 100)
-        local ratio  = data.value / vieMax      -- 0.0 à 1.0
-        UI.setValue("barre_vie", ratio)
+        if e then e:sendMessage("mourir", {}) end
     end
 end)</code></pre>
     </div>

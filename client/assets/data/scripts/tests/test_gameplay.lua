@@ -56,6 +56,53 @@ Stats.set(E1, "Level", 99)
 Stats.init(E1, { Level = 1 })
 T.eq("init skips existing", 99, Stats.get(E1, "Level"))
 
+-- Stats.init : aucun stat_changed ne doit être émis
+do
+    local initId = 9901
+    Stats.clear(initId)
+    local emits = 0
+    local function onChanged(d) if d.entityId == initId then emits = emits + 1 end end
+    EventBus.on("stat_changed", onChanged)
+    Stats.init(initId, { HP = 100, MP = 50, Level = 1 })
+    EventBus.off("stat_changed", onChanged)
+    T.eq("init: aucun stat_changed émis", 0, emits)
+    T.eq("init: valeur correcte",       100, Stats.get(initId, "HP"))
+    Stats.clear(initId)
+end
+
+-- Stats.bind / unbind / unbindAll
+do
+    local bindId = 9902
+    Stats.clear(bindId)
+    Stats.set(bindId, "HP", 100)
+
+    local calls = {}
+    local function onHpChange(val, prev, eid, stat)
+        table.insert(calls, { val=val, prev=prev, stat=stat })
+    end
+
+    Stats.bind(bindId, "HP", onHpChange)
+    Stats.set(bindId, "HP", 80)
+    T.eq("bind: callback appelé",     1,     #calls)
+    T.eq("bind: valeur courante",    80,     calls[1] and calls[1].val)
+    T.eq("bind: valeur précédente", 100,     calls[1] and calls[1].prev)
+    T.eq("bind: stat correcte",     "HP",   calls[1] and calls[1].stat)
+
+    Stats.unbind(bindId, "HP", onHpChange)
+    Stats.set(bindId, "HP", 60)
+    T.eq("unbind: callback stoppé",  1, #calls)
+
+    local n = 0
+    local function bump() n = n + 1 end
+    Stats.bind(bindId, "HP", bump)
+    Stats.bind(bindId, "HP", bump)
+    Stats.unbindAll(bindId)
+    Stats.set(bindId, "HP", 50)
+    T.eq("unbindAll: tous supprimés", 0, n)
+
+    Stats.clear(bindId)
+end
+
 Stats.clear(E1)
 T.check("clear removes all", Stats.getAll(E1) ~= nil and next(Stats.getAll(E1)) == nil)
 
@@ -105,6 +152,20 @@ Effect.apply(EID, "bleed", { duration = 1, stackable = true })
 Effect.apply(EID, "bleed", { duration = 1, stackable = true })
 Effect.clear(EID)
 T.check("clear all effects", not Effect.has(EID, "bleed"))
+
+-- getRemaining pour effets stackables
+do
+    local EID2 = 8010
+    Effect.apply(EID2, "burn", { duration = 2.0, stackable = true })
+    Effect.apply(EID2, "burn", { duration = 5.0, stackable = true })
+    local rem = Effect.getRemaining(EID2, "burn")
+    T.check("getRemaining stackable non-nil",  rem ~= nil)
+    T.check("getRemaining stackable = max",    rem ~= nil and rem >= 4.9)
+    Effect.update(1.0)
+    local rem2 = Effect.getRemaining(EID2, "burn")
+    T.check("getRemaining stackable décroît", rem2 ~= nil and rem2 < rem)
+    Effect.clear(EID2)
+end
 
 -- ── Inventory ─────────────────────────────────────────────────────────────────
 

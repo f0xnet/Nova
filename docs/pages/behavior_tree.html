@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>BT — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🧠</span>
+    <h1>BT — Behavior Trees</h1>
+    <p class="subtitle">Arbres de comportement pour l'IA des entités. Composez des arbres à partir de nœuds Sequence, Selector, Parallel, Action et Condition.</p>
+    <div class="tags"><span class="tag global">Global automatique</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Statuts</h2>
+    <table class="api-table">
+      <thead><tr><th>Constante</th><th>Valeur</th><th>Signification</th></tr></thead>
+      <tbody>
+        <tr><td>BT.SUCCESS</td><td>1</td><td>L'action ou condition s'est terminée avec succès.</td></tr>
+        <tr><td>BT.FAILURE</td><td>0</td><td>L'action a échoué.</td></tr>
+        <tr><td>BT.RUNNING</td><td>2</td><td>L'action est en cours — sera rappelée au prochain frame.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Nœuds feuilles</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>BT.action(fn)</td><td>Enveloppe une fonction d'action. <code>fn(entity, dt)</code> doit retourner <code>SUCCESS</code>, <code>FAILURE</code> ou <code>RUNNING</code>.</td></tr>
+        <tr><td>BT.condition(fn)</td><td>Enveloppe une fonction booléenne. Retourne <code>SUCCESS</code> si <code>fn(entity, dt)</code> est truthy, <code>FAILURE</code> sinon.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Nœuds composites</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>BT.sequence(...)</td><td>Exécute les enfants dans l'ordre. S'arrête au premier <code>FAILURE</code> ou <code>RUNNING</code>. Retourne <code>SUCCESS</code> uniquement si tous réussissent. <em>(AND logique)</em></td></tr>
+        <tr><td>BT.selector(...)</td><td>Exécute les enfants dans l'ordre. S'arrête au premier <code>SUCCESS</code> ou <code>RUNNING</code>. Retourne <code>FAILURE</code> uniquement si tous échouent. <em>(OR logique)</em></td></tr>
+        <tr><td>BT.parallel(...)</td><td>Exécute <strong>tous</strong> les enfants chaque tick. Retourne <code>FAILURE</code> si l'un échoue, <code>RUNNING</code> si l'un est en cours, <code>SUCCESS</code> sinon.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Décorateurs</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>BT.invert(child)</td><td>Inverse <code>SUCCESS</code> et <code>FAILURE</code>. <code>RUNNING</code> est transmis sans modification.</td></tr>
+        <tr><td>BT.succeed(child)</td><td>Toujours <code>SUCCESS</code>, quel que soit le résultat de l'enfant.</td></tr>
+        <tr><td>BT.fail(child)</td><td>Toujours <code>FAILURE</code>, quel que soit le résultat de l'enfant.</td></tr>
+        <tr><td>BT.loop(child, n)</td><td>Répète l'enfant <code>n</code> fois. <code>n = -1</code> = boucle infinie. Retourne <code>RUNNING</code> pendant la répétition, <code>SUCCESS</code> quand le compteur est atteint, <code>FAILURE</code> si l'enfant échoue.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Exécution</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>BT.run(tree, entity, dt)</td><td>Exécute l'arbre pour <code>entity</code>. Retourne le statut de la racine. À appeler dans <code>update(entity, dt)</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Stateless par défaut :</strong> les nœuds BT ne maintiennent pas d'état interne par entité. Sequence et Selector repartent du début à chaque tick. Les actions multi-frame (déplacement, animation) maintiennent leur propre état dans l'entité ou via StateMachine. <code>BT.loop</code> est l'exception — il utilise une closure, donc <strong>créez l'arbre dans <code>init()</code></strong> et non comme constante de module.
+  </div>
+
+  <div class="section">
+    <h2>Exemples</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; IA de patrouille avec détection du joueur</div>
+      <pre><code class="lua">local tree
+
+function init(entity)
+    tree = BT.selector(
+        -- Priorité 1 : si on voit le joueur, le poursuivre
+        BT.sequence(
+            BT.condition(function(e)
+                local joueur = Game.getPlayer()
+                if not joueur then return false end
+                return Physics.distance(e, joueur) < 200
+            end),
+            BT.action(function(e, dt)
+                return chase(e, dt)   -- retourne RUNNING tant que pas arrivé
+            end)
+        ),
+        -- Priorité 2 : sinon, patrouiller
+        BT.action(function(e, dt)
+            return patrol(e, dt)
+        end)
+    )
+end
+
+function update(entity, dt)
+    BT.run(tree, entity, dt)
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Comportement de boss multi-phases</div>
+      <pre><code class="lua">local tree
+
+function init(entity)
+    tree = BT.selector(
+        -- Phase rage : vie < 30%
+        BT.sequence(
+            BT.condition(function(e)
+                local hp    = Stats.get(e.id, "Vie", 0)
+                local hpMax = Stats.get(e.id, "VieMax", 1)
+                return hp / hpMax < 0.3
+            end),
+            BT.action(function(e, dt) return attaqueRage(e, dt) end)
+        ),
+        -- Phase normale : attaque + défense en parallèle
+        BT.parallel(
+            BT.action(function(e, dt) return attaqueNormale(e, dt) end),
+            BT.action(function(e, dt) return regenerer(e, dt) end)
+        )
+    )
+end
+
+function update(entity, dt)
+    BT.run(tree, entity, dt)
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Décorateurs — patrouille en boucle 3 fois</div>
+      <pre><code class="lua">local tree
+
+function init(entity)
+    tree = BT.sequence(
+        -- Inverser la condition : continuer si PAS de joueur visible
+        BT.invert(
+            BT.condition(function(e)
+                return Physics.distance(e, Game.getPlayer()) < 150
+            end)
+        ),
+        -- Boucler 3 fois sur le waypoint suivant
+        BT.loop(
+            BT.action(function(e, dt) return allerAuWaypointSuivant(e, dt) end),
+            3
+        )
+    )
+end</code></pre>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
