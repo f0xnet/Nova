@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>DevConsole — Nova Script</title>
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/highlight.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <span class="icon">🖥️</span>
+    <h1>DevConsole</h1>
+    <p class="subtitle">Console développeur in-game. Ouvrir avec <kbd>N</kbd>, fermer avec <kbd>Echap</kbd>. Taper <code>help</code> pour lister les commandes disponibles.</p>
+    <div class="tags">
+      <span class="tag global">nova/dev_console</span>
+      <span class="tag">require</span>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <strong>Chargement :</strong> la console est chargée automatiquement par <code>main.lua</code> via <code>require("nova/dev_console")</code>. Elle n'a pas besoin d'être importée manuellement dans vos scripts.
+  </div>
+
+  <div class="section">
+    <h2>Raccourcis clavier</h2>
+    <table class="api-table">
+      <thead><tr><th>Touche</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>N</kbd></td><td>Ouvre / ferme la console.</td></tr>
+        <tr><td><kbd>Echap</kbd></td><td>Ferme la console.</td></tr>
+        <tr><td><kbd>Entrée</kbd></td><td>Exécute la commande saisie.</td></tr>
+        <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigue dans l'historique des commandes (50 entrées max).</td></tr>
+        <tr><td><kbd>Backspace</kbd></td><td>Efface le dernier caractère.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>API Lua</h2>
+    <p>Accessible depuis n'importe quel script via la variable globale <code>DevConsole</code> (exposée par main.lua).</p>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
+      <tbody>
+        <tr><td>DevConsole.open()</td><td>Ouvre la console.</td><td>—</td></tr>
+        <tr><td>DevConsole.close()</td><td>Ferme la console.</td><td>—</td></tr>
+        <tr><td>DevConsole.toggle()</td><td>Bascule l'état ouvert/fermé.</td><td>—</td></tr>
+        <tr><td>DevConsole.isOpen()</td><td>Retourne <code>true</code> si la console est ouverte.</td><td class="ret">bool</td></tr>
+        <tr><td>DevConsole.print(text)</td><td>Ajoute une ou plusieurs lignes dans la sortie de la console. Les sauts de ligne <code>\n</code> sont gérés.</td><td>—</td></tr>
+        <tr><td>DevConsole.register(name, fn, help)</td><td>Enregistre une nouvelle commande. <code>name</code> est insensible à la casse. <code>fn</code> reçoit un tableau d'arguments (strings). <code>help</code> est la description affichée par <code>help &lt;cmd&gt;</code>.</td><td>—</td></tr>
+        <tr><td>DevConsole.execute(raw)</td><td>Exécute une chaîne de commande comme si l'utilisateur l'avait tapée.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Commandes intégrées</h2>
+    <table class="api-table">
+      <thead><tr><th>Commande</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>help</code></td><td>Liste toutes les commandes disponibles.</td></tr>
+        <tr><td><code>help &lt;cmd&gt;</code></td><td>Affiche la description d'une commande spécifique.</td></tr>
+        <tr><td><code>clear</code></td><td>Vide l'historique de sortie de la console.</td></tr>
+        <tr><td><code>lua &lt;code&gt;</code></td><td>Évalue du code Lua arbitraire dans <code>_G</code>. Retourne le résultat si non-nil.</td></tr>
+        <tr><td><code>test</code></td><td>Lance les tests en jeu via <code>RunTests()</code>.</td></tr>
+        <tr><td><code>fx &lt;effet&gt;</code></td><td>Bascule un effet PostFX. Valeurs : <code>ssao</code>, <code>bloom</code>, <code>grading</code>, <code>lighting</code>.</td></tr>
+        <tr><td><code>time</code></td><td>Affiche l'heure courante.</td></tr>
+        <tr><td><code>time &lt;h&gt;</code></td><td>Définit l'heure (0–23).</td></tr>
+        <tr><td><code>timescale</code></td><td>Affiche la vitesse du temps courante.</td></tr>
+        <tr><td><code>timescale &lt;val&gt;</code></td><td>Définit la vitesse du temps (<code>0</code> = pause, <code>1</code> = normal, <code>2</code> = double vitesse…).</td></tr>
+        <tr><td><code>pause</code></td><td>Fige le temps (<code>timescale 0</code>).</td></tr>
+        <tr><td><code>resume</code></td><td>Reprend le temps (<code>timescale 1</code>).</td></tr>
+        <tr><td><code>scene</code></td><td>Affiche la scène courante.</td></tr>
+        <tr><td><code>scene &lt;nom&gt;</code></td><td>Charge une scène par son nom.</td></tr>
+        <tr><td><code>tp &lt;x&gt; &lt;y&gt;</code></td><td>Téléporte le joueur aux coordonnées données.</td></tr>
+        <tr><td><code>reload</code></td><td>Recharge tous les scripts.</td></tr>
+        <tr><td><code>reload &lt;entityId&gt;</code></td><td>Recharge le script d'une entité spécifique.</td></tr>
+        <tr><td><code>stats</code></td><td>Affiche la position et l'id de l'entité taguée <code>player</code>.</td></tr>
+        <tr><td><code>stats &lt;tag&gt;</code></td><td>Affiche les infos d'une entité par son tag.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Ajouter une commande personnalisée</h2>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Enregistrer une commande depuis un script</div>
+      <pre><code class="lua">-- Dans n'importe quel script, après que main.lua est chargé :
+DevConsole.register("god", function(args)
+    local on = (args[1] ~= "off")
+    Stats.set(World.findByTag("player").id, "invincible", on and 1 or 0)
+    DevConsole.print("  Mode god : " .. (on and "ON" or "OFF"))
+end, "god [off] — active/désactive l'invincibilité")
+
+-- Utilisation dans la console :
+--   god       →  Mode god : ON
+--   god off   →  Mode god : OFF</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Afficher des informations depuis un script</div>
+      <pre><code class="lua">-- Envoyer des messages de debug vers la console in-game :
+DevConsole.print("Ennemi spawné : id=" .. tostring(entity.id))
+
+-- Afficher une table formatée :
+local stats = Stats.getAll(entity.id)
+for k, v in pairs(stats) do
+    DevConsole.print(string.format("  %s = %s", k, tostring(v)))
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Évaluer du Lua à la volée</div>
+      <pre><code class="lua">-- Depuis la console in-game (commande lua) :
+lua Time.getHour()
+-- → = 14
+
+lua Stats.mod(World.findByTag("player").id, "Vie", 100)
+-- → (aucun retour : nil ignoré)
+
+lua DevConsole.print(Debug.inspect(World.findByTag("player")))
+-- → affiche les propriétés de l'entité joueur</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Architecture</h2>
+    <p>La console est un module Lua pur (<code>nova/dev_console.lua</code>) sans modification du C++. Elle utilise les mêmes APIs que les scripts de scène :</p>
+    <ul>
+      <li><code>Debug.fillRect</code> / <code>Debug.label</code> pour le rendu superposé.</li>
+      <li><code>Viewport.getWindowSize()</code> pour s'adapter à la résolution.</li>
+      <li><code>Input.isKeyPressed()</code> pour la détection Shift lors de la saisie.</li>
+    </ul>
+    <p><code>DevConsole.draw()</code> est appelé à chaque frame depuis <code>update(dt)</code> dans <code>main.lua</code>. Quand la console est fermée, la fonction retourne immédiatement sans aucun coût.</p>
+
+    <div class="callout warn">
+      <strong>Color.new() obligatoire :</strong> utiliser <code>Color(...)</code> directement (sans <code>.new</code>) ne fonctionne pas avec la version de sol2 intégrée au moteur — l'erreur est silencieuse. Toujours utiliser <code>Color.new(r, g, b, a)</code>.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

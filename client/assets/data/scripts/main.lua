@@ -11,18 +11,13 @@
 -- accessibles depuis la console (touche N → tape 'help').
 
 -- ── Bindings de contrôle ───────────────────────────────────────────────────
-Log.info("[main] début du chargement de main.lua")
 
 InputBind.register("interact",   "E")
 InputBind.register("timeAdvance","T")
 InputBind.register("devConsole", "N")
-Log.info("[main] InputBind registered (interact=E, timeAdvance=T, devConsole=N)")
 
 local IngameTest = require("tests/test_ingame")
-Log.info("[main] IngameTest required: " .. type(IngameTest))
-
 local DevConsole = require("nova/dev_console")
-Log.info("[main] DevConsole required: " .. type(DevConsole) .. " isOpen=" .. type(DevConsole and DevConsole.isOpen))
 
 -- Exposé globalement pour la commande 'test' de la console
 RunTests = function() IngameTest.runAll() end
@@ -33,8 +28,6 @@ local INTERACT_RANGE = 100
 -- ── Named handlers ─────────────────────────────────────────────────────────
 
 function OnKeyDown(key)
-    Log.info("[main] OnKeyDown: key='" .. tostring(key) .. "' DevConsole.isOpen()=" .. tostring(DevConsole.isOpen()))
-
     -- La console capture toute la saisie quand elle est ouverte
     if DevConsole.isOpen() then
         DevConsole.onKeyDown(key)
@@ -43,7 +36,6 @@ function OnKeyDown(key)
 
     -- Ouvre la console (touche N)
     if key == InputBind.getKey("devConsole") then
-        Log.info("[main] OnKeyDown: touche console détectée, toggle")
         DevConsole.toggle()
         return
     end
@@ -71,14 +63,8 @@ end
 
 -- ── Logique de mise à jour ─────────────────────────────────────────────────
 -- Appelé chaque frame par ScriptSystem
-local _updateLogCount = 0
+
 function update(dt)
-    if _updateLogCount < 3 then
-        _updateLogCount = _updateLogCount + 1
-        Log.info("[main] update() frame#" .. _updateLogCount .. " dt=" .. tostring(dt))
-    end
     IngameTest.update(dt)
     DevConsole.draw()
 end
-
-Log.info("[main] fin du chargement de main.lua")

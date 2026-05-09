@@ -3,24 +3,18 @@
 -- Chargée par main.lua via require — main.lua appelle DevConsole.draw() chaque frame.
 --
 -- API :
---   DevConsole.open()            ouvre la console
---   DevConsole.close()           ferme la console
---   DevConsole.toggle()          bascule
---   DevConsole.isOpen()          → bool
---   DevConsole.print(text)       ajoute une ligne de sortie
---   DevConsole.register(name, fn, help)   enregistre une commande
---   DevConsole.execute(raw)      exécute une ligne de commande
---   DevConsole.onKeyDown(key)    routage clavier — appelé par main.lua quand ouvert
---   DevConsole.draw()            rendu — appelé par main.lua dans update(dt)
+--   DevConsole.open()                         ouvre la console
+--   DevConsole.close()                        ferme la console
+--   DevConsole.toggle()                       bascule
+--   DevConsole.isOpen()                       → bool
+--   DevConsole.print(text)                    ajoute une ligne de sortie
+--   DevConsole.register(name, fn, help)       enregistre une commande
+--   DevConsole.execute(raw)                   exécute une ligne de commande
+--   DevConsole.onKeyDown(key)                 routage clavier — appelé par main.lua quand ouvert
+--   DevConsole.draw()                         rendu — appelé par main.lua dans update(dt)
 --
 -- Le rendu utilise Debug.fillRect / Debug.label (mêmes APIs que scene_test.lua),
 -- donc la console s'affiche par-dessus la scène via le pipeline DebugDraw.
-
-Log.info("[DevConsole] module load: début")
-Log.info("[DevConsole] Color type=" .. type(Color) .. " Color.new=" .. type(Color and Color.new))
-Log.info("[DevConsole] Debug type=" .. type(Debug) .. " Debug.fillRect=" .. type(Debug and Debug.fillRect))
-Log.info("[DevConsole] Viewport type=" .. type(Viewport) .. " Viewport.getWindowSize=" .. type(Viewport and Viewport.getWindowSize))
-Log.info("[DevConsole] Input type=" .. type(Input) .. " Input.isKeyPressed=" .. type(Input and Input.isKeyPressed))
 
 local M = {}
 
@@ -41,26 +35,14 @@ local _histIdx = 0
 
 -- ── État ─────────────────────────────────────────────────────────────────────
 
-function M.open()
-    _open = true
-    _drawLogCount = 0
-    Log.info("[DevConsole] open() -> _open=true")
-end
-function M.close()
-    _open = false
-    Log.info("[DevConsole] close() -> _open=false")
-end
-function M.toggle()
-    _open = not _open
-    if _open then _drawLogCount = 0 end
-    Log.info("[DevConsole] toggle() -> _open=" .. tostring(_open))
-end
-function M.isOpen()  return _open end
+function M.open()   _open = true  end
+function M.close()  _open = false end
+function M.toggle() _open = not _open end
+function M.isOpen() return _open end
 
 -- ── Sortie ───────────────────────────────────────────────────────────────────
 
 function M.print(text)
-    Log.info("[DevConsole] print: " .. tostring(text))
     for line in tostring(text):gmatch("[^\n]+") do
         _lines[#_lines + 1] = line
     end
@@ -71,11 +53,9 @@ end
 
 function M.register(name, fn, help)
     _cmds[name:lower()] = { fn = fn, help = help or "" }
-    Log.info("[DevConsole] register: '" .. name .. "'")
 end
 
 function M.execute(raw)
-    Log.info("[DevConsole] execute: '" .. tostring(raw) .. "'")
     raw = (raw or ""):match("^%s*(.-)%s*$")
     if raw == "" then return end
     M.print("> " .. raw)
@@ -89,13 +69,9 @@ function M.execute(raw)
     table.remove(parts, 1)
 
     local cmd = _cmds[name]
-    Log.info("[DevConsole] execute: name='" .. name .. "' found=" .. tostring(cmd ~= nil))
     if cmd then
         local ok, err = pcall(cmd.fn, parts)
-        if not ok then
-            Log.error("[DevConsole] command '" .. name .. "' raised: " .. tostring(err))
-            M.print("  Erreur : " .. tostring(err))
-        end
+        if not ok then M.print("  Erreur : " .. tostring(err)) end
     else
         M.print("  Commande inconnue : '" .. name .. "' (tape 'help')")
     end
@@ -124,13 +100,11 @@ local function keyToChar(key)
 end
 
 function M.onKeyDown(key)
-    Log.info("[DevConsole] onKeyDown: key='" .. tostring(key) .. "' _open=" .. tostring(_open))
     if not _open then return end
 
     if key == "Escape" then
         M.close()
     elseif key == "Enter" then
-        Log.info("[DevConsole] Enter -> execute(_input='" .. _input .. "')")
         M.execute(_input)
         _input   = ""
         _histIdx = 0
@@ -151,7 +125,6 @@ function M.onKeyDown(key)
         end
     else
         local ch = keyToChar(key)
-        Log.info("[DevConsole] onKeyDown: keyToChar('" .. key .. "') -> " .. tostring(ch))
         if ch then _input = _input .. ch end
     end
 end
@@ -161,51 +134,31 @@ end
 -- avec la version de sol2 utilisée. Tous les scripts qui marchent (scene_test,
 -- intro, particles) utilisent Color.new — on suit la même convention.
 
-Log.info("[DevConsole] avant init couleurs")
 local COL_BG    = Color.new(0,   0,   0,   210)
-Log.info("[DevConsole] COL_BG OK type=" .. type(COL_BG))
 local COL_HINT  = Color.new(150, 150, 150, 255)
 local COL_OUT   = Color.new(120, 220, 120, 255)
 local COL_INPUT = Color.new(255, 240, 100, 255)
-Log.info("[DevConsole] couleurs initialisées")
-
-_drawLogCount = 0  -- limite spam : ne log que les 3 premières frames après ouverture
 
 function M.draw()
     if not _open then return end
 
-    if _drawLogCount < 3 then
-        _drawLogCount = _drawLogCount + 1
-        Log.info("[DevConsole] draw() frame#" .. _drawLogCount)
+    local ws     = Viewport.getWindowSize()
+    local sw     = ws.x
+    local panelH = MARGIN + LINE_H + MAX_LINES * LINE_H + LINE_H + MARGIN
+
+    Debug.fillRect(0, 0, sw, panelH, COL_BG, 0)
+    Debug.label(MARGIN, MARGIN, "DEV CONSOLE  [Echap pour fermer]", COL_HINT, 0)
+
+    local startIdx = math.max(1, #_lines - MAX_LINES + 1)
+    for i = 0, MAX_LINES - 1 do
+        local line = _lines[startIdx + i]
+        if line then
+            Debug.label(MARGIN, MARGIN + LINE_H + i * LINE_H, line, COL_OUT, 0)
+        end
     end
 
-    local ok, err = pcall(function()
-        local ws     = Viewport.getWindowSize()
-        local sw     = ws.x
-        local panelH = MARGIN + LINE_H + MAX_LINES * LINE_H + LINE_H + MARGIN
-
-        if _drawLogCount <= 3 then
-            Log.info("[DevConsole] draw() ws.x=" .. tostring(ws.x) .. " ws.y=" .. tostring(ws.y) .. " panelH=" .. panelH)
-        end
-
-        Debug.fillRect(0, 0, sw, panelH, COL_BG, 0)
-        Debug.label(MARGIN, MARGIN, "DEV CONSOLE  [Echap pour fermer]", COL_HINT, 0)
-
-        local startIdx = math.max(1, #_lines - MAX_LINES + 1)
-        for i = 0, MAX_LINES - 1 do
-            local line = _lines[startIdx + i]
-            if line then
-                Debug.label(MARGIN, MARGIN + LINE_H + i * LINE_H, line, COL_OUT, 0)
-            end
-        end
-
-        local inputY = MARGIN + LINE_H + MAX_LINES * LINE_H
-        Debug.label(MARGIN, inputY, "> " .. _input .. "_", COL_INPUT, 0)
-    end)
-
-    if not ok then
-        Log.error("[DevConsole] draw() ERREUR: " .. tostring(err))
-    end
+    local inputY = MARGIN + LINE_H + MAX_LINES * LINE_H
+    Debug.label(MARGIN, inputY, "> " .. _input .. "_", COL_INPUT, 0)
 end
 
 -- ── Commandes built-in ───────────────────────────────────────────────────────
@@ -335,6 +288,4 @@ M.register("stats", function(args)
 end, "stats [tag] — info sur une entité (défaut: player)")
 
 M.print("Console prête. Tape 'help' pour la liste des commandes.")
-
-Log.info("[DevConsole] module load: fin (return M)")
 return M
