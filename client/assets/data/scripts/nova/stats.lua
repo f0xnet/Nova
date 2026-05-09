@@ -45,8 +45,9 @@
 --   end
 
 local Stats = {}
-local data     = {}   -- data[entityId][statName] = value
-local _bindings = {}  -- _bindings[entityId][statName] = { fn, ... }
+local data      = {}   -- data[entityId][statName] = value
+local _bindings = {}   -- _bindings[entityId][statName] = { fn, ... }
+local _tb       = (type(debug) == "table" and debug.traceback) or tostring
 
 -- Internal: set a value without emitting any events (used by Stats.init)
 local function _rawSet(entityId, stat, value)
@@ -87,7 +88,7 @@ function Stats.set(entityId, stat, value)
         local fns = eb[stat]
         if fns then
             for _, fn in ipairs(fns) do
-                local ok, err = pcall(fn, value, previous, entityId, stat)
+                local ok, err = xpcall(fn, _tb, value, previous, entityId, stat)
                 if not ok then Log.error("[Stats] bind: " .. tostring(err)) end
             end
         end

@@ -58,9 +58,11 @@ local function toId(v)
     return (type(v) == "userdata") and v.id or v
 end
 
+local _tb = (type(debug) == "table" and debug.traceback) or tostring
+
 local function safeCall(fn, ...)
     if not fn then return end
-    local ok, err = pcall(fn, ...)
+    local ok, err = xpcall(fn, _tb, ...)
     if not ok then Log.error("[Effect] " .. tostring(err)) end
 end
 

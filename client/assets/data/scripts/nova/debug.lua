@@ -1,9 +1,9 @@
 -- nova/debug.lua
--- Overlay de débogage visuel — dessine des formes et textes en espace écran.
+-- Overlay de débogage visuel + outils d'inspection et d'assertion.
 -- Disponible sans require : Debug est un global auto-chargé.
 -- Désactiver en production : Debug.enabled = false
 --
--- API :
+-- API visuelle :
 --   Debug.enabled                            -- active/désactive (défaut: true)
 --   Debug.drawRect(x, y, w, h, color, dur)  -- rect wireframe (dur en secondes, défaut 0=1 frame)
 --   Debug.fillRect(x, y, w, h, color, dur)  -- rect rempli
@@ -14,9 +14,12 @@
 --   Debug.clear()                           -- efface toutes les commandes en attente
 --   Debug._flush()                          -- dessine et décrémente les durées (appelé par ScriptSystem)
 --
--- Coordonnées en espace écran (pixels, origin en haut-gauche de la fenêtre).
--- Pour l'espace monde, convertir via Debug.worldToScreen(x, y) si nécessaire.
+-- API d'inspection :
+--   Debug.traceback(msg, level)             -- pile d'appel Lua sous forme de string
+--   Debug.inspect(val, depth)              -- sérialise n'importe quelle valeur en string lisible
+--   Debug.assert(cond, msg)               -- assertion avec traceback intégré dans l'erreur
 --
+-- Coordonnées en espace écran (pixels, origin en haut-gauche de la fenêtre).
 -- Utilise DebugDraw (binding C++) pour les draw calls réels.
 --
 -- Exemple :
@@ -139,6 +142,56 @@ function Debug._update(dt)
             cmd.timer = cmd.timer - dt
             if cmd.timer < 0 then cmd.timer = 0 end
         end
+    end
+end
+
+-- ─── Inspection ───────────────────────────────────────────────────────────────
+
+-- Retourne la pile d'appel Lua sous forme de string.
+-- msg    : message préfixé (optionnel)
+-- level  : niveau de départ dans la pile (défaut 2 = l'appelant de traceback)
+function Debug.traceback(msg, level)
+    if type(debug) == "table" and debug.traceback then
+        return debug.traceback(msg or "", (level or 1) + 1)
+    end
+    return msg or "(traceback non disponible — lib debug non chargée)"
+end
+
+-- Sérialise n'importe quelle valeur en string lisible.
+-- depth : profondeur max pour les tables (défaut 3)
+function Debug.inspect(val, depth, _indent)
+    depth   = depth   or 3
+    _indent = _indent or ""
+    local t = type(val)
+    if     t == "nil"      then return "nil"
+    elseif t == "boolean"  then return tostring(val)
+    elseif t == "number"   then
+        return (math.floor(val) == val) and tostring(math.floor(val))
+                                        or string.format("%.4g", val)
+    elseif t == "string"   then return string.format("%q", val)
+    elseif t == "function" then return "<function>"
+    elseif t == "userdata" then return "<userdata>"
+    elseif t == "table"    then
+        if depth <= 0 then return "{…}" end
+        local parts = {}
+        local ni    = _indent .. "  "
+        for k, v in pairs(val) do
+            local key = (type(k) == "string") and k or ("[" .. tostring(k) .. "]")
+            table.insert(parts, ni .. key .. " = " .. Debug.inspect(v, depth - 1, ni))
+        end
+        if #parts == 0 then return "{}" end
+        return "{\n" .. table.concat(parts, ",\n") .. "\n" .. _indent .. "}"
+    end
+    return tostring(val)
+end
+
+-- Assertion avec traceback intégré dans le message d'erreur.
+-- Si cond est faux, loggue l'erreur ET lève une erreur Lua.
+function Debug.assert(cond, msg)
+    if not cond then
+        local tb = Debug.traceback(msg or "assertion échouée", 2)
+        Log.error("[Debug.assert] " .. tb)
+        error(tb, 2)
     end
 end
 

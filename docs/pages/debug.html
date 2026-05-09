@@ -12,7 +12,7 @@
   <div class="page-header">
     <span class="icon">🐛</span>
     <h1>Debug</h1>
-    <p class="subtitle">Dessiner des formes et afficher des valeurs à l'écran pour déboguer votre jeu. Mettre <code>Debug.enabled = false</code> en production.</p>
+    <p class="subtitle">Dessiner des formes et afficher des valeurs à l'écran, inspecter des valeurs, capturer la pile d'appel. Mettre <code>Debug.enabled = false</code> en production.</p>
     <div class="tags"><span class="tag global">Global automatique</span></div>
   </div>
 
@@ -21,7 +21,7 @@
   </div>
 
   <div class="section">
-    <h2>API</h2>
+    <h2>API visuelle</h2>
     <table class="api-table">
       <thead><tr><th>Fonction</th><th>Description</th></tr></thead>
       <tbody>
@@ -38,9 +38,25 @@
   </div>
 
   <div class="section">
+    <h2>API d'inspection</h2>
+    <table class="api-table">
+      <thead><tr><th>Fonction</th><th>Description</th><th>Retour</th></tr></thead>
+      <tbody>
+        <tr><td>Debug.traceback(msg, level)</td><td>Retourne la pile d'appel Lua complète sous forme de string. <code>msg</code> est préfixé. <code>level</code> permet d'ignorer des frames (défaut 1 = appelant direct).</td><td class="ret">string</td></tr>
+        <tr><td>Debug.inspect(val, depth)</td><td>Sérialise n'importe quelle valeur Lua (table, number, string, bool, nil, function…) en string lisible. <code>depth</code> = profondeur max pour les tables (défaut 3).</td><td class="ret">string</td></tr>
+        <tr><td>Debug.assert(cond, msg)</td><td>Assertion avec traceback intégré. Si <code>cond</code> est faux : logge l'erreur avec la pile d'appel ET lève une erreur Lua.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <strong>Traceback automatique :</strong> ScriptSystem injecte <code>debug.traceback</code> comme error handler sur chaque <code>update()</code> et <code>init()</code> de script. Les erreurs dans les callbacks d'Effect et Stats.bind incluent également la pile d'appel automatiquement.
+  </div>
+
+  <div class="section">
     <h2>Exemples</h2>
     <div class="code-wrap">
-      <div class="code-label">lua &nbsp;·&nbsp; Visualiser les zones de collision et d'attaque</div>
+      <div class="code-label">lua &nbsp;·&nbsp; Visualiser les zones de collision et les stats</div>
       <pre><code class="lua">function update(entity, dt)
     local pos = World.getPosition(entity)
 
@@ -50,7 +66,7 @@
     -- Zone de détection (cercle jaune)
     Debug.drawCircle(pos.x, pos.y, 200, Color.new(255, 220, 0, 40), 0)
 
-    -- Valeurs en temps réel
+    -- Valeurs en temps réel dans le coin d'écran
     Debug.watch("vie",      Stats.get(entity.id, "Vie", 0))
     Debug.watch("état",     sm:getState())
     Debug.watch("vitesse",  string.format("%.1f", vitesseActuelle))
@@ -59,9 +75,33 @@ end</code></pre>
     </div>
     <br>
     <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Inspecter une valeur complexe</div>
+      <pre><code class="lua">-- Inspecter une table dans la watch window
+local config = { speed = 120, damage = 15, tags = { "enemy", "boss" } }
+Debug.watch("config", Debug.inspect(config))
+-- Affiche : config = { speed = 120, damage = 15, tags = { "enemy", "boss" } }
+
+-- Inspecter une entité dans le log
+Log.info(Debug.inspect(Stats.getAll(entity.id)))</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
+      <div class="code-label">lua &nbsp;·&nbsp; Assertions et traceback</div>
+      <pre><code class="lua">-- Assertion avec pile d'appel dans l'erreur
+function appliquerDegats(entityId, montant)
+    Debug.assert(montant >= 0, "montant négatif interdit : " .. montant)
+    Stats.mod(entityId, "Vie", -montant)
+end
+
+-- Capturer la pile d'appel manuellement
+local function quelqueChoseQuiEchoue()
+    Log.error(Debug.traceback("Problème détecté"))
+end</code></pre>
+    </div>
+    <br>
+    <div class="code-wrap">
       <div class="code-label">lua &nbsp;·&nbsp; Tracer un chemin Nav</div>
-      <pre><code class="lua">-- Afficher le chemin calculé par Nav
-local chemin = Nav.findPath(entity, joueur)
+      <pre><code class="lua">local chemin = Nav.findPath(entity, joueur)
 for i = 1, #chemin - 1 do
     Debug.drawLine(
         chemin[i].x,   chemin[i].y,
@@ -70,7 +110,6 @@ for i = 1, #chemin - 1 do
     )
 end
 
--- Point de destination
 if #chemin > 0 then
     local dest = chemin[#chemin]
     Debug.drawCircle(dest.x, dest.y, 6, Color.new(0, 255, 0), 0)
