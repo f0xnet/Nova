@@ -324,8 +324,6 @@ private:
     sol::protected_function                 m_eventBusEmitFn;
     sol::protected_function                 m_gameUpdateFn;        // Game._update(rawDt)
     sol::protected_function                 m_gameGetTimescaleFn;  // Game.getTimescale()
-    sol::protected_function                 m_tracebackFn;         // debug.traceback — handler d'erreur
-
     std::vector<GlobalScript>               m_globalScripts;
     std::vector<GlobalScript>               m_sceneScripts;
     Scene*                                  m_lastActiveScene = nullptr;
@@ -638,12 +636,6 @@ private:
             sol::protected_function f = m_lua["EventBus"]["emit"];
             if (f.valid()) m_eventBusEmitFn = std::move(f);
         }
-        // debug.traceback — injecté comme error_handler sur chaque protected_function de script
-        sol::object dbgLib = m_lua["debug"];
-        if (dbgLib.valid() && dbgLib.get_type() == sol::type::table) {
-            sol::protected_function f = m_lua["debug"]["traceback"];
-            if (f.valid()) m_tracebackFn = std::move(f);
-        }
     }
 
     void updateNovaRuntime(float dt) {
@@ -946,11 +938,6 @@ private:
             }
             script->fnInit   = script->env["init"];
             script->fnUpdate = script->env["update"];
-            // Injecter debug.traceback comme error_handler pour obtenir la pile d'appel complète
-            if (m_tracebackFn.valid()) {
-                if (script->fnInit.valid())   script->fnInit.error_handler   = m_tracebackFn;
-                if (script->fnUpdate.valid()) script->fnUpdate.error_handler = m_tracebackFn;
-            }
             script->loaded   = true;
             LOG_DEBUG("[ScriptSystem] Chargé '{}'", script->scriptPath);
 
@@ -1011,8 +998,6 @@ private:
                 return;
             }
             gs.fnUpdate = gs.env["update"];
-            if (m_tracebackFn.valid() && gs.fnUpdate.valid())
-                gs.fnUpdate.error_handler = m_tracebackFn;
             gs.loaded   = true;
             LOG_DEBUG("[ScriptSystem] Global chargé '{}'", gs.path);
 
