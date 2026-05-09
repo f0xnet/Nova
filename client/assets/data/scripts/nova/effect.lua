@@ -181,6 +181,7 @@ function Effect.update(dt)
                 end
             end
         end
+        if not next(effects) then data[entityId] = nil end
     end
 end
 
