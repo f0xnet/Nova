@@ -1,11 +1,20 @@
 -- editor/editor.lua
 -- Éditeur de niveau in-game — Ctrl+E pour activer/désactiver.
 --
+-- Modes d'outils (toolbar) :
+--   SELECT              — clic monde sélectionne une entité
+--   PLACE               — clic monde dépose le sprite courant (palette)
+--   Choisir un sprite dans la palette bascule automatiquement en PLACE.
+--
 -- Contrôles globaux :
 --   Ctrl+E              — toggle éditeur
 --   Ctrl+S              — sauvegarder la scène courante
---   Echap               — désélectionner / fermer / annuler une édition
---   G                   — bascule grille (32 px)
+--   Ctrl                — sortir du mode PLACE (retour SELECT)
+--   Ctrl+D              — désélectionner / sortir PLACE
+--   Ctrl+G              — bascule grille
+--   Ctrl+1 / Ctrl+2     — bascule onglet SPRITES / LAYERS
+--   Echap               — désélec. / fermer / annuler une édition
+--   G                   — bascule grille (alias)
 --   + / -               — zoom caméra
 --   Clic droit + drag   — pan caméra
 --
@@ -421,6 +430,37 @@ local function accentBar(x, y, h)
     Debug.fillRect(x, y, 4, h, C_ACCENT)
 end
 
+local function isCtrl()
+    return Input.isKeyPressed("LControl") or Input.isKeyPressed("RControl")
+end
+
+-- Calcule la disposition du toolbar (titre, boutons SELECT/PLACE, suite).
+-- Permet à drawToolbar et onMouseDown de partager les mêmes rectangles.
+local function toolbarLayout()
+    local textY  = math.floor((TOOLBAR_H - FONT_H) / 2)
+    local boxH   = FONT_H + 8
+    local boxY   = textY - 4
+
+    local x = PAD + textW("EDITEUR") + 8
+    if not _saved then x = x + 18 end
+    x = x + 16
+
+    local selW = textW("SELECT") + 24
+    local plaW = textW("PLACE")  + 24
+
+    local selectRect = { x = x,                y = boxY, w = selW, h = boxH }
+    x = x + selW + 6
+    local placeRect  = { x = x,                y = boxY, w = plaW, h = boxH }
+    x = x + plaW + 24
+
+    return {
+        textY  = textY,
+        select = selectRect,
+        place  = placeRect,
+        nextX  = x,
+    }
+end
+
 -- ═════════════════════════════════════════════════════════════════════════════
 -- Géométrie des zones
 -- ═════════════════════════════════════════════════════════════════════════════
@@ -498,8 +538,22 @@ function Editor.onMouseDown(button, sx, sy)
         if not pointInRect(sx, sy, px, py, pw, ph) then applyEdit() end
     end
 
-    -- Toolbar (zone réservée)
-    if sy < TOOLBAR_H then return end
+    -- Toolbar : boutons de mode SELECT / PLACE
+    if sy < TOOLBAR_H then
+        local lay = toolbarLayout()
+        if pointInRect(sx, sy, lay.select.x, lay.select.y, lay.select.w, lay.select.h) then
+            _placing = false
+            return
+        end
+        if pointInRect(sx, sy, lay.place.x, lay.place.y, lay.place.w, lay.place.h) then
+            if _spriteList[_paletteIdx] then
+                _placing  = true
+                _selected = nil
+            end
+            return
+        end
+        return
+    end
 
     -- Tab bar palette
     do
@@ -599,6 +653,26 @@ function Editor.onKeyDown(key)
     -- Édition de propriété : capture toute la saisie
     if _editing then handleEditKey(key); return end
 
+    -- Ctrl seul (sans autre touche) : sortir du mode PLACE
+    if key == "LControl" or key == "RControl" then
+        if _placing then _placing = false end
+        return
+    end
+
+    -- Raccourcis Ctrl+... (exclusifs : Ctrl+autre = ne rien déclencher)
+    if isCtrl() then
+        if key == "S" then saveScene(); return end
+        if key == "G" then _snapGrid = (_snapGrid > 0) and 0 or 32; return end
+        if key == "D" then _placing = false; _selected = nil; return end
+        if key == "Num1" or key == "Numpad1" then
+            _leftTab = "sprites"; _paletteScroll = 0; return
+        end
+        if key == "Num2" or key == "Numpad2" then
+            _leftTab = "layers";  _paletteScroll = 0; return
+        end
+        return
+    end
+
     if key == "Escape" then
         if _placing       then _placing  = false
         elseif _selected  then _selected = nil
@@ -612,10 +686,6 @@ function Editor.onKeyDown(key)
 
     if key == "G" then
         _snapGrid = (_snapGrid > 0) and 0 or 32; return
-    end
-
-    if key == "S" and (Input.isKeyPressed("LControl") or Input.isKeyPressed("RControl")) then
-        saveScene(); return
     end
 
     -- Navigation palette
@@ -721,16 +791,30 @@ local function drawToolbar(ws)
     Debug.fillRect(0, 0, ws.x, TOOLBAR_H, C_BG_DEEPER)
     Debug.fillRect(0, TOOLBAR_H - 1, ws.x, 1, C_BORDER)
 
-    local y = math.floor((TOOLBAR_H - FONT_H) / 2)
+    local lay = toolbarLayout()
+    local y   = lay.textY
 
-    local title = "EDITEUR"
-    Debug.label(PAD, y, title, C_TEXT)
+    Debug.label(PAD, y, "EDITEUR", C_TEXT)
     if not _saved then
-        Debug.label(PAD + textW(title) + 8, y, "*", C_WARN)
+        Debug.label(PAD + textW("EDITEUR") + 8, y, "*", C_WARN)
     end
 
-    -- Champ Layer (mis en valeur, indicateur global)
-    local sectX = PAD + 200
+    -- Boutons de mode (SELECT / PLACE)
+    local mp = Input.getMousePosition()
+    local function modeBtn(rect, label, active)
+        local hover = pointInRect(mp.x, mp.y, rect.x, rect.y, rect.w, rect.h)
+                      and not active
+        local bg    = active and C_BG_ACTIVE
+                      or (hover and C_BG_HOVER or C_BG_ITEM)
+        Debug.fillRect(rect.x, rect.y, rect.w, rect.h, bg)
+        if active then Debug.fillRect(rect.x, rect.y, 4, rect.h, C_ACCENT) end
+        Debug.label(rect.x + 12, y, label, active and C_TEXT or C_TEXT_DIM)
+    end
+    modeBtn(lay.select, "SELECT", not _placing)
+    modeBtn(lay.place,  "PLACE",  _placing)
+
+    -- Champ Layer (indicateur global)
+    local sectX = lay.nextX
     Debug.label(sectX, y, "Layer", C_TEXT_DIM)
     local layerStr = string.format(" %d ", _layer)
     local boxX     = sectX + textW("Layer") + 6
@@ -970,7 +1054,7 @@ local function drawStatus(ws)
         mode    = "SELECT  " .. _selected.spriteID
         modeCol = C_HIGHLIGHT
     else
-        mode    = "IDLE"
+        mode    = "SELECT"
         modeCol = C_TEXT_DIM
     end
     Debug.label(PAD, y, mode, modeCol)
@@ -980,7 +1064,7 @@ local function drawStatus(ws)
     local coords = string.format("(%d, %d)", math.floor(snap(wx)), math.floor(snap(wy)))
     Debug.label(PAD + 280, y, coords, C_TEXT_DIM)
 
-    local right = string.format("%d entites  -  Ctrl+S enregistrer  -  G grille  -  Esc",
+    local right = string.format("%d entites  -  Ctrl+S save  -  Ctrl exit place  -  Esc",
                                 #_placed)
     Debug.label(ws.x - textW(right) - PAD, y, right, C_TEXT_MUTE)
 end
