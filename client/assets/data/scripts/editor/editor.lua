@@ -147,8 +147,12 @@ local function loadSpriteDefs()
     _spriteDefsByPath  = {}
     _spriteList        = {}
     for _, s in ipairs(data.sprites) do
-        _spriteDefs[s.id]          = s
-        _spriteDefsByPath[s.texture] = s  -- index par chemin texture
+        _spriteDefs[s.id] = s
+        -- Plusieurs sprites peuvent partager le même chemin texture (ex. wall + wall_brick) :
+        -- on stocke une liste, désambiguïsée par width/height à la résolution.
+        local list = _spriteDefsByPath[s.texture]
+        if not list then list = {}; _spriteDefsByPath[s.texture] = list end
+        table.insert(list, s)
         table.insert(_spriteList, s.id)
     end
     Log.info("[Editor] " .. #_spriteList .. " sprites chargés")
@@ -156,18 +160,48 @@ end
 
 local function importSceneEntities()
     _placed = {}
+    local total, accepted = 0, 0
+    local rNoSprite, rEmptyTex, rScript, rNoDef = 0, 0, 0, 0
     for _, e in ipairs(Registry:getAllEntities()) do
+        total = total + 1
         local s = e:getSprite()
-        if s and s.textureID ~= "" and not e:hasComponent("ScriptComponent") then
+        if not s then
+            rNoSprite = rNoSprite + 1
+        elseif s.textureID == "" then
+            rEmptyTex = rEmptyTex + 1
+        elseif e:hasComponent("ScriptComponent") then
+            rScript = rScript + 1
+        else
             -- Le moteur stocke le chemin texture dans textureID pour les entités scène ;
             -- l'éditeur y stocke directement le spriteID. Résoudre les deux cas.
             local def = _spriteDefs[s.textureID]
-                     or _spriteDefsByPath[s.textureID]
+            if not def then
+                local candidates = _spriteDefsByPath[s.textureID]
+                if candidates then
+                    if #candidates == 1 then
+                        def = candidates[1]
+                    else
+                        for _, c in ipairs(candidates) do
+                            if c.width == s.size.x and c.height == s.size.y then
+                                def = c; break
+                            end
+                        end
+                        def = def or candidates[1]
+                    end
+                end
+            end
             if def then
                 table.insert(_placed, { entity = e, spriteID = def.id, zOrder = s.zOrder })
+                accepted = accepted + 1
+            else
+                rNoDef = rNoDef + 1
+                Log.info("[Editor] textureID inconnu : '" .. tostring(s.textureID) .. "'")
             end
         end
     end
+    Log.info(string.format(
+        "[Editor] Import : total=%d accepted=%d (rejets : no_sprite=%d empty_tex=%d script=%d no_def=%d)",
+        total, accepted, rNoSprite, rEmptyTex, rScript, rNoDef))
 end
 
 local function spawnSprite(spriteID, wx, wy)
