@@ -6,9 +6,7 @@
 --   E        — interaction avec les PNJ / avance le dialogue
 --   T        — avance le temps d'une heure
 --   N        — ouvre/ferme la console développeur (DevConsole)
---
--- Les effets PostFX, les tests et les autres outils développeur sont
--- accessibles depuis la console (touche N → tape 'help').
+--   F2       — ouvre/ferme l'éditeur de niveau
 
 -- ── Bindings de contrôle ───────────────────────────────────────────────────
 
@@ -18,6 +16,7 @@ InputBind.register("devConsole", "N")
 
 local IngameTest = require("tests/test_ingame")
 local DevConsole = require("nova/dev_console")
+local Editor     = require("editor/editor")
 
 -- Exposé globalement pour la commande 'test' de la console
 RunTests = function() IngameTest.runAll() end
@@ -28,6 +27,9 @@ local INTERACT_RANGE = 100
 -- ── Named handlers ─────────────────────────────────────────────────────────
 
 function OnKeyDown(key)
+    -- L'éditeur capture toute la saisie quand il est actif
+    if Editor.isEnabled() then return end
+
     -- La console capture toute la saisie quand elle est ouverte
     if DevConsole.isOpen() then
         DevConsole.onKeyDown(key)
@@ -66,5 +68,7 @@ end
 
 function update(dt)
     IngameTest.update(dt)
+    Editor.update(dt)
+    Editor.draw()
     DevConsole.draw()
 end
