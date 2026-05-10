@@ -43,7 +43,8 @@ local Editor = {}
 -- ═════════════════════════════════════════════════════════════════════════════
 
 local _enabled       = false
-local _spriteDefs    = {}
+local _spriteDefs    = {}          -- id  → def
+local _spriteDefsByPath = {}       -- texture path → def (pour résoudre les entités scène)
 local _spriteList    = {}
 local _paletteIdx    = 1
 local _paletteScroll = 0
@@ -99,7 +100,7 @@ local SECTION_H     = 36
 local ITEM_H        = 40
 local PALETTE_W     = 280
 local PROP_W        = 320
-local PROP_H        = 280
+local PROP_H        = 320
 local PAD           = 10
 local TXT_PAD_Y     = math.floor((ITEM_H - FONT_H) / 2)
 
@@ -142,10 +143,12 @@ local function loadSpriteDefs()
         Log.warn("[Editor] Impossible de lire Sprites.json")
         return
     end
-    _spriteDefs = {}
-    _spriteList = {}
+    _spriteDefs        = {}
+    _spriteDefsByPath  = {}
+    _spriteList        = {}
     for _, s in ipairs(data.sprites) do
-        _spriteDefs[s.id] = s
+        _spriteDefs[s.id]          = s
+        _spriteDefsByPath[s.texture] = s  -- index par chemin texture
         table.insert(_spriteList, s.id)
     end
     Log.info("[Editor] " .. #_spriteList .. " sprites chargés")
@@ -155,9 +158,14 @@ local function importSceneEntities()
     _placed = {}
     for _, e in ipairs(Registry:getAllEntities()) do
         local s = e:getSprite()
-        if s and s.textureID ~= "" and not e:hasComponent("ScriptComponent")
-                                    and _spriteDefs[s.textureID] then
-            table.insert(_placed, { entity = e, spriteID = s.textureID, zOrder = s.zOrder })
+        if s and s.textureID ~= "" and not e:hasComponent("ScriptComponent") then
+            -- Le moteur stocke le chemin texture dans textureID pour les entités scène ;
+            -- l'éditeur y stocke directement le spriteID. Résoudre les deux cas.
+            local def = _spriteDefs[s.textureID]
+                     or _spriteDefsByPath[s.textureID]
+            if def then
+                table.insert(_placed, { entity = e, spriteID = def.id, zOrder = s.zOrder })
+            end
         end
     end
 end
@@ -203,6 +211,21 @@ local function removeEntry(entry)
             return
         end
     end
+end
+
+-- Retourne vrai si le point écran (sx,sy) est dans la AABB de l'entité.
+local function hitTest(entry, sx, sy)
+    local t = entry.entity:getTransform()
+    local s = entry.entity:getSprite()
+    if not (t and s) then return false end
+    local z   = Camera.getZoom()
+    local scX = t.scale.x or 1.0
+    local scY = t.scale.y or 1.0
+    local hw  = s.size.x * scX * 0.5 * z
+    local hh  = s.size.y * scY * 0.5 * z
+    local cx, cy = worldToScreen(t.position.x, t.position.y)
+    return sx >= cx - hw and sx <= cx + hw
+       and sy >= cy - hh and sy <= cy + hh
 end
 
 local function setEntryLayer(entry, n)
@@ -267,6 +290,9 @@ local function applyEdit()
             local n = tonumber(buf); if n then t.position.y = n; _saved = false end
         elseif field == "zOrder" then
             local n = tonumber(buf); if n then setEntryLayer(entry, math.floor(n)) end
+        elseif field == "scale" then
+            local n = tonumber(buf)
+            if n and n > 0 then t.scale.x, t.scale.y = n, n; _saved = false end
         elseif field == "spriteID" then
             changeEntrySprite(entry, buf)
         end
@@ -509,7 +535,7 @@ local function propertyRowAt(ws, sx, sy)
     local startY = py + SECTION_H + 6
     if sy < startY then return nil end
     local idx    = math.floor((sy - startY) / ITEM_H) + 1
-    local fields = { "spriteID", "x", "y", "zOrder" }
+    local fields = { "spriteID", "x", "y", "zOrder", "scale" }
     return fields[idx]
 end
 
@@ -612,6 +638,7 @@ function Editor.onMouseDown(button, sx, sy)
                 elseif field == "x"        then val = math.floor(t.position.x)
                 elseif field == "y"        then val = math.floor(t.position.y)
                 elseif field == "zOrder"   then val = _selected.zOrder
+                elseif field == "scale"    then val = string.format("%.3g", t.scale.x or 1.0)
                 end
                 startEdit(field, val)
             end
@@ -629,13 +656,11 @@ function Editor.onMouseDown(button, sx, sy)
     if _placing then
         spawnSprite(_spriteList[_paletteIdx], wx, wy)
     else
-        local best, bestD = nil, 40
+        -- Sélectionne l'entité la plus haute (zOrder max) sous le curseur.
+        local best, bestZ = nil, -1
         for _, entry in ipairs(_placed) do
-            local t = entry.entity:getTransform()
-            if t then
-                local esx, esy = worldToScreen(t.position.x, t.position.y)
-                local d = math.sqrt((esx - sx)^2 + (esy - sy)^2)
-                if d < bestD then best, bestD = entry, d end
+            if hitTest(entry, sx, sy) and entry.zOrder > bestZ then
+                best, bestZ = entry, entry.zOrder
             end
         end
         _selected = best
@@ -995,10 +1020,11 @@ local function drawProperties(ws)
 
     -- Lignes éditables : { label, fieldKey, value, valueCol }
     local rows = {
-        { "Sprite", "spriteID", _selected.spriteID,                C_ACCENT },
-        { "X",      "x",        math.floor(t.position.x),          C_TEXT   },
-        { "Y",      "y",        math.floor(t.position.y),          C_TEXT   },
-        { "Layer",  "zOrder",   _selected.zOrder,                  C_TEXT   },
+        { "Sprite", "spriteID", _selected.spriteID,                         C_ACCENT },
+        { "X",      "x",        math.floor(t.position.x),                   C_TEXT   },
+        { "Y",      "y",        math.floor(t.position.y),                   C_TEXT   },
+        { "Layer",  "zOrder",   _selected.zOrder,                           C_TEXT   },
+        { "Scale",  "scale",    string.format("%.3g", t.scale.x or 1.0),    C_TEXT   },
     }
 
     local rowY = py + SECTION_H + 6
