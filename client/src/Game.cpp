@@ -486,19 +486,30 @@ void Game::onEvent(const NovaEngine::Event& event) {
     // Dispatch to UI first
     m_uiManager.dispatchEvent(event);
 
-    // Seule la touche Escape est gérée ici (niveau moteur).
-    // Toutes les autres touches sont gérées depuis data/scripts/main.lua.
+    // Toutes les touches sont gérées depuis data/scripts/main.lua.
+    // Escape quitte le jeu, sauf si un script définit _onEscape() et retourne true.
     if (event.type == EventType::Input &&
         event.inputEvent.type == InputEventType::KeyPressed) {
 
         if (event.inputEvent.key.code == KeyCode::Escape) {
-            quit();
+            bool consumed = false;
+            if (m_scriptSystem) {
+                auto fn = m_scriptSystem->getLua()["_onEscape"];
+                if (fn.valid() && fn.get_type() == sol::type::function) {
+                    auto result = fn();
+                    if (result.valid()) consumed = result.get<bool>(false);
+                }
+            }
+            if (!consumed) quit();
         }
     }
 }
 
 void Game::onShutdown() {
     LOG_INFO("Game shutting down");
+    // Clear pointers into pipeline-owned effects before the pipeline destroys them
+    if (m_lightingSystem) m_lightingSystem->setLightingEffect(nullptr);
+    m_dynamicLightingEffect = nullptr;
     if (m_postProcessPipeline) {
         m_postProcessPipeline->shutdown();
         m_postProcessPipeline.reset();

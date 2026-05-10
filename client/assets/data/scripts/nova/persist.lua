@@ -5,6 +5,7 @@
 --
 -- API :
 --   Persist.set(key, value)              -- définit (types: string, number, boolean, table)
+--   Persist.setBatch(tbl)                -- définit plusieurs clés en une seule écriture
 --   Persist.get(key, default)            -- lit (default si absent)
 --   Persist.delete(key)                  -- supprime une clé
 --   Persist.deleteBatch(keys)            -- supprime plusieurs clés en une seule écriture
@@ -150,6 +151,12 @@ end
 
 function Persist.set(key, value)
     data[key] = value
+    Persist.save()
+end
+
+--- Définit plusieurs clés en une seule écriture sur disque.
+function Persist.setBatch(tbl)
+    for k, v in pairs(tbl) do data[k] = v end
     Persist.save()
 end
 

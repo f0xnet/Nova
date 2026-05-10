@@ -127,7 +127,7 @@ public:
      * @param componentTypes Vector of component type IDs that must be present
      * @return Vector of pointers to matching entities
      */
-    std::vector<Entity*> getEntitiesWith(const std::vector<ComponentTypeID>& componentTypes) {
+    const std::vector<Entity*>& getEntitiesWith(const std::vector<ComponentTypeID>& componentTypes) {
         Signature sig(componentTypes.begin(), componentTypes.end());
 
         auto& entry = m_queryCache[sig];

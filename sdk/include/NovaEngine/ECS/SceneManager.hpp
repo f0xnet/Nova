@@ -28,7 +28,6 @@ private:
     SceneGraph m_sceneGraph;
     std::unordered_map<std::string, std::unique_ptr<Scene>> m_scenes;
     Scene* m_activeScene = nullptr;
-    std::unordered_set<std::string> m_activeScenesForUpdate;  // Scènes à mettre à jour
 
 public:
     /**

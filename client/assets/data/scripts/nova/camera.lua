@@ -35,6 +35,8 @@
 local Camera = {}
 
 local _following    = nil
+local _staticX      = nil   -- position fixe définie par Camera.setPosition()
+local _staticY      = nil
 local _shakeTime    = 0
 local _shakeDur     = 0
 local _shakeForce   = 0
@@ -64,10 +66,13 @@ function Camera._update(dt)
         _offsetX, _offsetY = 0, 0
     end
 
-    -- Suivi d'entité
+    -- Suivi d'entité ou position fixe
     if _following then
         local pos = _following:getPosition()
         Viewport.setCenter(pos.x + _offsetX, pos.y + _offsetY)
+    elseif _staticX then
+        -- Réaffirme la position fixe chaque frame pour contrer le setViewCenter C++
+        Viewport.setCenter(_staticX + _offsetX, _staticY + _offsetY)
     elseif (_offsetX ~= 0 or _offsetY ~= 0) then
         local c = Viewport.getCenter()
         Viewport.setCenter(c.x + _offsetX, c.y + _offsetY)
@@ -76,10 +81,12 @@ end
 
 function Camera.follow(e)
     _following = e
+    _staticX, _staticY = nil, nil
 end
 
 function Camera.unfollow()
     _following = nil
+    _staticX, _staticY = nil, nil
 end
 
 function Camera.getPosition()
@@ -88,12 +95,14 @@ end
 
 function Camera.setPosition(x, y)
     _following = nil
+    _staticX, _staticY = x, y
     Viewport.setCenter(x, y)
 end
 
 -- Déplacement fluide via Tween
 function Camera.moveTo(x, y, duration, easing)
     _following = nil
+    _staticX, _staticY = nil, nil
     if _moveTwID then Tween.cancel(_moveTwID); _moveTwID = nil end
     local c = Viewport.getCenter()
     _moveTwID = Tween.newVec2(
@@ -169,6 +178,7 @@ function Camera.path(waypoints, speed, easing, onDone)
         return
     end
     _following  = nil
+    _staticX, _staticY = nil, nil
     _pathQueue  = {}
     for i, wp in ipairs(waypoints) do _pathQueue[i] = wp end
     _pathSpeed  = speed  or 100
@@ -180,6 +190,7 @@ end
 -- Remet à zéro (zoom + follow + path + tween actif)
 function Camera.reset()
     _following = nil
+    _staticX, _staticY = nil, nil
     _pathQueue = nil
     _pathDone  = nil
     if _moveTwID  then Tween.cancel(_moveTwID);  _moveTwID  = nil end

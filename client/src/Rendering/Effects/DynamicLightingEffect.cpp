@@ -82,6 +82,8 @@ void DynamicLightingEffect::updateShaderUniforms() {
     m_graphicsBackend->setShaderParameter(m_lightingShader, "cameraPosition", m_cameraPosition);
     m_graphicsBackend->setShaderParameter(m_lightingShader, "viewportSize", m_viewportSize);
 
+    if (activeLightCount == 0) return;
+
     // Préparer les tableaux pour les uniforms
     std::vector<Vec2f> positions;
     std::vector<Vec3f> colors;

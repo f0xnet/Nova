@@ -44,7 +44,6 @@ public:
         m_logicSystems.push_back(std::make_unique<PhysicsSystem>());
         m_logicSystems.push_back(std::make_unique<ActivatorSystem>());
         m_logicSystems.push_back(std::make_unique<AudioSystem>());
-        m_logicSystems.push_back(std::make_unique<LightSystem>());
         LOG_DEBUG("Created scene: {}", m_name);
     }
 

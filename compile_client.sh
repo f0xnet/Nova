@@ -177,7 +177,7 @@ echo "  Compiled: $COMPILED file(s) — Skipped: $SKIPPED file(s) (up-to-date)"
 # ------------------------------------
 # Aucun fichier recompilé et exécutable déjà présent → pas besoin de relinker
 # ------------------------------------
-if [ $COMPILED -eq 0 ] && [ -f "$BIN_DIR/NovaEngine" ]; then
+if [ $COMPILED -eq 0 ] && { [ -f "$BIN_DIR/NovaEngine" ] || [ -f "$BIN_DIR/NovaEngine.exe" ]; }; then
     echo ""
     echo "Nothing to do — executable is up-to-date."
     echo "========================================"
@@ -189,7 +189,19 @@ fi
 echo ""
 echo "[STEP 2/3] Linking executable..."
 
-g++ $OBJECT_FILES -o "$BIN_DIR/NovaEngine" \
+# Flags spécifiques à la plateforme
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    PLATFORM_LIBS="-lopengl32 -lwinmm -lgdi32 -lopenal32"
+    PLATFORM_FLAGS="-static-libgcc -static-libstdc++ -static"
+    OUT_BIN="$BIN_DIR/NovaEngine.exe"
+else
+    # Linux : dépendances X11/GL/audio
+    PLATFORM_LIBS="-lGL -lX11 -lXrandr -lXcursor -ludev -lpthread -lopenal"
+    PLATFORM_FLAGS="-static-libgcc -static-libstdc++"
+    OUT_BIN="$BIN_DIR/NovaEngine"
+fi
+
+g++ $OBJECT_FILES -o "$OUT_BIN" \
     -L"$LIB_DIR" \
     -DSFML_STATIC \
     -lsfml-graphics-s \
@@ -197,27 +209,22 @@ g++ $OBJECT_FILES -o "$BIN_DIR/NovaEngine" \
     -lsfml-audio-s \
     -lsfml-system-s \
     -llua54 \
-    -lopengl32 \
-    -lwinmm \
-    -lgdi32 \
     -lfreetype \
-    -lopenal32 \
     -lFLAC \
     -lvorbisenc \
     -lvorbisfile \
     -lvorbis \
     -logg \
+    $PLATFORM_LIBS \
     -std=c++17 \
-    -static-libgcc \
-    -static-libstdc++ \
-    -static
+    $PLATFORM_FLAGS
 
 if [ $? -ne 0 ]; then echo "ERROR: Linking failed"; exit 1; fi
 
 echo ""
 echo "[STEP 3/3] Build complete!"
 echo ""
-echo "Executable: $BIN_DIR/NovaEngine"
+echo "Executable: $OUT_BIN"
 echo ""
 echo "========================================"
 echo "  BUILD SUCCESSFUL!"
