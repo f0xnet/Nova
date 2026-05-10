@@ -4,15 +4,20 @@
 -- Contrôles globaux :
 --   Ctrl+E              — toggle éditeur
 --   Ctrl+S              — sauvegarder la scène courante
---   Echap               — désélectionner / fermer l'éditeur
+--   Echap               — désélectionner / fermer / annuler une édition
 --   G                   — bascule grille (32 px)
 --   + / -               — zoom caméra
 --   Clic droit + drag   — pan caméra
 --
--- Palette / placement :
---   Clic gauche palette — choisit le sprite à poser
---   Clic gauche monde   — pose le sprite (mode pose) ou sélectionne entité
---   ↑ ↓                 — naviguer dans la palette
+-- Panneau gauche (tabs) :
+--   SPRITES             — palette de placement
+--   LAYERS              — inspector des entités groupées par zOrder
+--                         Clic en-tête      → bascule layer actif + plie/déplie
+--                         Clic entité       → sélectionne + recentre la caméra
+--
+-- Panneau droit (Properties) :
+--   Clic ligne          — édite la valeur (Entrée valide, Echap annule)
+--   ↑/↓ ou [/]          — cycle dans la liste sprite (édition spriteID)
 --
 -- Sélection :
 --   WASD / Flèches      — déplace l'entité (pas = grille ou 1 px)
@@ -46,16 +51,21 @@ local _panning       = false
 local _panStartMouse = { x = 0, y = 0 }
 local _panStartCam   = { x = 0, y = 0 }
 
+local _leftTab       = "sprites"   -- "sprites" | "layers"
+local _layerExpanded = {}          -- [n] = bool
+local _editing       = nil         -- { field = "x"|"y"|"zOrder"|"spriteID", buffer = "" }
+
 -- ═════════════════════════════════════════════════════════════════════════════
 -- Thème (inspiré VS Code / Tiled / LDtk)
 -- ═════════════════════════════════════════════════════════════════════════════
 
-local C_BG          = Color.new( 24,  24,  32, 240)  -- fond panneaux
-local C_BG_DEEPER   = Color.new( 18,  18,  24, 250)  -- fond toolbar / status
-local C_BG_ITEM     = Color.new( 36,  38,  50, 255)  -- ligne palette par défaut
-local C_BG_HOVER    = Color.new( 50,  54,  72, 255)  -- ligne survolée
-local C_BG_ACTIVE   = Color.new( 56,  96, 168, 255)  -- ligne active (placement)
-local C_BG_SELECT   = Color.new( 80,  60, 140, 255)  -- entité sélectionnée
+local C_BG          = Color.new( 24,  24,  32, 240)
+local C_BG_DEEPER   = Color.new( 18,  18,  24, 250)
+local C_BG_ITEM     = Color.new( 36,  38,  50, 255)
+local C_BG_HOVER    = Color.new( 50,  54,  72, 255)
+local C_BG_ACTIVE   = Color.new( 56,  96, 168, 255)
+local C_BG_SELECT   = Color.new( 80,  60, 140, 255)
+local C_BG_SUB      = Color.new( 28,  30,  40, 255)
 local C_BORDER      = Color.new( 60,  62,  84, 255)
 local C_BORDER_LITE = Color.new( 90,  92, 120, 255)
 local C_ACCENT      = Color.new(108, 168, 255, 255)
@@ -70,19 +80,19 @@ local C_HIGHLIGHT   = Color.new(255, 200,  60, 230)
 local C_GRID        = Color.new( 80,  85, 110,  55)
 
 -- ═════════════════════════════════════════════════════════════════════════════
--- Constantes layout (police 28 px, donc lignes ≥ 36 px)
+-- Constantes layout (police 28 px)
 -- ═════════════════════════════════════════════════════════════════════════════
 
 local FONT_H        = 28
 local TOOLBAR_H     = 48
 local STATUS_H      = 44
-local SECTION_H     = 36              -- en-tête "SPRITES"
-local ITEM_H        = 40              -- ligne palette
+local SECTION_H     = 36
+local ITEM_H        = 40
 local PALETTE_W     = 280
 local PROP_W        = 320
-local PROP_H        = 220
+local PROP_H        = 280
 local PAD           = 10
-local TXT_PAD_Y     = math.floor((ITEM_H - FONT_H) / 2)  -- centrage vertical
+local TXT_PAD_Y     = math.floor((ITEM_H - FONT_H) / 2)
 
 -- ═════════════════════════════════════════════════════════════════════════════
 -- Coordonnées
@@ -154,8 +164,6 @@ local function spawnSprite(spriteID, wx, wy)
     e:addComponent("TransformComponent")
     e:addComponent("SpriteComponent")
 
-    -- ⚠ Le moteur attend size = pixels texture (non-scaled),
-    --   origin = (width/2, height/2), transform.scale = facteur.
     local t = e:getTransform()
     t.position.x = wx
     t.position.y = wy
@@ -194,6 +202,111 @@ local function setEntryLayer(entry, n)
     local s = entry.entity:getSprite()
     if s then s.zOrder = n end
     _saved = false
+end
+
+local function changeEntrySprite(entry, newID)
+    local def = _spriteDefs[newID]
+    if not def then return false end
+    local t = entry.entity:getTransform()
+    local s = entry.entity:getSprite()
+    if not (t and s) then return false end
+
+    entry.spriteID  = newID
+    s.textureID     = newID
+    s.textureHandle = Resources.loadTexture(def.texture)
+    s.size.x        = def.width
+    s.size.y        = def.height
+    t.origin.x      = def.width  * 0.5
+    t.origin.y      = def.height * 0.5
+    local sc        = def.scale or 1.0
+    t.scale.x, t.scale.y = sc, sc
+    _saved = false
+    return true
+end
+
+-- Regroupe les entités par zOrder (clamp 0..10).
+local function entitiesByLayer()
+    local groups = {}
+    for n = 0, 10 do groups[n] = {} end
+    for _, entry in ipairs(_placed) do
+        local n = math.max(0, math.min(10, entry.zOrder or 0))
+        table.insert(groups[n], entry)
+    end
+    return groups
+end
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- Édition de propriétés
+-- ═════════════════════════════════════════════════════════════════════════════
+
+local function startEdit(field, currentValue)
+    _editing = { field = field, buffer = tostring(currentValue) }
+end
+
+local function applyEdit()
+    if not _editing then return end
+    if not _selected then _editing = nil; return end
+    local entry = _selected
+    local t     = entry.entity:getTransform()
+    local field = _editing.field
+    local buf   = _editing.buffer
+
+    if t then
+        if field == "x" then
+            local n = tonumber(buf); if n then t.position.x = n; _saved = false end
+        elseif field == "y" then
+            local n = tonumber(buf); if n then t.position.y = n; _saved = false end
+        elseif field == "zOrder" then
+            local n = tonumber(buf); if n then setEntryLayer(entry, math.floor(n)) end
+        elseif field == "spriteID" then
+            changeEntrySprite(entry, buf)
+        end
+    end
+    _editing = nil
+end
+
+local function cancelEdit() _editing = nil end
+
+local function cycleSprite(dir)
+    if not _editing then return end
+    local cur = _editing.buffer
+    local idx = 1
+    for i, id in ipairs(_spriteList) do
+        if id == cur then idx = i; break end
+    end
+    idx = ((idx - 1 + dir) % #_spriteList) + 1
+    _editing.buffer = _spriteList[idx]
+end
+
+local function handleEditKey(key)
+    if key == "Return" or key == "Enter" or key == "KP_Enter" or key == "NumpadEnter" then
+        applyEdit(); return
+    end
+    if key == "Escape"   then cancelEdit(); return end
+    if key == "Backspace" then
+        _editing.buffer = _editing.buffer:sub(1, -2); return
+    end
+
+    -- spriteID : cycle dans la liste, pas de saisie libre
+    if _editing.field == "spriteID" then
+        if key == "Up"   or key == "LBracket" or key == "LParen" then cycleSprite(-1); return end
+        if key == "Down" or key == "RBracket" or key == "RParen" then cycleSprite( 1); return end
+        return
+    end
+
+    -- Champs numériques : digits / signe / virgule
+    local n = key:match("^Num(%d)$") or key:match("^Numpad(%d)$")
+    if n then _editing.buffer = _editing.buffer .. n; return end
+    if key == "Hyphen" or key == "Subtract" then
+        if _editing.buffer == "" then _editing.buffer = "-" end
+        return
+    end
+    if key == "Period" or key == "Decimal" then
+        if not _editing.buffer:find(".", 1, true) then
+            _editing.buffer = _editing.buffer .. "."
+        end
+        return
+    end
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════
@@ -264,6 +377,7 @@ function Editor.enable()
     _placing  = false
     _selected = nil
     _panning  = false
+    _editing  = nil
     _saved    = true
     Game.setTimescale(0)
     Camera.unfollow()
@@ -278,6 +392,7 @@ function Editor.disable()
     _selected = nil
     _placing  = false
     _panning  = false
+    _editing  = nil
     Game.setTimescale(1)
     Log.info("[Editor] Désactivé")
 end
@@ -289,7 +404,6 @@ function Editor.isEnabled() return _enabled end
 -- Helpers UI
 -- ═════════════════════════════════════════════════════════════════════════════
 
--- Largeur écran d'un texte en pixels (police monospace ≈ 16 px par caractère).
 local function textW(s) return #s * 16 end
 
 local function truncate(s, maxPx)
@@ -298,13 +412,11 @@ local function truncate(s, maxPx)
     return s:sub(1, maxC - 1) .. "…"
 end
 
--- Rect avec bordure 1 px supérieure pour un effet "panneau".
 local function panel(x, y, w, h, bg)
     Debug.fillRect(x, y, w, h, bg)
     Debug.fillRect(x, y, w, 1, C_BORDER)
 end
 
--- Bandeau accent vertical (4 px) à gauche pour signaler une ligne active.
 local function accentBar(x, y, h)
     Debug.fillRect(x, y, 4, h, C_ACCENT)
 end
@@ -312,6 +424,10 @@ end
 -- ═════════════════════════════════════════════════════════════════════════════
 -- Géométrie des zones
 -- ═════════════════════════════════════════════════════════════════════════════
+
+local function tabBarRect()
+    return 0, TOOLBAR_H, PALETTE_W, SECTION_H
+end
 
 local function paletteListRect(ws)
     local x = 0
@@ -327,8 +443,34 @@ local function visibleItemCount(ws)
 end
 
 local function propertiesRect(ws)
-    -- Flottant en haut-droit, sous le toolbar
     return ws.x - PROP_W - PAD, TOOLBAR_H + PAD, PROP_W, PROP_H
+end
+
+-- Construit la liste à plat des items affichés dans l'onglet LAYERS.
+-- Retourne { { kind="layer", n, count } | { kind="entity", n, entry }, ... }
+local function buildLayersFlat()
+    local groups = entitiesByLayer()
+    local flat   = {}
+    for n = 0, 10 do
+        table.insert(flat, { kind = "layer", n = n, count = #groups[n] })
+        if _layerExpanded[n] then
+            for _, entry in ipairs(groups[n]) do
+                table.insert(flat, { kind = "entity", n = n, entry = entry })
+            end
+        end
+    end
+    return flat
+end
+
+-- Détermine le champ Properties cliqué (ou nil).
+local function propertyRowAt(ws, sx, sy)
+    local px, py, pw, ph = propertiesRect(ws)
+    if not pointInRect(sx, sy, px, py, pw, ph) then return nil end
+    local startY = py + SECTION_H + 6
+    if sy < startY then return nil end
+    local idx    = math.floor((sy - startY) / ITEM_H) + 1
+    local fields = { "spriteID", "x", "y", "zOrder" }
+    return fields[idx]
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════
@@ -350,30 +492,80 @@ function Editor.onMouseDown(button, sx, sy)
 
     local ws = Viewport.getWindowSize()
 
-    -- Toolbar : non-cliquable pour l'instant
+    -- Edit en cours : tout clic hors panneau Properties commit
+    if _editing then
+        local px, py, pw, ph = propertiesRect(ws)
+        if not pointInRect(sx, sy, px, py, pw, ph) then applyEdit() end
+    end
+
+    -- Toolbar (zone réservée)
     if sy < TOOLBAR_H then return end
 
-    -- Palette
+    -- Tab bar palette
+    do
+        local tx, ty, tw, th = tabBarRect()
+        if pointInRect(sx, sy, tx, ty, tw, th) then
+            local halfW  = math.floor(PALETTE_W / 2)
+            local newTab = (sx < halfW) and "sprites" or "layers"
+            if newTab ~= _leftTab then
+                _leftTab       = newTab
+                _paletteScroll = 0
+            end
+            return
+        end
+    end
+
+    -- Liste palette
     if sx < PALETTE_W then
         local lx, ly, _, lh = paletteListRect(ws)
-        if pointInRect(sx, sy, lx, ly, PALETTE_W, lh) then
-            local idx = _paletteScroll + math.floor((sy - ly) / ITEM_H) + 1
+        if not pointInRect(sx, sy, lx, ly, PALETTE_W, lh) then return end
+        local i   = math.floor((sy - ly) / ITEM_H) + 1
+        local idx = _paletteScroll + i
+
+        if _leftTab == "sprites" then
             if idx >= 1 and idx <= #_spriteList then
                 _paletteIdx = idx
                 _placing    = true
                 _selected   = nil
             end
+        else
+            local flat = buildLayersFlat()
+            if idx >= 1 and idx <= #flat then
+                local item = flat[idx]
+                if item.kind == "layer" then
+                    _layer                  = item.n
+                    _layerExpanded[item.n]  = not _layerExpanded[item.n]
+                else
+                    _selected = item.entry
+                    _placing  = false
+                    local t = item.entry.entity:getTransform()
+                    if t then Camera.setPosition(t.position.x, t.position.y) end
+                end
+            end
         end
         return
     end
 
-    -- Properties (clics ignorés — purement informatif)
+    -- Properties : clic sur une ligne pour éditer
     if _selected then
         local px, py, pw, ph = propertiesRect(ws)
-        if pointInRect(sx, sy, px, py, pw, ph) then return end
+        if pointInRect(sx, sy, px, py, pw, ph) then
+            local field = propertyRowAt(ws, sx, sy)
+            if field then
+                local t = _selected.entity:getTransform()
+                local val
+                if     field == "spriteID" then val = _selected.spriteID
+                elseif field == "x"        then val = math.floor(t.position.x)
+                elseif field == "y"        then val = math.floor(t.position.y)
+                elseif field == "zOrder"   then val = _selected.zOrder
+                end
+                startEdit(field, val)
+            end
+            return
+        end
     end
 
-    -- Status bar : pas de clic
+    -- Status bar
     if sy >= ws.y - STATUS_H then return end
 
     -- Zone monde
@@ -404,6 +596,9 @@ end
 function Editor.onKeyDown(key)
     if not _enabled then return end
 
+    -- Édition de propriété : capture toute la saisie
+    if _editing then handleEditKey(key); return end
+
     if key == "Escape" then
         if _placing       then _placing  = false
         elseif _selected  then _selected = nil
@@ -423,7 +618,7 @@ function Editor.onKeyDown(key)
         saveScene(); return
     end
 
-    -- Navigation palette (sans entité sélectionnée)
+    -- Navigation palette
     if key == "PageUp" or (key == "Up" and not _selected) then
         if _paletteIdx > 1 then
             _paletteIdx = _paletteIdx - 1
@@ -523,63 +718,68 @@ local function drawGrid(ws)
 end
 
 local function drawToolbar(ws)
-    -- Fond + bordure basse
     Debug.fillRect(0, 0, ws.x, TOOLBAR_H, C_BG_DEEPER)
     Debug.fillRect(0, TOOLBAR_H - 1, ws.x, 1, C_BORDER)
 
     local y = math.floor((TOOLBAR_H - FONT_H) / 2)
 
-    -- Titre + état "modifié"
     local title = "EDITEUR"
     Debug.label(PAD, y, title, C_TEXT)
-
-    -- Indicateur "*" (modifications non sauvées)
     if not _saved then
-        Debug.label(PAD + textW(title) + 8, y, "●", C_WARN)
+        Debug.label(PAD + textW(title) + 8, y, "*", C_WARN)
     end
 
-    -- Champ Layer (au centre-gauche, mis en valeur)
+    -- Champ Layer (mis en valeur, indicateur global)
     local sectX = PAD + 200
     Debug.label(sectX, y, "Layer", C_TEXT_DIM)
     local layerStr = string.format(" %d ", _layer)
-    local boxX = sectX + textW("Layer") + 6
-    local boxW = textW(layerStr) + 8
+    local boxX     = sectX + textW("Layer") + 6
+    local boxW     = textW(layerStr) + 8
     Debug.fillRect(boxX, y - 4, boxW, FONT_H + 8, C_BG_ITEM)
     Debug.fillRect(boxX, y - 4, 4, FONT_H + 8, C_ACCENT)
     Debug.label(boxX + 4, y, layerStr, C_TEXT)
     Debug.label(boxX + boxW + 8, y, "[ ]", C_TEXT_MUTE)
 
-    -- Snap + Zoom à droite
     local snapTxt = (_snapGrid > 0) and ("Snap " .. _snapGrid) or "Snap OFF"
     local zoomTxt = string.format("Zoom %.1fx", Camera.getZoom())
     local right   = snapTxt .. "    " .. zoomTxt
     Debug.label(ws.x - textW(right) - PAD, y, right, C_TEXT_DIM)
 end
 
-local function drawPalette(ws)
+local function drawTabBar()
+    local x, y, w, h = tabBarRect()
+    local halfW      = math.floor(w / 2)
+
+    Debug.fillRect(x, y, w, h, C_BG_DEEPER)
+    Debug.fillRect(x, y + h - 1, w, 1, C_BORDER)
+
+    local stY       = y + math.floor((h - FONT_H) / 2)
+    local sprActive = (_leftTab == "sprites")
+    local layActive = (_leftTab == "layers")
+
+    if sprActive then
+        Debug.fillRect(x, y, halfW, h, C_BG)
+        Debug.fillRect(x, y + h - 2, halfW, 2, C_ACCENT)
+    end
+    Debug.label(x + PAD, stY, "SPRITES", sprActive and C_TEXT or C_TEXT_DIM)
+
+    if layActive then
+        Debug.fillRect(x + halfW, y, halfW, h, C_BG)
+        Debug.fillRect(x + halfW, y + h - 2, halfW, 2, C_ACCENT)
+    end
+    Debug.label(x + halfW + PAD, stY, "LAYERS", layActive and C_TEXT or C_TEXT_DIM)
+
+    Debug.fillRect(x + halfW, y + 6, 1, h - 12, C_BORDER)
+end
+
+local function drawSpritesTab(ws)
     local lx, ly, lw, lh = paletteListRect(ws)
-    local paletteFullH   = ws.y - STATUS_H
 
-    -- Fond palette + bordure droite
-    Debug.fillRect(0, TOOLBAR_H, PALETTE_W, paletteFullH - TOOLBAR_H, C_BG)
-    Debug.fillRect(PALETTE_W - 1, TOOLBAR_H, 1, paletteFullH - TOOLBAR_H, C_BORDER)
-
-    -- En-tête de section "SPRITES"
-    local sectY = TOOLBAR_H
-    Debug.fillRect(0, sectY, PALETTE_W, SECTION_H, C_BG_DEEPER)
-    Debug.fillRect(0, sectY + SECTION_H - 1, PALETTE_W, 1, C_BORDER)
-    local stY = sectY + math.floor((SECTION_H - FONT_H) / 2)
-    Debug.label(PAD, stY, "SPRITES", C_TEXT_DIM)
-    local count = string.format("%d", #_spriteList)
-    Debug.label(PALETTE_W - PAD - textW(count), stY, count, C_TEXT_MUTE)
-
-    -- Bornage du scroll (en cas de redimensionnement)
     local vis = visibleItemCount(ws)
     if _paletteScroll + vis > #_spriteList then
         _paletteScroll = math.max(0, #_spriteList - vis)
     end
 
-    -- Items
     local mp = Input.getMousePosition()
     for i = 1, vis do
         local idx = _paletteScroll + i
@@ -591,14 +791,12 @@ local function drawPalette(ws)
         local isHover  = pointInRect(mp.x, mp.y, lx, y, lw, ITEM_H) and not isActive
         local bg       = isActive and C_BG_ACTIVE or (isHover and C_BG_HOVER or C_BG_ITEM)
 
-        -- Ligne : fond plein puis 1 px de séparation au bas
         Debug.fillRect(lx + 4, y + 2, lw - 8, ITEM_H - 4, bg)
         if isActive then accentBar(lx + 4, y + 2, ITEM_H - 4) end
 
-        local labelCol = isActive and C_TEXT or (isHover and C_TEXT or C_TEXT_DIM)
+        local labelCol = (isActive or isHover) and C_TEXT or C_TEXT_DIM
         Debug.label(lx + PAD + (isActive and 6 or 0), y + TXT_PAD_Y, id, labelCol)
 
-        -- Indicateur layer du sprite (à droite)
         local def = _spriteDefs[id]
         if def and def.zOrder then
             local zs = "z" .. def.zOrder
@@ -606,20 +804,96 @@ local function drawPalette(ws)
         end
     end
 
-    -- Compteur scroll si liste plus longue que visible
     if #_spriteList > vis then
-        local nav = string.format("%d–%d / %d", _paletteScroll + 1,
+        local nav = string.format("%d-%d / %d", _paletteScroll + 1,
                                   math.min(_paletteScroll + vis, #_spriteList),
                                   #_spriteList)
         Debug.label(PAD, ly + lh - FONT_H - 2, nav, C_TEXT_MUTE)
     end
 end
 
+local function drawLayersTab(ws)
+    local lx, ly, lw, lh = paletteListRect(ws)
+    local flat           = buildLayersFlat()
+
+    local vis = visibleItemCount(ws)
+    if _paletteScroll + vis > #flat then
+        _paletteScroll = math.max(0, #flat - vis)
+    end
+
+    local mp = Input.getMousePosition()
+    for i = 1, vis do
+        local idx = _paletteScroll + i
+        if idx > #flat then break end
+        local item    = flat[idx]
+        local y       = ly + (i - 1) * ITEM_H
+        local isHover = pointInRect(mp.x, mp.y, lx, y, lw, ITEM_H)
+
+        if item.kind == "layer" then
+            local isActive = (item.n == _layer)
+            local bg       = isActive and C_BG_ACTIVE
+                             or (isHover and C_BG_HOVER or C_BG_ITEM)
+
+            Debug.fillRect(lx + 4, y + 2, lw - 8, ITEM_H - 4, bg)
+            if isActive then accentBar(lx + 4, y + 2, ITEM_H - 4) end
+
+            local arrow = _layerExpanded[item.n] and "v" or ">"
+            local txt   = arrow .. "  Layer " .. item.n
+            Debug.label(lx + PAD + (isActive and 6 or 0), y + TXT_PAD_Y, txt,
+                        isActive and C_TEXT or C_TEXT_DIM)
+
+            local cnt = "(" .. item.count .. ")"
+            Debug.label(lx + lw - textW(cnt) - PAD, y + TXT_PAD_Y, cnt,
+                        item.count > 0 and C_ACCENT or C_TEXT_MUTE)
+        else
+            local isSelected = (_selected == item.entry)
+            local bg         = isSelected and C_BG_SELECT
+                              or (isHover and C_BG_HOVER or C_BG_SUB)
+
+            Debug.fillRect(lx + 4, y + 2, lw - 8, ITEM_H - 4, bg)
+            if isSelected then accentBar(lx + 4, y + 2, ITEM_H - 4) end
+
+            local txt = item.entry.spriteID
+            Debug.label(lx + PAD + 26, y + TXT_PAD_Y,
+                        truncate(txt, lw - 140),
+                        isSelected and C_TEXT or C_TEXT_DIM)
+
+            local t = item.entry.entity:getTransform()
+            if t then
+                local pos = string.format("%d,%d",
+                                          math.floor(t.position.x),
+                                          math.floor(t.position.y))
+                Debug.label(lx + lw - textW(pos) - PAD, y + TXT_PAD_Y,
+                            pos, C_TEXT_MUTE)
+            end
+        end
+    end
+
+    if #flat > vis then
+        local nav = string.format("%d-%d / %d", _paletteScroll + 1,
+                                  math.min(_paletteScroll + vis, #flat),
+                                  #flat)
+        Debug.label(PAD, ly + lh - FONT_H - 2, nav, C_TEXT_MUTE)
+    end
+end
+
+local function drawPalette(ws)
+    local paletteFullH = ws.y - STATUS_H
+
+    Debug.fillRect(0, TOOLBAR_H, PALETTE_W, paletteFullH - TOOLBAR_H, C_BG)
+    Debug.fillRect(PALETTE_W - 1, TOOLBAR_H, 1, paletteFullH - TOOLBAR_H, C_BORDER)
+
+    drawTabBar()
+    if _leftTab == "sprites" then drawSpritesTab(ws)
+    else                          drawLayersTab(ws) end
+end
+
 local function drawProperties(ws)
     if not _selected then return end
     local px, py, pw, ph = propertiesRect(ws)
     local t = _selected.entity:getTransform()
-    if not t then return end
+    local s = _selected.entity:getSprite()
+    if not (t and s) then return end
 
     -- Ombre + panneau
     Debug.fillRect(px + 4, py + 4, pw, ph, Color.new(0, 0, 0, 80))
@@ -635,21 +909,47 @@ local function drawProperties(ws)
     Debug.label(px + PAD, py + math.floor((SECTION_H - FONT_H) / 2),
                 "PROPERTIES", C_TEXT_DIM)
 
-    -- Lignes (40 px chacune)
-    local row = py + SECTION_H + 6
-    local function line(label, value, valueCol)
-        Debug.label(px + PAD,       row, label, C_TEXT_MUTE)
-        Debug.label(px + 110,       row, value, valueCol or C_TEXT)
-        row = row + ITEM_H
+    -- Lignes éditables : { label, fieldKey, value, valueCol }
+    local rows = {
+        { "Sprite", "spriteID", _selected.spriteID,                C_ACCENT },
+        { "X",      "x",        math.floor(t.position.x),          C_TEXT   },
+        { "Y",      "y",        math.floor(t.position.y),          C_TEXT   },
+        { "Layer",  "zOrder",   _selected.zOrder,                  C_TEXT   },
+    }
+
+    local rowY = py + SECTION_H + 6
+    local rh   = ITEM_H - 4
+    local mp   = Input.getMousePosition()
+
+    for _, r in ipairs(rows) do
+        local label, fkey, value, valueCol = r[1], r[2], r[3], r[4]
+        local isEdit  = (_editing and _editing.field == fkey)
+        local isHover = pointInRect(mp.x, mp.y, px + PAD, rowY, pw - 2 * PAD, rh)
+                        and not isEdit
+        local bg      = isEdit  and C_BG_ACTIVE
+                       or (isHover and C_BG_HOVER or C_BG_ITEM)
+
+        Debug.fillRect(px + PAD, rowY, pw - 2 * PAD, rh, bg)
+        if isEdit then accentBar(px + PAD, rowY, rh) end
+
+        local txtY = rowY + math.floor((rh - FONT_H) / 2)
+        Debug.label(px + PAD + (isEdit and 8 or 4), txtY, label,
+                    isEdit and C_TEXT or C_TEXT_MUTE)
+
+        local valStr = isEdit and (_editing.buffer .. "_") or tostring(value)
+        Debug.label(px + 110, txtY, truncate(valStr, pw - 130), valueCol)
+
+        rowY = rowY + ITEM_H
     end
 
-    line("Sprite", _selected.spriteID, C_ACCENT)
-    line("Position", string.format("%d, %d", math.floor(t.position.x), math.floor(t.position.y)))
-    line("Layer", string.format("%d  [/]", _selected.zOrder))
-
-    -- Indication de raccourcis en bas
-    local hint = "WASD déplace · Suppr efface · Esc désélec."
-    Debug.label(px + PAD, py + ph - FONT_H - 6, truncate(hint, pw - 2 * PAD), C_TEXT_MUTE)
+    -- Hint en bas
+    local hint = _editing and "Entree valide  -  Echap annule"
+                            or "Clic ligne pour editer"
+    if _editing and _editing.field == "spriteID" then
+        hint = "Up/Down ou [ ] pour cycler  -  Entree valide"
+    end
+    Debug.label(px + PAD, py + ph - FONT_H - 6,
+                truncate(hint, pw - 2 * PAD), C_TEXT_MUTE)
 end
 
 local function drawStatus(ws)
@@ -659,9 +959,11 @@ local function drawStatus(ws)
 
     local y = barY + math.floor((STATUS_H - FONT_H) / 2)
 
-    -- Texte gauche : mode courant
     local mode, modeCol
-    if _placing then
+    if _editing then
+        mode    = "EDIT  " .. _editing.field
+        modeCol = C_WARN
+    elseif _placing then
         mode    = "PLACE  " .. (_spriteList[_paletteIdx] or "?")
         modeCol = C_ACCENT
     elseif _selected then
@@ -673,14 +975,12 @@ local function drawStatus(ws)
     end
     Debug.label(PAD, y, mode, modeCol)
 
-    -- Coords souris monde
-    local mp = Input.getMousePosition()
+    local mp     = Input.getMousePosition()
     local wx, wy = screenToWorld(mp.x, mp.y)
     local coords = string.format("(%d, %d)", math.floor(snap(wx)), math.floor(snap(wy)))
     Debug.label(PAD + 280, y, coords, C_TEXT_DIM)
 
-    -- Texte droit : compte + raccourcis
-    local right = string.format("%d entités  •  Ctrl+S enregistrer  •  G grille  •  Esc",
+    local right = string.format("%d entites  -  Ctrl+S enregistrer  -  G grille  -  Esc",
                                 #_placed)
     Debug.label(ws.x - textW(right) - PAD, y, right, C_TEXT_MUTE)
 end
@@ -713,7 +1013,7 @@ local function drawGhostSprite()
 
     local def = _spriteDefs[_spriteList[_paletteIdx]]
     local z   = Camera.getZoom()
-    local sc  = (def and def.scale) or 1.0
+    local sc  = (def and def.scale)  or 1.0
     local hw  = ((def and def.width)  or 64) * sc * 0.5 * z
     local hh  = ((def and def.height) or 64) * sc * 0.5 * z
 
