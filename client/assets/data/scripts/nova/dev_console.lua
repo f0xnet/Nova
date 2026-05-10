@@ -243,12 +243,12 @@ M.register("resume", function() Game.setTimescale(1); M.print("  Reprise") end, 
 M.register("scene", function(args)
     local name = args[1]
     if name then
-        Scene.load(name)
-        M.print("  Chargement de la scène : " .. name)
+        Scene.setActive(name)
+        M.print("  Activation de la scène : " .. name)
     else
         M.print("  Scène courante : " .. tostring(Scene.current()))
     end
-end, "scene [nom] — affiche ou charge une scène")
+end, "scene [nom] — affiche ou active une scène")
 
 M.register("tp", function(args)
     local x, y = tonumber(args[1]), tonumber(args[2])

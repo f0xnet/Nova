@@ -25,6 +25,11 @@ f32 Slider::getValue() const {
     return m_value;
 }
 
+void Slider::setPosition(const Vec2f& pos) {
+    UIComponent::setPosition(pos);
+    updateHandlePosition();
+}
+
 void Slider::setSize(const Vec2f& size) {
     UIComponent::setSize(size);
     m_track.size = size;

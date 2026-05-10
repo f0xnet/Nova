@@ -90,7 +90,11 @@ function Tween.update(dt)
         end
 
         local ok, err = pcall(tw.onUpdate, current)
-        if not ok then Log.error("Tween.update: " .. tostring(err)) end
+        if not ok then
+            Log.error("Tween.update: " .. tostring(err))
+            tweens[id] = nil  -- tue le tween plutôt que de spam-logguer chaque frame
+            goto continue
+        end
 
         if t >= 1.0 then
             tweens[id] = nil
@@ -98,6 +102,7 @@ function Tween.update(dt)
                 table.insert(completed, tw.onComplete)
             end
         end
+        ::continue::
     end
     -- Appelle les onComplete APRÈS l'itération pour éviter de modifier `tweens`
     -- pendant pairs() — ce qui causerait "invalid key to 'next'".

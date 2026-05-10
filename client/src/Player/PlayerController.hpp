@@ -52,6 +52,11 @@ public:
     Entity* getNearestNPC() const { return m_nearestNPC; }
 
     /**
+     * @brief Clear the nearest NPC reference (call on scene change)
+     */
+    void resetNearestNPC() { m_nearestNPC = nullptr; }
+
+    /**
      * @brief Get player position
      */
     Vec2f getPlayerPosition(Scene* scene) const;

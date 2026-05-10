@@ -273,6 +273,20 @@ bool Game::onInitialize() {
 
         // Script global de jeu — gère les raccourcis clavier et la logique globale
         m_scriptSystem->loadGlobalScript("data/scripts/main.lua");
+
+        // Réinitialise les systèmes C++ à chaque changement de scène :
+        //   - DialogueSystem : ferme tout dialogue ouvert
+        //   - PlayerController : efface le pointeur NPC pour éviter un dangling ptr
+        {
+            auto& lua = m_scriptSystem->getLua();
+            sol::protected_function on = lua["EventBus"]["on"];
+            if (on.valid()) {
+                on("scene_changing", sol::as_function([this](sol::table) {
+                    m_dialogueSystem->reset();
+                    m_playerController->resetNearestNPC();
+                }));
+            }
+        }
     }
 
     // Initialize UI system

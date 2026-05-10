@@ -69,6 +69,7 @@ function Camera._update(dt)
     -- Suivi d'entité ou position fixe
     if _following then
         local pos = _following:getPosition()
+        if not pos then _following = nil; return end
         Viewport.setCenter(pos.x + _offsetX, pos.y + _offsetY)
     elseif _staticX then
         -- Réaffirme la position fixe chaque frame pour contrer le setViewCenter C++

@@ -7,6 +7,7 @@
 #include "../Backend/BackendManager.hpp"
 #include "../Core/Logger.hpp"
 #include <algorithm>
+#include <limits>
 
 namespace NovaEngine {
 
@@ -222,9 +223,10 @@ public:
                 if (colliderA->type == ColliderComponent::ColliderType::Box &&
                     colliderB->type == ColliderComponent::ColliderType::Box) {
 
-                    // Calculate AABB bounds
-                    Vec2f posA = transformA->position + colliderA->offset;
-                    Vec2f posB = transformB->position + colliderB->offset;
+                    // Calculate AABB bounds — subtract origin so the box aligns with the
+                    // sprite's top-left corner (transform->position is the visual center)
+                    Vec2f posA = transformA->position - transformA->origin + colliderA->offset;
+                    Vec2f posB = transformB->position - transformB->origin + colliderB->offset;
 
                     Rect boundsA{posA.x, posA.y, colliderA->size.x, colliderA->size.y};
                     Rect boundsB{posB.x, posB.y, colliderB->size.x, colliderB->size.y};
@@ -288,8 +290,8 @@ public:
             // Skip if on cooldown
             if (activator->currentCooldown > 0.0f) continue;
 
-            // Calculate activation zone
-            Vec2f activatorPos = activatorTransform->position + activator->offset;
+            // Calculate activation zone — subtract origin to anchor from visual top-left
+            Vec2f activatorPos = activatorTransform->position - activatorTransform->origin + activator->offset;
             bool wasActive = activator->isActive;
             bool entityInZone = false;
 
@@ -301,7 +303,7 @@ public:
                 if (tag->tag != activator->targetTag) continue;
 
                 auto* triggerTransform = triggerEntity->getComponent<TransformComponent>();
-                Vec2f triggerPos = triggerTransform->position;
+                Vec2f triggerPos = triggerTransform->position - triggerTransform->origin;
 
                 // Check if entity is in activation zone
                 bool inZone = false;
@@ -417,7 +419,7 @@ private:
 
         // Start cooldown if can't reactivate
         if (!activator->canReactivate) {
-            activator->currentCooldown = -1.0f;  // Permanently disable
+            activator->currentCooldown = std::numeric_limits<f32>::infinity();  // Permanently disable
         }
         else if (activator->cooldownTime > 0.0f) {
             activator->currentCooldown = activator->cooldownTime;

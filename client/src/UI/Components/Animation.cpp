@@ -62,7 +62,8 @@ Rect Animation::getBounds() const {
 
 void Animation::updateTextureRect() {
     if(m_sprite.texture == INVALID_HANDLE) return;
-    
+    if(m_frameSize.x == 0 || m_frameSize.y == 0) return;
+
     Vec2u texSize = GRAPHICS().getTextureSize(m_sprite.texture);
     u32 cols = texSize.x / m_frameSize.x;
     u32 col = m_currentFrame % cols;

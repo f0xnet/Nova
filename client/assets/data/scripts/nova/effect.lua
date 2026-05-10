@@ -83,7 +83,7 @@ function Effect.apply(entityId, effectId, config)
     }
     if config.stackable then
         -- Stocke plusieurs instances sous forme de liste
-        if not data[entityId][effectId] then
+        if not data[entityId][effectId] or not data[entityId][effectId].instances then
             data[entityId][effectId] = { instances = {} }
         end
         table.insert(data[entityId][effectId].instances, inst)

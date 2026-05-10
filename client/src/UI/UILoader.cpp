@@ -272,11 +272,15 @@ Color UILoader::parseColor(const std::string& colorStr) const {
     std::stringstream ss(colorStr);
     std::string token;
     u8 r = 255, g = 255, b = 255;
-    
-    if (std::getline(ss, token, ',')) r = static_cast<u8>(std::stoi(token));
-    if (std::getline(ss, token, ',')) g = static_cast<u8>(std::stoi(token));
-    if (std::getline(ss, token, ',')) b = static_cast<u8>(std::stoi(token));
-    
+
+    try {
+        if (std::getline(ss, token, ',')) r = static_cast<u8>(std::stoi(token));
+        if (std::getline(ss, token, ',')) g = static_cast<u8>(std::stoi(token));
+        if (std::getline(ss, token, ',')) b = static_cast<u8>(std::stoi(token));
+    } catch (const std::exception& e) {
+        LOG_WARN("UILoader::parseColor: invalid color string '{}': {}", colorStr, e.what());
+    }
+
     return Color(r, g, b, 255);
 }
 

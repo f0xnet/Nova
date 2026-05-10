@@ -160,9 +160,10 @@ _advanceSeq = function(seq, dt)
         elseif step.type == "dialogue" then
             seq._waiting = true
             local self_seq = seq
+            local expected_speaker = step.speaker
             -- Stocke la référence pour pouvoir se désabonner si la séquence est arrêtée.
             local function dialogueHandler(data)
-                if data.speaker == nil or data.speaker == self_seq._steps[self_seq._cursor].speaker then
+                if data.speaker == expected_speaker then
                     self_seq._dialogueHandler = nil
                     self_seq._waiting = false
                     self_seq._cursor  = self_seq._cursor + 1

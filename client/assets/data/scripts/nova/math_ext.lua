@@ -74,6 +74,7 @@ end
 
 -- Remapping de plage : [inMin, inMax] → [outMin, outMax]
 function Math.map(value, inMin, inMax, outMin, outMax)
+    if inMax == inMin then return outMin end
     return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin)
 end
 

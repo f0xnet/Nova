@@ -108,6 +108,11 @@ bool SFMLResourceBackend::isMusicLoaded(MusicHandle handle) const {
 }
 
 void SFMLResourceBackend::clearCache() {
+    if (m_graphics) {
+        for (const auto& [path, handle] : m_texturePaths) {
+            m_graphics->unloadTexture(handle);
+        }
+    }
     m_texturePaths.clear();
     m_fontPaths.clear();
     m_fonts.clear();
