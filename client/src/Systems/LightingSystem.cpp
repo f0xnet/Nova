@@ -46,9 +46,11 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
         if (!lightComp->enabled) {
             auto it = m_entityToLightIndex.find(entityID);
             if (it != m_entityToLightIndex.end()) {
-                // Light was previously enabled, now disabled → remove it
-                m_lightingEffect->removeLight(it->second);
+                i32 removedIndex = it->second;
+                m_lightingEffect->removeLight(removedIndex);
                 m_entityToLightIndex.erase(it);
+                for (auto& [eid, idx] : m_entityToLightIndex)
+                    if (idx > removedIndex) idx--;
             }
             continue;
         }
@@ -98,9 +100,11 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
     // Remove lights from entities that no longer exist or were deleted
     for (auto it = m_entityToLightIndex.begin(); it != m_entityToLightIndex.end(); ) {
         if (currentLightEntities.find(it->first) == currentLightEntities.end()) {
-            // Entity no longer has a light → remove from effect
-            m_lightingEffect->removeLight(it->second);
+            i32 removedIndex = it->second;
+            m_lightingEffect->removeLight(removedIndex);
             it = m_entityToLightIndex.erase(it);
+            for (auto& [eid, idx] : m_entityToLightIndex)
+                if (idx > removedIndex) idx--;
         } else {
             ++it;
         }
