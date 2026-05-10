@@ -44,7 +44,20 @@ void SFMLAudioBackend::playSound(SoundHandle handle, f32 volume, f32 pitch, bool
     );
 }
 
-void SFMLAudioBackend::stopSound(SoundHandle) {}
+void SFMLAudioBackend::stopSound(SoundHandle handle) {
+    if(handle == INVALID_HANDLE || !m_resources) return;
+    sf::SoundBuffer* buffer = m_resources->getSoundBuffer(handle);
+    if(!buffer) return;
+    for(auto& sound : m_activeSounds) {
+        if(sound && sound->getBuffer() == buffer)
+            sound->stop();
+    }
+    m_activeSounds.erase(
+        std::remove_if(m_activeSounds.begin(), m_activeSounds.end(),
+            [](const auto& s) { return !s || s->getStatus() == sf::Sound::Stopped; }),
+        m_activeSounds.end()
+    );
+}
 
 void SFMLAudioBackend::stopAllSounds() { 
     m_activeSounds.clear(); 
@@ -60,8 +73,15 @@ f32 SFMLAudioBackend::getSoundVolume() const {
     return m_soundVolume / 100.0f; 
 }
 
-SoundStatus SFMLAudioBackend::getSoundStatus(SoundHandle) const { 
-    return SoundStatus::Stopped; 
+SoundStatus SFMLAudioBackend::getSoundStatus(SoundHandle handle) const {
+    if(handle == INVALID_HANDLE || !m_resources) return SoundStatus::Stopped;
+    sf::SoundBuffer* buffer = m_resources->getSoundBuffer(handle);
+    if(!buffer) return SoundStatus::Stopped;
+    for(const auto& sound : m_activeSounds) {
+        if(sound && sound->getBuffer() == buffer)
+            return SFMLConv::fromSFMLStatus(sound->getStatus());
+    }
+    return SoundStatus::Stopped;
 }
 
 void SFMLAudioBackend::playMusic(MusicHandle handle, bool loop) {

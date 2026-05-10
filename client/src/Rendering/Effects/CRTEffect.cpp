@@ -104,66 +104,20 @@ void CRTEffect::apply(RenderTextureHandle inputTexture, RenderTextureHandle outp
     std::chrono::duration<float> elapsed = now - m_startTime;
     float time = elapsed.count();
 
-    // ========================================================================
-    // PASS 1 & 2: SSAO + blur (textures empruntées au pool partagé)
-    // ========================================================================
-    u32 aoWidth  = m_width  / 2;
-    u32 aoHeight = m_height / 2;
-
-    RenderTextureHandle aoTex     = INVALID_HANDLE;
-    RenderTextureHandle blurredTex = INVALID_HANDLE;
-
-    if(m_ssaoShader != INVALID_HANDLE && m_pool && m_aoStrength > 0.0f) {
-        aoTex = m_pool->acquire(aoWidth, aoHeight);
-        if(aoTex != INVALID_HANDLE) {
-            m_graphicsBackend->clearRenderTexture(aoTex, Color::White);
-            m_graphicsBackend->bindRenderTexture(aoTex);
-            m_graphicsBackend->setShaderParameter(m_ssaoShader, "resolution",
-                Vec2f(static_cast<f32>(aoWidth), static_cast<f32>(aoHeight)));
-            m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_ssaoShader);
-            m_graphicsBackend->displayRenderTexture(aoTex);
-            m_graphicsBackend->unbindRenderTexture();
-
-            // PASS 2: blur the AO map
-            if(m_blurShader != INVALID_HANDLE) {
-                blurredTex = m_pool->acquire(aoWidth, aoHeight);
-                if(blurredTex != INVALID_HANDLE) {
-                    m_graphicsBackend->clearRenderTexture(blurredTex, Color::White);
-                    m_graphicsBackend->bindRenderTexture(blurredTex);
-                    m_graphicsBackend->setShaderParameter(m_blurShader, "resolution",
-                        Vec2f(static_cast<f32>(aoWidth), static_cast<f32>(aoHeight)));
-                    m_graphicsBackend->setShaderParameter(m_blurShader, "blurRadius", 1.5f);
-                    m_graphicsBackend->drawRenderTextureToScreen(aoTex, m_blurShader);
-                    m_graphicsBackend->displayRenderTexture(blurredTex);
-                    m_graphicsBackend->unbindRenderTexture();
-                }
-            }
-        }
-    }
+    // SSAO+blur passes are disabled: IGraphicsBackend does not yet support secondary
+    // texture binding (see TODO). Re-enable PASS 1 & 2 once the interface is extended.
 
     // ========================================================================
-    // PASS 3: Final combine (Scene + Bloom + Saturation + AO)
+    // Final pass: CRT shader (scanlines, curvature, bloom, saturation)
     // ========================================================================
-
-    // Send dynamic parameters
     m_graphicsBackend->setShaderParameter(m_shader, "time", time);
     m_graphicsBackend->setShaderParameter(m_shader, "resolution",
         Vec2f(static_cast<f32>(m_width), static_cast<f32>(m_height)));
 
-    // TODO: Bind AO texture as secondary texture (need to extend IGraphicsBackend interface)
-    // For now, draw without AO texture (will work but no AO effect)
-
-    // Draw final result
     if(outputTexture == INVALID_HANDLE) {
         m_graphicsBackend->drawRenderTextureToScreen(inputTexture, m_shader);
     } else {
         m_graphicsBackend->drawRenderTextureToRenderTexture(inputTexture, outputTexture, m_shader);
-    }
-
-    // Rendre les textures scratch au pool
-    if(m_pool) {
-        if(blurredTex != INVALID_HANDLE) m_pool->release(blurredTex);
-        if(aoTex      != INVALID_HANDLE) m_pool->release(aoTex);
     }
 }
 

@@ -1,5 +1,6 @@
 #include "NovaEngine/Backend/SFML/SFMLResourceBackend.hpp"
 #include "NovaEngine/Backend/SFML/SFMLGraphicsBackend.hpp"
+#include <filesystem>
 
 namespace NovaEngine {
 SFMLResourceBackend::SFMLResourceBackend() : m_graphics(nullptr) {}
@@ -87,6 +88,10 @@ bool SFMLResourceBackend::isSoundLoaded(SoundHandle handle) const {
 
 MusicHandle SFMLResourceBackend::loadMusic(const String& path) {
     if(path.empty()) return INVALID_HANDLE;
+    for(const auto& [handle, p] : m_musicPaths) {
+        if(p == path) return handle;
+    }
+    if(!std::filesystem::exists(path)) return INVALID_HANDLE;
     MusicHandle handle = m_nextMusicHandle++;
     m_musicPaths[handle] = path;
     return handle;

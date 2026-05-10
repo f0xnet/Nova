@@ -8,7 +8,8 @@ namespace NovaEngine {
     }
 
     AudioManager::~AudioManager() {
-        AUDIO().stopMusic();
+        if(BACKEND().isInitialized())
+            AUDIO().stopMusic();
         LOG_INFO("AudioManager destroyed");
     }
 
