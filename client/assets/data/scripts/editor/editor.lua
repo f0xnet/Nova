@@ -402,12 +402,12 @@ local function drawGrid(ws)
     local worldH = ws.y - STATUS_H
     local x = PALETTE_W + ox % gridStep
     while x < ws.x do
-        Debug.fillRect(x, 0, 1, worldH, COL_GRID, 990)
+        Debug.fillRect(x, 0, 1, worldH, COL_GRID)
         x = x + gridStep
     end
     local y = oy % gridStep
     while y < worldH do
-        Debug.fillRect(PALETTE_W, y, ws.x - PALETTE_W, 1, COL_GRID, 990)
+        Debug.fillRect(PALETTE_W, y, ws.x - PALETTE_W, 1, COL_GRID)
         y = y + gridStep
     end
 end
@@ -415,13 +415,13 @@ end
 local function drawPalette(ws)
     -- Zone palette : du haut jusqu'au-dessus de la barre de statut
     local paletteH = ws.y - STATUS_H
-    Debug.fillRect(0, 0, PALETTE_W, paletteH, COL_BG, 1000)
+    Debug.fillRect(0, 0, PALETTE_W, paletteH, COL_BG)
 
     -- Titre + infos (lignes fixes en haut)
     local title = _saved and "EDITEUR  [Ctrl+E]" or "EDITEUR  [Ctrl+E] *"
-    Debug.label(8, 6,  title, COL_TEXT, 1002)
+    Debug.label(8, 6,  title, COL_TEXT)
     local snapTxt = _snapGrid > 0 and ("Snap " .. _snapGrid .. "px") or "Snap OFF"
-    Debug.label(8, 22, string.format("%s   Zoom %.1fx", snapTxt, Camera.getZoom()), COL_DIM, 1002)
+    Debug.label(8, 22, string.format("%s   Zoom %.1fx", snapTxt, Camera.getZoom()), COL_DIM)
 
     -- Nombre d'items visibles calculé selon la hauteur réelle disponible
     local listH   = paletteH - PALETTE_TOP - NAV_H
@@ -438,15 +438,15 @@ local function drawPalette(ws)
         if idx > #_spriteList then break end
         local id  = _spriteList[idx]
         local col = (idx == _paletteIdx and _placing) and COL_SEL_IT or COL_ITEM
-        Debug.fillRect(4, y, PALETTE_W - 8, ITEM_H - 2, col, 1001)
-        Debug.label(10, y + 7, id, COL_TEXT, 1002)
+        Debug.fillRect(4, y, PALETTE_W - 8, ITEM_H - 2, col)
+        Debug.label(10, y + 7, id, COL_TEXT)
         y = y + ITEM_H
     end
 
     -- Navigation : collée juste au-dessus de la barre de statut
     if #_spriteList > visible then
         Debug.label(8, paletteH - NAV_H + 5,
-            string.format("↑↓  %d / %d", _paletteIdx, #_spriteList), COL_DIM, 1001)
+            string.format("↑↓  %d / %d", _paletteIdx, #_spriteList), COL_DIM)
     end
 end
 
@@ -459,7 +459,7 @@ end
 
 local function drawStatus(ws)
     local barY = ws.y - STATUS_H
-    Debug.fillRect(PALETTE_W, barY, ws.x - PALETTE_W, STATUS_H, COL_STATUS, 1000)
+    Debug.fillRect(PALETTE_W, barY, ws.x - PALETTE_W, STATUS_H, COL_STATUS)
 
     -- Texte gauche : mode courant
     local mode
@@ -482,8 +482,8 @@ local function drawStatus(ws)
 
     -- Tronque le texte gauche pour ne pas empiéter sur le texte droit
     local maxLeftPx = (ws.x - PALETTE_W) - rightPx - 12
-    Debug.label(PALETTE_W + 6, barY + 5, truncate(mode, maxLeftPx), COL_TEXT, 1001)
-    Debug.label(ws.x - rightPx,  barY + 5, right, COL_DIM, 1001)
+    Debug.label(PALETTE_W + 6, barY + 5, truncate(mode, maxLeftPx), COL_TEXT)
+    Debug.label(ws.x - rightPx,  barY + 5, right, COL_DIM)
 end
 
 local function drawSelectionHighlight()
@@ -497,10 +497,10 @@ local function drawSelectionHighlight()
     local sx, sy = worldToScreen(t.position.x, t.position.y)
     local th = 2
     -- Cadre jaune autour du sprite
-    Debug.fillRect(sx - hw - th, sy - hh - th, hw * 2 + th * 2, th, COL_HILIGHT, 1001)
-    Debug.fillRect(sx - hw - th, sy + hh,       hw * 2 + th * 2, th, COL_HILIGHT, 1001)
-    Debug.fillRect(sx - hw - th, sy - hh - th, th, hh * 2 + th * 2, COL_HILIGHT, 1001)
-    Debug.fillRect(sx + hw,       sy - hh - th, th, hh * 2 + th * 2, COL_HILIGHT, 1001)
+    Debug.fillRect(sx - hw - th, sy - hh - th, hw * 2 + th * 2, th, COL_HILIGHT)
+    Debug.fillRect(sx - hw - th, sy + hh,       hw * 2 + th * 2, th, COL_HILIGHT)
+    Debug.fillRect(sx - hw - th, sy - hh - th, th, hh * 2 + th * 2, COL_HILIGHT)
+    Debug.fillRect(sx + hw,       sy - hh - th, th, hh * 2 + th * 2, COL_HILIGHT)
 end
 
 local function drawGhostSprite(ws)
@@ -516,14 +516,14 @@ local function drawGhostSprite(ws)
     local hw  = ((def and def.width  * (def.scale or 1)) or 64) * 0.5 * z
     local hh  = ((def and def.height * (def.scale or 1)) or 64) * 0.5 * z
 
-    Debug.fillRect(sx - hw, sy - hh, hw * 2, hh * 2, COL_GHOST,  1001)
-    Debug.fillRect(sx - hw, sy - hh, hw * 2, 1,       COL_GHOSTB, 1002)
-    Debug.fillRect(sx - hw, sy + hh, hw * 2, 1,       COL_GHOSTB, 1002)
-    Debug.fillRect(sx - hw, sy - hh, 1, hh * 2,       COL_GHOSTB, 1002)
-    Debug.fillRect(sx + hw, sy - hh, 1, hh * 2,       COL_GHOSTB, 1002)
+    Debug.fillRect(sx - hw, sy - hh, hw * 2, hh * 2, COL_GHOST)
+    Debug.fillRect(sx - hw, sy - hh, hw * 2, 1,       COL_GHOSTB)
+    Debug.fillRect(sx - hw, sy + hh, hw * 2, 1,       COL_GHOSTB)
+    Debug.fillRect(sx - hw, sy - hh, 1, hh * 2,       COL_GHOSTB)
+    Debug.fillRect(sx + hw, sy - hh, 1, hh * 2,       COL_GHOSTB)
     -- Croix centrale
-    Debug.fillRect(sx - 6, sy, 12, 1, COL_GHOSTB, 1002)
-    Debug.fillRect(sx, sy - 6, 1, 12, COL_GHOSTB, 1002)
+    Debug.fillRect(sx - 6, sy, 12, 1, COL_GHOSTB)
+    Debug.fillRect(sx, sy - 6, 1, 12, COL_GHOSTB)
 end
 
 function Editor.draw()
