@@ -1,8 +1,8 @@
 -- editor/editor.lua
--- Éditeur de niveau in-game — F2 pour activer/désactiver.
+-- Éditeur de niveau in-game — Ctrl+E pour activer/désactiver.
 --
 -- Contrôles :
---   F2              — toggle éditeur
+--   Ctrl+E          — toggle éditeur
 --   Clic gauche palette — sélectionne un sprite à poser
 --   Clic gauche monde  — pose le sprite / sélectionne une entité existante
 --   Clic droit + drag  — pan caméra
@@ -409,7 +409,7 @@ end
 local function drawPalette(ws)
     Debug.fillRect(0, 0, PALETTE_W, ws.y, COL_BG, 1000)
 
-    local title = _saved and "EDITEUR  [F2]" or "EDITEUR  [F2] *"
+    local title = _saved and "EDITEUR  [Ctrl+E]" or "EDITEUR  [Ctrl+E] *"
     Debug.label(8, 6,  title, COL_TEXT, 1002)
     local snapTxt = _snapGrid > 0 and ("Snap " .. _snapGrid .. "px") or "Snap OFF"
     Debug.label(8, 22, string.format("%s   Zoom %.1fx", snapTxt, Camera.getZoom()), COL_DIM, 1002)
@@ -514,8 +514,10 @@ EventBus.on("mouse_up", function(data)
     Editor.onMouseUp(data.button)
 end)
 
-EventBus.on("key_down_F2", function()
-    Editor.toggle()
+EventBus.on("key_down_E", function()
+    if Input.isKeyPressed("LControl") or Input.isKeyPressed("RControl") then
+        Editor.toggle()
+    end
 end)
 
 -- key_down générique → délègue à onKeyDown

@@ -6,7 +6,7 @@
 --   E        — interaction avec les PNJ / avance le dialogue
 --   T        — avance le temps d'une heure
 --   N        — ouvre/ferme la console développeur (DevConsole)
---   F2       — ouvre/ferme l'éditeur de niveau
+--   Ctrl+E   — ouvre/ferme l'éditeur de niveau
 
 -- ── Bindings de contrôle ───────────────────────────────────────────────────
 
@@ -42,8 +42,10 @@ function OnKeyDown(key)
         return
     end
 
-    -- Interaction / dialogue (touche E)
-    if key == InputBind.getKey("interact") then
+    -- Interaction / dialogue (touche E) — ignore Ctrl+E (réservé à l'éditeur)
+    if key == InputBind.getKey("interact")
+       and not Input.isKeyPressed("LControl")
+       and not Input.isKeyPressed("RControl") then
         if Dialogue.isActive() then
             Dialogue.advance()
         else
