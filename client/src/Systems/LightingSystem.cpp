@@ -27,16 +27,9 @@ void LightingSystem::update(float deltaTime, EntityRegistry& registry) {
     // Track which entities currently have lights
     std::unordered_set<u64> currentLightEntities;
 
-    // Get all entities with LightComponent and TransformComponent
-    auto entities = registry.getAllEntities();
+    const auto& entities = registry.getEntitiesWith({"LightComponent", "TransformComponent"});
 
     for (auto* entity : entities) {
-        // Check if entity has both required components
-        if (!entity->hasComponent<LightComponent>() ||
-            !entity->hasComponent<TransformComponent>()) {
-            continue;
-        }
-
         auto* lightComp = entity->getComponent<LightComponent>();
         auto* transformComp = entity->getComponent<TransformComponent>();
 
