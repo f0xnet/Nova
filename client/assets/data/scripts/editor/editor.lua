@@ -47,9 +47,11 @@ local COL_GHOST   = Color.new(130, 180, 255,  55)
 local COL_GHOSTB  = Color.new(130, 180, 255, 200)
 local COL_GRID    = Color.new(55,  55,  80,  70)
 
-local PALETTE_W = 220
-local ITEM_H    = 26
-local VISIBLE   = 22   -- items affichés simultanément dans la palette
+local PALETTE_W   = 220
+local ITEM_H      = 26
+local PALETTE_TOP = 44   -- y où commencent les items
+local NAV_H       = 26   -- hauteur réservée pour "↑↓ n/N" en bas de palette
+local STATUS_H    = 22   -- hauteur de la barre de statut
 
 -- ── Utilitaires coordonnées ───────────────────────────────────────────────────
 
@@ -258,12 +260,15 @@ function Editor.onMouseDown(button, sx, sy)
 
     if button ~= "left" then return end
 
-    -- Clic dans la palette
+    -- Clic dans la palette (ignore la barre de statut et l'en-tête)
     if sx <= PALETTE_W then
-        local itemY = sy - 44
-        if itemY >= 0 then
-            local idx = _paletteScroll + math.floor(itemY / ITEM_H) + 1
-            if idx >= 1 and idx <= #_spriteList then
+        local itemY = sy - PALETTE_TOP
+        if itemY >= 0 and sy < (Viewport.getWindowSize().y - STATUS_H) then
+            local ws2   = Viewport.getWindowSize()
+            local listH = ws2.y - STATUS_H - PALETTE_TOP - NAV_H
+            local vis   = math.max(1, math.floor(listH / ITEM_H))
+            local idx   = _paletteScroll + math.floor(itemY / ITEM_H) + 1
+            if idx >= 1 and idx <= #_spriteList and idx <= _paletteScroll + vis then
                 _paletteIdx = idx
                 _placing    = true
                 _selected   = nil
@@ -394,63 +399,91 @@ local function drawGrid(ws)
     local ox = (ws.x * 0.5 - c.x * z) % gridStep
     local oy = (ws.y * 0.5 - c.y * z) % gridStep
 
+    local worldH = ws.y - STATUS_H
     local x = PALETTE_W + ox % gridStep
     while x < ws.x do
-        Debug.fillRect(x, 0, 1, ws.y - 22, COL_GRID, 990)
+        Debug.fillRect(x, 0, 1, worldH, COL_GRID, 990)
         x = x + gridStep
     end
     local y = oy % gridStep
-    while y < ws.y - 22 do
+    while y < worldH do
         Debug.fillRect(PALETTE_W, y, ws.x - PALETTE_W, 1, COL_GRID, 990)
         y = y + gridStep
     end
 end
 
 local function drawPalette(ws)
-    Debug.fillRect(0, 0, PALETTE_W, ws.y, COL_BG, 1000)
+    -- Zone palette : du haut jusqu'au-dessus de la barre de statut
+    local paletteH = ws.y - STATUS_H
+    Debug.fillRect(0, 0, PALETTE_W, paletteH, COL_BG, 1000)
 
+    -- Titre + infos (lignes fixes en haut)
     local title = _saved and "EDITEUR  [Ctrl+E]" or "EDITEUR  [Ctrl+E] *"
     Debug.label(8, 6,  title, COL_TEXT, 1002)
     local snapTxt = _snapGrid > 0 and ("Snap " .. _snapGrid .. "px") or "Snap OFF"
     Debug.label(8, 22, string.format("%s   Zoom %.1fx", snapTxt, Camera.getZoom()), COL_DIM, 1002)
 
-    local y = 44
-    for i = 1, VISIBLE do
+    -- Nombre d'items visibles calculé selon la hauteur réelle disponible
+    local listH   = paletteH - PALETTE_TOP - NAV_H
+    local visible = math.max(1, math.floor(listH / ITEM_H))
+
+    -- Maintient le scroll cohérent si la fenêtre change
+    if _paletteScroll + visible > #_spriteList then
+        _paletteScroll = math.max(0, #_spriteList - visible)
+    end
+
+    local y = PALETTE_TOP
+    for i = 1, visible do
         local idx = _paletteScroll + i
         if idx > #_spriteList then break end
         local id  = _spriteList[idx]
         local col = (idx == _paletteIdx and _placing) and COL_SEL_IT or COL_ITEM
         Debug.fillRect(4, y, PALETTE_W - 8, ITEM_H - 2, col, 1001)
-        Debug.label(10, y + 6, id, COL_TEXT, 1002)
+        Debug.label(10, y + 7, id, COL_TEXT, 1002)
         y = y + ITEM_H
     end
 
-    if #_spriteList > VISIBLE then
-        Debug.label(8, ws.y - 38,
+    -- Navigation : collée juste au-dessus de la barre de statut
+    if #_spriteList > visible then
+        Debug.label(8, paletteH - NAV_H + 5,
             string.format("↑↓  %d / %d", _paletteIdx, #_spriteList), COL_DIM, 1001)
     end
 end
 
+-- Tronque une chaîne pour qu'elle tienne en maxPx pixels (estimation 7px/char).
+local function truncate(s, maxPx)
+    local maxC = math.floor(maxPx / 7)
+    if #s <= maxC then return s end
+    return s:sub(1, maxC - 1) .. "…"
+end
+
 local function drawStatus(ws)
+    local barY = ws.y - STATUS_H
+    Debug.fillRect(PALETTE_W, barY, ws.x - PALETTE_W, STATUS_H, COL_STATUS, 1000)
+
+    -- Texte gauche : mode courant
     local mode
     if _placing then
         mode = "POSE : " .. (_spriteList[_paletteIdx] or "?")
     elseif _selected then
-        local t = _selected.entity:getTransform()
+        local t  = _selected.entity:getTransform()
         local px = t and math.floor(t.position.x) or 0
         local py = t and math.floor(t.position.y) or 0
         mode = string.format("SÉLECT : %s  (%d, %d)  WASD=déplace  Del=suppr", _selected.spriteID, px, py)
     else
         local mp = Input.getMousePosition()
         local wx, wy = screenToWorld(mp.x, mp.y)
-        mode = string.format("Monde (%.0f, %.0f)  | clic palette=poser  |  clic entité=sélect", snap(wx), snap(wy))
+        mode = string.format("(%.0f, %.0f)  clic palette=poser  |  clic entité=sélect", snap(wx), snap(wy))
     end
 
-    local right = string.format("%d entités   Ctrl+S sauvegarder   G grille   +/- zoom   Echap quitter", #_placed)
-    Debug.fillRect(PALETTE_W, ws.y - 22, ws.x - PALETTE_W, 22, COL_STATUS, 1000)
-    Debug.label(PALETTE_W + 6, ws.y - 16, mode, COL_TEXT, 1001)
-    local rw = #right * 7
-    Debug.label(ws.x - rw - 6, ws.y - 16, right, COL_DIM, 1001)
+    -- Texte droite : hints fixes
+    local right = string.format("%d ent.  Ctrl+S  G  +/-  Echap", #_placed)
+    local rightPx = #right * 7 + 12
+
+    -- Tronque le texte gauche pour ne pas empiéter sur le texte droit
+    local maxLeftPx = (ws.x - PALETTE_W) - rightPx - 12
+    Debug.label(PALETTE_W + 6, barY + 5, truncate(mode, maxLeftPx), COL_TEXT, 1001)
+    Debug.label(ws.x - rightPx,  barY + 5, right, COL_DIM, 1001)
 end
 
 local function drawSelectionHighlight()
