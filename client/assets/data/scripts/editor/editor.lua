@@ -13,9 +13,9 @@
 --   Ctrl+D              — désélectionner / sortir PLACE
 --   Ctrl+G              — bascule grille
 --   Ctrl+1 / Ctrl+2     — bascule onglet SPRITES / LAYERS
+--   Ctrl+Up / Ctrl+Down — layer +1 / -1 (entité sélectionnée ou layer actif)
 --   Echap               — désélec. / fermer / annuler une édition
 --   G                   — bascule grille (alias)
---   + / -               — zoom caméra
 --   Clic droit + drag   — pan caméra
 --
 -- Panneau gauche (tabs) :
@@ -26,12 +26,11 @@
 --
 -- Panneau droit (Properties) :
 --   Clic ligne          — édite la valeur (Entrée valide, Echap annule)
---   ↑/↓ ou [/]          — cycle dans la liste sprite (édition spriteID)
+--   Up/Down             — cycle dans la liste sprite (édition spriteID)
 --
 -- Sélection :
 --   WASD / Flèches      — déplace l'entité (pas = grille ou 1 px)
---   Suppr               — supprime l'entité sélectionnée
---   [ ] / ( )           — décrémente / incrémente le layer (zOrder)
+--   Backspace           — supprime l'entité sélectionnée
 --   0–9                 — fixe le layer directement
 --
 -- Note rendu : toutes les primitives passent par Debug.* (font 28 px).
@@ -348,34 +347,24 @@ local function cycleSprite(dir)
 end
 
 local function handleEditKey(key)
-    if key == "Return" or key == "Enter" or key == "KP_Enter" or key == "NumpadEnter" then
+    if key == "Return" or key == "Enter" then
         applyEdit(); return
     end
-    if key == "Escape"   then cancelEdit(); return end
+    if key == "Escape"    then cancelEdit(); return end
     if key == "Backspace" then
         _editing.buffer = _editing.buffer:sub(1, -2); return
     end
 
-    -- spriteID : cycle dans la liste, pas de saisie libre
+    -- spriteID : cycle dans la liste avec Up/Down
     if _editing.field == "spriteID" then
-        if key == "Up"   or key == "LBracket" or key == "LParen" then cycleSprite(-1); return end
-        if key == "Down" or key == "RBracket" or key == "RParen" then cycleSprite( 1); return end
+        if key == "Up"   then cycleSprite(-1); return end
+        if key == "Down" then cycleSprite( 1); return end
         return
     end
 
-    -- Champs numériques : digits / signe / virgule
-    local n = key:match("^Num(%d)$") or key:match("^Numpad(%d)$")
+    -- Champs numériques : chiffres 0-9 (touches clavier disponibles)
+    local n = key:match("^(%d)$")
     if n then _editing.buffer = _editing.buffer .. n; return end
-    if key == "Hyphen" or key == "Subtract" then
-        if _editing.buffer == "" then _editing.buffer = "-" end
-        return
-    end
-    if key == "Period" or key == "Decimal" then
-        if not _editing.buffer:find(".", 1, true) then
-            _editing.buffer = _editing.buffer .. "."
-        end
-        return
-    end
 end
 
 -- ═════════════════════════════════════════════════════════════════════════════
@@ -723,11 +712,18 @@ function Editor.onKeyDown(key)
         if key == "S" then saveScene(); return end
         if key == "G" then _snapGrid = (_snapGrid > 0) and 0 or 32; return end
         if key == "D" then _placing = false; _selected = nil; return end
-        if key == "Num1" or key == "Numpad1" then
-            _leftTab = "sprites"; _paletteScroll = 0; return
+        if key == "1" then _leftTab = "sprites"; _paletteScroll = 0; return end
+        if key == "2" then _leftTab = "layers";  _paletteScroll = 0; return end
+        -- Layer +1 / -1 (entité sélectionnée ou layer actif)
+        if key == "Up" then
+            if _selected then setEntryLayer(_selected, _selected.zOrder + 1)
+            else _layer = math.min(10, _layer + 1) end
+            return
         end
-        if key == "Num2" or key == "Numpad2" then
-            _leftTab = "layers";  _paletteScroll = 0; return
+        if key == "Down" then
+            if _selected then setEntryLayer(_selected, _selected.zOrder - 1)
+            else _layer = math.max(0, _layer - 1) end
+            return
         end
         return
     end
@@ -739,7 +735,7 @@ function Editor.onKeyDown(key)
         return
     end
 
-    if key == "Delete" and _selected then
+    if key == "Backspace" and _selected then
         removeEntry(_selected); _selected = nil; return
     end
 
@@ -747,8 +743,8 @@ function Editor.onKeyDown(key)
         _snapGrid = (_snapGrid > 0) and 0 or 32; return
     end
 
-    -- Navigation palette
-    if key == "PageUp" or (key == "Up" and not _selected) then
+    -- Navigation palette (Up/Down sans entité sélectionnée)
+    if key == "Up" and not _selected then
         if _paletteIdx > 1 then
             _paletteIdx = _paletteIdx - 1
             _placing    = true
@@ -758,7 +754,7 @@ function Editor.onKeyDown(key)
         end
         return
     end
-    if key == "PageDown" or (key == "Down" and not _selected) then
+    if key == "Down" and not _selected then
         if _paletteIdx < #_spriteList then
             _paletteIdx = _paletteIdx + 1
             _placing    = true
@@ -770,27 +766,13 @@ function Editor.onKeyDown(key)
         return
     end
 
-    -- Layer (zOrder)
-    if key == "LBracket" or key == "LParen" then
-        if _selected then setEntryLayer(_selected, _selected.zOrder - 1)
-        else _layer = math.max(0, _layer - 1) end
-        return
-    end
-    if key == "RBracket" or key == "RParen" then
-        if _selected then setEntryLayer(_selected, _selected.zOrder + 1)
-        else _layer = math.min(10, _layer + 1) end
-        return
-    end
-    local num = key:match("^Num(%d)$") or key:match("^Numpad(%d)$")
+    -- Layer direct 0-9
+    local num = key:match("^(%d)$")
     if num then
         local n = tonumber(num)
         if _selected then setEntryLayer(_selected, n) else _layer = n end
         return
     end
-
-    -- Zoom
-    if key == "Add"      then Camera.setZoom(math.min(Camera.getZoom() * 1.25, 8.0)); return end
-    if key == "Subtract" then Camera.setZoom(math.max(Camera.getZoom() / 1.25, 0.1)); return end
 
     -- Déplacement entité sélectionnée
     if _selected then
@@ -998,17 +980,8 @@ local function drawLayersTab(ws)
 
             local txt = item.entry.spriteID
             Debug.label(lx + PAD + 26, y + TXT_PAD_Y,
-                        truncate(txt, lw - 140),
+                        truncate(txt, lw - 40),
                         isSelected and C_TEXT or C_TEXT_DIM)
-
-            local t = item.entry.entity:getTransform()
-            if t then
-                local pos = string.format("%d,%d",
-                                          math.floor(t.position.x),
-                                          math.floor(t.position.y))
-                Debug.label(lx + lw - textW(pos) - PAD, y + TXT_PAD_Y,
-                            pos, C_TEXT_MUTE)
-            end
         end
     end
 
