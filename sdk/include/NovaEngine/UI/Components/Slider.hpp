@@ -13,7 +13,7 @@ public:
 
     void setValue(f32 value);
     f32 getValue() const;
-    void setPosition(const Vec2f& pos) override;
+    void setPosition(const Vec2f& pos);
     void setSize(const Vec2f& size) override;
     void setOnValueChanged(std::function<void(f32)> callback);
 
