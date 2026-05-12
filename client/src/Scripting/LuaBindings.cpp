@@ -167,16 +167,16 @@ void LuaBindings::registerComponents(sol::state& lua) {
         "type", sol::property(
             [](const LightComponent& l) -> std::string {
                 switch (l.type) {
-                    case LightType::Point:       return "point";
-                    case LightType::Directional: return "directional";
-                    case LightType::Spot:        return "spot";
+                    case LightComponent::LightType::Point:       return "point";
+                    case LightComponent::LightType::Directional: return "directional";
+                    case LightComponent::LightType::Spot:        return "spot";
                 }
                 return "point";
             },
             [](LightComponent& l, const std::string& s) {
-                if      (s == "point")       l.type = LightType::Point;
-                else if (s == "directional") l.type = LightType::Directional;
-                else if (s == "spot")        l.type = LightType::Spot;
+                if      (s == "point")       l.type = LightComponent::LightType::Point;
+                else if (s == "directional") l.type = LightComponent::LightType::Directional;
+                else if (s == "spot")        l.type = LightComponent::LightType::Spot;
             }
         ),
         "radius",      &LightComponent::radius,
