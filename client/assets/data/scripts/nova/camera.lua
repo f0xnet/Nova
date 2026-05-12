@@ -44,6 +44,7 @@ local _offsetX      = 0
 local _offsetY      = 0
 local _defaultW     = nil
 local _defaultH     = nil
+local _zoom         = 1.0  -- niveau de zoom courant (réaffirmé chaque frame)
 local _moveTwID  = nil   -- tween de déplacement actif (moveTo / path)
 local _zoomTwID  = nil   -- tween de zoom actif (zoomTo) — indépendant du déplacement
 
@@ -64,6 +65,11 @@ function Camera._update(dt)
         _offsetY = (math.random() * 2 - 1) * amt
     else
         _offsetX, _offsetY = 0, 0
+    end
+
+    -- Réaffirme le zoom chaque frame pour contrer le resetView C++ (fin de render).
+    if _zoom ~= 1.0 then
+        Viewport.setSize(_defaultW / _zoom, _defaultH / _zoom)
     end
 
     -- Suivi d'entité ou position fixe
@@ -124,13 +130,13 @@ function Camera.shake(duration, force)
 end
 
 function Camera.setZoom(scale)
+    _zoom = scale
     if not _defaultW then return end
     Viewport.setSize(_defaultW / scale, _defaultH / scale)
 end
 
 function Camera.getZoom()
-    if not _defaultW then return 1.0 end
-    return _defaultW / Viewport.getSize().x
+    return _zoom
 end
 
 -- Zoom fluide via Tween
@@ -194,6 +200,7 @@ function Camera.reset()
     _staticX, _staticY = nil, nil
     _pathQueue = nil
     _pathDone  = nil
+    _zoom      = 1.0
     if _moveTwID  then Tween.cancel(_moveTwID);  _moveTwID  = nil end
     if _zoomTwID  then Tween.cancel(_zoomTwID);  _zoomTwID  = nil end
     if _defaultW then
