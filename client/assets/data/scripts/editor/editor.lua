@@ -252,6 +252,23 @@ local function hitTestLight(entry, sx, sy)
     return d <= 28
 end
 
+-- Surface en pixels écran (zoom inclus) du AABB de sélection.
+-- Sert à départager les entités en cas d'overlap : la plus petite gagne,
+-- ce qui correspond à l'intention « je clique sur ce que je vois ».
+local function selectionArea(entry)
+    if entry.kind == "sprite" or entry.kind == "player" then
+        local t = entry.entity:getTransform()
+        local s = entry.entity:getSprite()
+        if t and s then
+            local z = Camera.getZoom()
+            local w = (s.size.x or 1) * (t.scale.x or 1.0) * z
+            local h = (s.size.y or 1) * (t.scale.y or 1.0) * z
+            return w * h
+        end
+    end
+    return 56 * 56  -- disque hit-test des lumières (rayon 28 écran)
+end
+
 -- ═════════════════════════════════════════════════════════════════════════════
 -- Kinds — chaque type d'entité éditable
 -- ═════════════════════════════════════════════════════════════════════════════
@@ -1056,12 +1073,17 @@ function Editor.onMouseDown(button, sx, sy)
             spawnFromPaletteItem(item, wx, wy)
         end
     else
-        local best, bestZ = nil, -1
+        -- Plus petit AABB gagne ; en cas d'égalité, zOrder le plus élevé.
+        local best, bestArea, bestZ = nil, math.huge, -1
         for _, entry in ipairs(_placed) do
             local kind = Kinds[entry.kind]
             local ht = kind and kind.hitTest
-            if ht and ht(entry, sx, sy) and (entry.zOrder or 0) > bestZ then
-                best, bestZ = entry, entry.zOrder or 0
+            if ht and ht(entry, sx, sy) then
+                local area = selectionArea(entry)
+                local z    = entry.zOrder or 0
+                if area < bestArea or (area == bestArea and z > bestZ) then
+                    best, bestArea, bestZ = entry, area, z
+                end
             end
         end
         _selected = best
