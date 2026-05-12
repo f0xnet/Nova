@@ -164,10 +164,28 @@ void LuaBindings::registerComponents(sol::state& lua) {
     );
 
     lua.new_usertype<LightComponent>("LightComponent",
-        "radius",    &LightComponent::radius,
-        "intensity", &LightComponent::intensity,
-        "enabled",   &LightComponent::enabled,
-        "color",     &LightComponent::color
+        "type", sol::property(
+            [](const LightComponent& l) -> std::string {
+                switch (l.type) {
+                    case LightType::Point:       return "point";
+                    case LightType::Directional: return "directional";
+                    case LightType::Spot:        return "spot";
+                }
+                return "point";
+            },
+            [](LightComponent& l, const std::string& s) {
+                if      (s == "point")       l.type = LightType::Point;
+                else if (s == "directional") l.type = LightType::Directional;
+                else if (s == "spot")        l.type = LightType::Spot;
+            }
+        ),
+        "radius",      &LightComponent::radius,
+        "intensity",   &LightComponent::intensity,
+        "enabled",     &LightComponent::enabled,
+        "color",       &LightComponent::color,
+        "direction",   &LightComponent::direction,
+        "angle",       &LightComponent::angle,
+        "castShadows", &LightComponent::castShadows
     );
 
     lua.new_usertype<AnimationComponent>("AnimationComponent",
