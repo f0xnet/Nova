@@ -101,8 +101,8 @@ local STATUS_H  = 44
 local SECTION_H = 36
 local ITEM_H    = 40
 local HEAD_H    = 32
-local PALETTE_W = 280
-local PROP_W    = 340
+local PALETTE_W = 320
+local PROP_W    = 400
 local PROP_H    = 460       -- assez pour les lumières (8+ rows)
 local PAD       = 10
 local TXT_PAD_Y = math.floor((ITEM_H - FONT_H) / 2)
@@ -844,6 +844,34 @@ local function toolbarLayout()
     return { textY = textY, select = selectRect, place = placeRect, nextX = x }
 end
 
+-- Disposition du côté droit du toolbar : [-] Zoom 1.0x [+]   Snap 32
+local function toolbarRight(ws)
+    local textY  = math.floor((TOOLBAR_H - FONT_H) / 2)
+    local boxH   = FONT_H + 8
+    local boxY   = textY - 4
+    local btnW   = 36
+
+    local snapTxt = (_snapGrid > 0) and ("Snap " .. _snapGrid) or "Snap OFF"
+    local zoomTxt = string.format("Zoom %.1fx", Camera.getZoom())
+
+    local x       = ws.x - PAD
+    local snapX   = x - textW(snapTxt); x = snapX - 18
+    local plusRect = { x = x - btnW, y = boxY, w = btnW, h = boxH }
+    x = plusRect.x - 8
+    local zoomTxtX = x - textW(zoomTxt); x = zoomTxtX - 8
+    local minusRect = { x = x - btnW, y = boxY, w = btnW, h = boxH }
+
+    return {
+        textY     = textY,
+        snapText  = snapTxt,
+        snapX     = snapX,
+        zoomText  = zoomTxt,
+        zoomTextX = zoomTxtX,
+        minus     = minusRect,
+        plus      = plusRect,
+    }
+end
+
 local function tabBarRect()
     return 0, TOOLBAR_H, PALETTE_W, SECTION_H
 end
@@ -934,9 +962,10 @@ function Editor.onMouseDown(button, sx, sy)
         if not pointInRect(sx, sy, px, py, pw, ph) then applyEdit() end
     end
 
-    -- Toolbar : boutons SELECT / PLACE
+    -- Toolbar : boutons SELECT / PLACE / Zoom
     if sy < TOOLBAR_H then
-        local lay = toolbarLayout()
+        local lay   = toolbarLayout()
+        local right = toolbarRight(ws)
         if pointInRect(sx, sy, lay.select.x, lay.select.y, lay.select.w, lay.select.h) then
             _placing = false; return
         end
@@ -946,6 +975,12 @@ function Editor.onMouseDown(button, sx, sy)
                 _selected = nil
             end
             return
+        end
+        if pointInRect(sx, sy, right.minus.x, right.minus.y, right.minus.w, right.minus.h) then
+            Camera.setZoom(math.max(Camera.getZoom() / 1.25, 0.1)); return
+        end
+        if pointInRect(sx, sy, right.plus.x, right.plus.y, right.plus.w, right.plus.h) then
+            Camera.setZoom(math.min(Camera.getZoom() * 1.25, 8.0)); return
         end
         return
     end
@@ -1192,10 +1227,19 @@ local function drawToolbar(ws)
     Debug.fillRect(boxX, y - 4, 4, FONT_H + 8, C_ACCENT)
     Debug.label(boxX + 4, y, layerStr, C_TEXT)
 
-    local snapTxt = (_snapGrid > 0) and ("Snap " .. _snapGrid) or "Snap OFF"
-    local zoomTxt = string.format("Zoom %.1fx", Camera.getZoom())
-    local right   = snapTxt .. "    " .. zoomTxt
-    Debug.label(ws.x - textW(right) - PAD, y, right, C_TEXT_DIM)
+    -- Côté droit : [-] Zoom 1.0x [+]   Snap N
+    local right = toolbarRight(ws)
+    local function zoomBtn(rect, label)
+        local hover = pointInRect(mp.x, mp.y, rect.x, rect.y, rect.w, rect.h)
+        local bg    = hover and C_BG_HOVER or C_BG_ITEM
+        Debug.fillRect(rect.x, rect.y, rect.w, rect.h, bg)
+        local labelX = rect.x + math.floor((rect.w - textW(label)) / 2)
+        Debug.label(labelX, y, label, C_TEXT)
+    end
+    zoomBtn(right.minus, "-")
+    Debug.label(right.zoomTextX, y, right.zoomText, C_TEXT_DIM)
+    zoomBtn(right.plus,  "+")
+    Debug.label(right.snapX,     y, right.snapText, C_TEXT_DIM)
 end
 
 local function drawTabBar()
