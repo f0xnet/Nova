@@ -61,6 +61,8 @@ local _panning          = false
 local _panStartMouse    = { x = 0, y = 0 }
 local _panStartCam      = { x = 0, y = 0 }
 
+local _dragFromPalette  = false  -- press dans la palette en cours → drop en monde = pose
+
 local _leftTab          = "palette"   -- "palette" | "layers"
 local _layerExpanded    = {}          -- [n] = bool
 local _editing          = nil         -- { field, buffer }
@@ -808,11 +810,12 @@ end
 
 function Editor.disable()
     if not _enabled then return end
-    _enabled  = false
-    _selected = nil
-    _placing  = false
-    _panning  = false
-    _editing  = nil
+    _enabled          = false
+    _selected         = nil
+    _placing          = false
+    _panning          = false
+    _editing          = nil
+    _dragFromPalette  = false
     Game.setTimescale(1)
     Log.info("[Editor] Désactivé")
 end
@@ -1006,9 +1009,10 @@ function Editor.onMouseDown(button, sx, sy)
         if _leftTab == "palette" then
             local item = _paletteFlat[idx]
             if item and not item.isSection then
-                _paletteIdx = idx
-                _placing    = true
-                _selected   = nil
+                _paletteIdx      = idx
+                _placing         = true
+                _selected        = nil
+                _dragFromPalette = true
             end
         else
             local flat = buildLayersFlat()
@@ -1066,7 +1070,26 @@ end
 
 function Editor.onMouseUp(button)
     if not _enabled then return end
-    if button == "right" then _panning = false end
+    if button == "right" then _panning = false; return end
+    if button ~= "left" then return end
+
+    if _dragFromPalette then
+        _dragFromPalette = false
+        local mp = Input.getMousePosition()
+        local ws = Viewport.getWindowSize()
+        -- Drop dans la zone monde (hors palette, toolbar, status)
+        local inWorld = mp.x >= PALETTE_W
+                    and mp.y >= TOOLBAR_H
+                    and mp.y <  ws.y - STATUS_H
+        if inWorld and _placing then
+            local wx, wy = screenToWorld(mp.x, mp.y)
+            wx, wy = snap(wx), snap(wy)
+            local item = _paletteFlat[_paletteIdx]
+            if item and not item.isSection then
+                spawnFromPaletteItem(item, wx, wy)
+            end
+        end
+    end
 end
 
 function Editor.onKeyDown(key)
