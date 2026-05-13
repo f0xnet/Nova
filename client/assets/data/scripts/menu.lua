@@ -34,12 +34,12 @@ end
 
 function init()
     if _G._fromIntro then
-        -- L'intro contrôle la caméra et le dezoom.
-        -- On enregistre la finalisation et on attend qu'elle soit appelée.
+        -- Charge la UI immédiatement : fond et boutons visibles pendant le dezoom.
+        -- Musique et câblage des boutons différés jusqu'à la fin du dezoom.
+        UI.load("data/ui/json/main_menu.json")
         _G._menuFinalize = function()
             Camera.unfollow()  -- libère _staticX posé par Camera.setPosition() dans l'intro
             Sound.playMusic("data/music/menu.ogg", true)
-            UI.load("data/ui/json/main_menu.json")
             wireButtons()
         end
         return
