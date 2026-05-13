@@ -1,17 +1,31 @@
 -- intro.lua
 -- Séquence d'amorçage terminal Nova — Protocole Zéro.
 --
--- Variables d'ajustement :
+-- Variables d'ajustement (timing) :
 --   CHAR_DELAY : secondes entre chaque caractère (vitesse de frappe)
 --   LINE_DELAY : pause entre la fin d'une ligne et le début de la suivante
 --   SEP_DELAY  : pause après l'affichage d'un séparateur
---   HOLD_END   : pause finale avant le fondu vers le menu
+--   HOLD_END   : pause finale avant la transition vers le menu
+--   FADE_FINAL : durée du fondu au noir de fin d'intro
+--
+-- Variables d'ajustement (révélation du menu) :
+--   TERMINAL_X        : position X (world) du centre du terminal dans menu.scene
+--   TERMINAL_Y        : position Y (world) du centre du terminal dans menu.scene
+--   TERMINAL_ZOOM     : zoom de départ — assez fort pour ne voir que l'écran noir
+--   ZOOM_OUT_DURATION : durée du dezoom révélateur (secondes)
+--   ZOOM_OUT_EASE     : easing du dezoom ("easeOut", "easeInOut", "linear"…)
 
 local CHAR_DELAY = 0.015
 local LINE_DELAY = 0.15
 local SEP_DELAY  = 0.08
 local HOLD_END   = 1.8
 local FADE_FINAL = 1.2
+
+local TERMINAL_X        = 0          -- à ajuster selon la position du terminal dans menu.scene
+local TERMINAL_Y        = 0          -- à ajuster selon la position du terminal dans menu.scene
+local TERMINAL_ZOOM     = 8.0        -- zoom suffisant pour ne voir que l'écran noir du terminal
+local ZOOM_OUT_DURATION = 2.5        -- durée du dezoom révélateur
+local ZOOM_OUT_EASE     = "easeInOut"
 
 -- Overlay CRT — ajuster selon le goût
 local CRT_SCAN_STEP    = 6     -- px entre chaque paire de scanlines
@@ -119,13 +133,29 @@ function init()
     typewrite("ln_c3", "OBJECTIF : EXTRACTION EMPREINTE MEMOIRE STABLE")
     typewrite("ln_c4", "INTEGRATION EN COURS...")
 
-    -- Fondu vers le noir puis transition vers le menu
+    -- Fin d'intro : coupe directe sur menu.scene zoomé sur le terminal, puis dezoom.
+    -- Pas de fondu — l'intro et le terminal sont tous les deux noirs : la coupure est invisible.
     Timer.after(cursor + HOLD_END, function()
-        Sound.fadeMusic(0, FADE_FINAL)
-        SceneFX.fadeIn(FADE_FINAL, function()
-            UI.removeUI("intro_ui")
-            Scene.load("data/scenes/menu.scene", "menu")
-            Scene.setActive("menu")
+        -- Fade out de la musique sur toute la durée du dezoom
+        Sound.fadeMusic(0, FADE_FINAL + ZOOM_OUT_DURATION)
+
+        UI.removeUI("intro_ui")
+        Scene.load("data/scenes/menu.scene", "menu")
+        _G._fromIntro = true
+        Camera.setPosition(TERMINAL_X, TERMINAL_Y)
+        Camera.setZoom(TERMINAL_ZOOM)
+        Scene.setActive("menu")   -- déclenche menu.lua:init() qui voit _fromIntro
+
+        -- Dezoom progressif depuis le terminal : révèle le menu
+        Camera.zoomTo(1.0, ZOOM_OUT_DURATION, ZOOM_OUT_EASE)
+
+        -- Quand le dezoom est terminé, finaliser le menu (musique, UI, boutons)
+        Timer.after(ZOOM_OUT_DURATION + 0.2, function()
+            _G._fromIntro = nil
+            if _G._menuFinalize then
+                _G._menuFinalize()
+                _G._menuFinalize = nil
+            end
         end)
     end, scope)
 end
