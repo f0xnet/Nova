@@ -3,5 +3,13 @@
   "type": "interior",
   "backgroundColor": [0, 0, 0, 255],
   "script": "data/scripts/menu.lua",
-  "entities": []
+  "entities": [
+    {
+      "type": "sprite",
+      "spriteID": "menu_terminal",
+      "x": 2725,
+      "y": 1265,
+      "zOrder": 0
+    }
+  ]
 }

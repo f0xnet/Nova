@@ -21,8 +21,8 @@ local SEP_DELAY  = 0.08
 local HOLD_END   = 1.8
 local FADE_FINAL = 1.2
 
-local TERMINAL_X        = 0          -- à ajuster selon la position du terminal dans menu.scene
-local TERMINAL_Y        = 0          -- à ajuster selon la position du terminal dans menu.scene
+local TERMINAL_X        = 2725       -- centre X du terminal dans menu.scene
+local TERMINAL_Y        = 1265       -- centre Y du terminal dans menu.scene
 local TERMINAL_ZOOM     = 8.0        -- zoom suffisant pour ne voir que l'écran noir du terminal
 local ZOOM_OUT_DURATION = 2.5        -- durée du dezoom révélateur
 local ZOOM_OUT_EASE     = "easeInOut"

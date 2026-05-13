@@ -70,6 +70,14 @@
       "width": 32,
       "height": 32,
       "zOrder": 0
+    },
+    {
+      "id": "menu_terminal",
+      "texture": "data/ui/ui_assets/main_menu_terminal.png",
+      "width": 1050,
+      "height": 730,
+      "scale": 1.0,
+      "zOrder": 0
     }
   ]
 }
