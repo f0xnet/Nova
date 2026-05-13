@@ -21,11 +21,16 @@ local SEP_DELAY  = 0.08
 local HOLD_END   = 1.8
 local FADE_FINAL = 1.2
 
-local TERMINAL_X        = 2725       -- centre X du terminal dans menu.scene
-local TERMINAL_Y        = 1265       -- centre Y du terminal dans menu.scene
+local TERMINAL_X        = 2725       -- centre X du terminal dans menu.scene (world)
+local TERMINAL_Y        = 1265       -- centre Y du terminal dans menu.scene (world)
 local TERMINAL_ZOOM     = 8.0        -- zoom suffisant pour ne voir que l'écran noir du terminal
 local ZOOM_OUT_DURATION = 2.5        -- durée du dezoom révélateur
 local ZOOM_OUT_EASE     = "easeInOut"
+-- Position caméra cible en fin de dezoom : centre logique du canvas (3840/2, 2160/2).
+-- Garantit que l'entité monde (TERMINAL_X, TERMINAL_Y) coïncide avec l'élément UI
+-- placé aux mêmes coordonnées dans le canvas 3840×2160 (même système de référence).
+local MENU_CAM_X = 1920
+local MENU_CAM_Y = 1080
 
 -- Overlay CRT — ajuster selon le goût
 local CRT_SCAN_STEP    = 6     -- px entre chaque paire de scanlines
@@ -146,8 +151,10 @@ function init()
         Camera.setZoom(TERMINAL_ZOOM)
         Scene.setActive("menu")   -- déclenche menu.lua:init() qui voit _fromIntro
 
-        -- Dezoom progressif depuis le terminal : révèle le menu
+        -- Dezoom progressif + panoramique simultané vers le centre de la vue menu.
+        -- Les deux tweens sont indépendants et s'exécutent en parallèle.
         Camera.zoomTo(1.0, ZOOM_OUT_DURATION, ZOOM_OUT_EASE)
+        Camera.moveTo(MENU_CAM_X, MENU_CAM_Y, ZOOM_OUT_DURATION, ZOOM_OUT_EASE)
 
         -- Quand le dezoom est terminé, finaliser le menu (musique, UI, boutons)
         Timer.after(ZOOM_OUT_DURATION + 0.2, function()
